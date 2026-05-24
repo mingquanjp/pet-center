@@ -7,6 +7,8 @@ frontend/.next
 backend/dist
 frontend/pnpm-lock.yaml
 frontend/pnpm-workspace.yaml
+frontend/dev-server.*.log
+backend/dev-server.*.log
 
 .env
 .env.local
