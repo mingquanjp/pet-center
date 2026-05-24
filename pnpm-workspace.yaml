@@ -2,6 +2,6 @@ packages:
   - "frontend"
   - "backend"
 allowBuilds:
-  esbuild: false
-  sharp: false
-  unrs-resolver: false
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
