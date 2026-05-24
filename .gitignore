@@ -5,6 +5,8 @@ backend/node_modules
 
 frontend/.next
 backend/dist
+frontend/pnpm-lock.yaml
+frontend/pnpm-workspace.yaml
 
 .env
 .env.local
