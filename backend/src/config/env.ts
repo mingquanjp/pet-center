@@ -6,7 +6,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8080),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters").default("pet-center-local-development-secret-key"),
+  JWT_SECRET: z.string().min(1, "JWT_SECRET is required").default("pet-center-local-development-secret-key"),
   JWT_EXPIRES_IN_SECONDS: z.coerce.number().int().positive().default(60 * 60 * 24)
 });
 
