@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conceptual ERD Model - Pet Center</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f4;
+      --paper: #ffffff;
+      --ink: #202124;
+      --muted: #62666d;
+      --line: #d9dde3;
+      --accent: #0f766e;
+      --accent-strong: #115e59;
+      --accent-soft: #e6f3f1;
+      --code: #f2f4f7;
+      --table-head: #f7f9fb;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.55;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    aside {
+      background: #ffffff;
+      border-right: 1px solid var(--line);
+      height: 100vh;
+      overflow: auto;
+      padding: 24px 18px;
+      position: sticky;
+      top: 0;
+    }
+
+    main {
+      max-width: 1180px;
+      padding: 34px 28px 64px;
+      width: 100%;
+    }
+
+    header {
+      border-bottom: 3px solid var(--accent);
+      margin-bottom: 26px;
+      padding-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 34px;
+      line-height: 1.15;
+      margin: 0 0 8px;
+    }
+
+    h2 {
+      font-size: 24px;
+      line-height: 1.25;
+      margin: 34px 0 14px;
+    }
+
+    h3 {
+      color: var(--accent-strong);
+      font-size: 20px;
+      line-height: 1.25;
+      margin: 0 0 10px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    a {
+      color: var(--accent-strong);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code {
+      background: var(--code);
+      border: 1px solid #e7eaf0;
+      border-radius: 5px;
+      font-family: Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.94em;
+      padding: 1px 5px;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin: 14px 0 18px;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 9px 11px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--table-head);
+      color: #32373f;
+      font-weight: 700;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fbfcfd;
+    }
+
+    .source {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .toc-title {
+      border-bottom: 2px solid var(--accent);
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+    }
+
+    .toc-group {
+      margin: 18px 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .toc-list {
+      display: grid;
+      gap: 2px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .toc-list a {
+      border-radius: 6px;
+      color: #2f353d;
+      display: block;
+      font-size: 14px;
+      padding: 6px 8px;
+      text-decoration: none;
+    }
+
+    .toc-list a:hover {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .entity {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      margin: 18px 0;
+      overflow: hidden;
+    }
+
+    .entity-header {
+      background: var(--accent-soft);
+      border-bottom: 1px solid var(--line);
+      padding: 17px 20px;
+    }
+
+    .entity-body {
+      padding: 18px 20px 22px;
+    }
+
+    .entity-description {
+      color: #30353c;
+      margin-top: 0;
+    }
+
+    .relationship-list {
+      margin: 8px 0 0;
+      padding-left: 22px;
+    }
+
+    .relationship-list li {
+      margin: 5px 0;
+    }
+
+    .section-card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .section-card .content {
+      padding: 18px 20px 22px;
+    }
+
+    .note-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 18px 0;
+    }
+
+    .note-list {
+      margin: 8px 0 0;
+      padding-left: 22px;
+    }
+
+    .note-list li {
+      margin: 6px 0;
+    }
+
+    pre {
+      background: #111827;
+      border-radius: 8px;
+      color: #e5e7eb;
+      font-family: Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 14px 0 0;
+      overflow-x: auto;
+      padding: 16px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 22px 0 8px;
+    }
+
+    .metric {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 26px;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      color: var(--muted);
+      display: block;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        display: block;
+      }
+
+      aside {
+        height: auto;
+        max-height: 38vh;
+        position: static;
+      }
+
+      main {
+        padding: 28px 18px 48px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .note-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      h1 {
+        font-size: 28px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      th,
+      td {
+        padding: 8px;
+      }
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      .layout {
+        display: block;
+      }
+
+      aside {
+        display: none;
+      }
+
+      main {
+        max-width: none;
+        padding: 0;
+      }
+
+      .entity,
+      .section-card,
+      .metric {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <div class="toc-title">Pet Center ERD</div>
+      <div class="toc-group">Tổng quan</div>
+      <ul class="toc-list">
+        <li><a href="#overview">Tóm tắt</a></li>
+        <li><a href="#review-basis">Cơ sở review</a></li>
+        <li><a href="#design-principles">Nguyên tắc thiết kế</a></li>
+        <li><a href="#design-assumptions">Giả định thiết kế</a></li>
+        <li><a href="#entities">Thực thể</a></li>
+        <li><a href="#relationships">Quan hệ cần vẽ</a></li>
+        <li><a href="#mermaid">Mermaid ERD</a></li>
+        <li><a href="#review-notes">Ghi chú review</a></li>
+      </ul>
+      <div class="toc-group">Thực thể</div>
+      <ul class="toc-list" id="tocEntities"></ul>
+    </aside>
+
+    <main>
+      <header id="overview">
+        <h1>Conceptual ERD Model - Pet Center</h1>
+      </header>
+
+      <div class="summary-grid">
+        <div class="metric">
+          <strong id="entityCount">24</strong>
+          <span>thực thể chính</span>
+        </div>
+        <div class="metric">
+          <strong id="relationshipCount">39</strong>
+          <span>quan hệ tổng hợp</span>
+        </div>
+        <div class="metric">
+          <strong>4</strong>
+          <span>nhóm nghiệp vụ lớn</span>
+        </div>
+        <div class="metric">
+          <strong>1</strong>
+          <span>mô hình ERD khái niệm</span>
+        </div>
+      </div>
+      <h2 id="entities">Thực thể</h2>
+      <div id="entityList"></div>
+
+      <h2 id="relationships">Quan hệ cần vẽ</h2>
+      <section class="section-card">
+        <div class="content">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Quan hệ</th>
+                  <th>Cardinality</th>
+                  <th>Ý nghĩa</th>
+                </tr>
+              </thead>
+              <tbody id="relationshipRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <h2 id="mermaid">Mermaid ERD Reference</h2>
+      <section class="section-card">
+        <div class="content">
+          <p>Đây là sơ đồ rút gọn để vẽ lại bằng công cụ ERD. Attributes chỉ là đại diện, không phải schema cuối.</p>
+          <pre><code>erDiagram
+    USER ||--o{ PET : owns
+
+    PET ||--o| PET_HEALTH_PROFILE : has
+    PET ||--o{ VACCINATION : has
+    MEDICAL_EXAM ||--o{ VACCINATION : records
+    PET ||--o{ MEDICAL_APPOINTMENT : booked_for
+    SERVICE ||--o{ EXAM_TYPE : represents
+    EXAM_TYPE ||--o{ MEDICAL_APPOINTMENT : selected_for
+    USER ||--o{ MEDICAL_APPOINTMENT : creates_or_assigned
+    USER ||--o{ MEDICAL_APPOINTMENT : handles
+    MEDICAL_APPOINTMENT ||--o| MEDICAL_EXAM : produces
+    USER ||--o{ MEDICAL_EXAM : performs
+    EXAM_TYPE ||--o{ MEDICAL_EXAM : used_by
+    EXAM_TYPE ||--o{ EXAM_FIELD_DEFINITION : defines
+    MEDICAL_EXAM ||--o{ MEDICAL_EXAM_FIELD_VALUE : stores
+    EXAM_FIELD_DEFINITION ||--o{ MEDICAL_EXAM_FIELD_VALUE : receives
+    MEDICAL_EXAM ||--o| PRESCRIPTION : has
+    PRESCRIPTION ||--o{ PRESCRIPTION_ITEM : contains
+    MEDICINE ||--o{ PRESCRIPTION_ITEM : selected_as
+    MEDICAL_EXAM ||--o| FOLLOW_UP_INSTRUCTION : has
+
+    SERVICE ||--o{ SERVICE_PRICE_RULE : has
+    PET ||--o{ GROOMING_TICKET : uses
+    USER ||--o{ GROOMING_TICKET : owns_or_creates
+    GROOMING_TICKET ||--o{ GROOMING_TICKET_ITEM : contains
+    SERVICE ||--o{ GROOMING_TICKET_ITEM : selected_as
+
+    ROOM_TYPE ||--o{ BOARDING_RECORD : selected_for
+    PET ||--o{ BOARDING_RECORD : stays_in
+    USER ||--o{ BOARDING_RECORD : creates
+    USER ||--o{ BOARDING_RECORD : handles
+    BOARDING_RECORD ||--o{ BOARDING_UPDATE : has
+    USER ||--o{ BOARDING_UPDATE : creates
+
+    USER ||--o{ INVOICE : receives
+    PET ||--o{ INVOICE : generates
+    INVOICE ||--o{ INVOICE_LINE : contains
+    SERVICE ||--o{ INVOICE_LINE : reported_as
+    INVOICE ||--o{ PAYMENT : has
+    USER ||--o{ NOTIFICATION : receives</code></pre>
+        </div>
+      </section>
+
+      <h2 id="review-notes">Ghi chú review</h2>
+    </main>
+  </div>
+
+  <script>
+    const entities = [
+      {
+        name: "User",
+        description: "Đại diện cho tất cả người dùng có tài khoản trong hệ thống: chủ nuôi, nhân viên, bác sĩ thú y, quản trị viên.",
+        attributes: [
+          ["userId", "Định danh người dùng", "U001"],
+          ["fullName", "Họ tên người dùng", "Nguyễn Hoàng Anh"],
+          ["email", "Email đăng nhập", "hoanganh@gmail.com"],
+          ["passwordHash", "Mật khẩu đã hash", "bcrypt..."],
+          ["phoneNumber", "Số điện thoại liên hệ", "0913123321"],
+          ["address", "Địa chỉ liên hệ", "Hà Nội"],
+          ["role", "Vai trò cố định của user", "PetOwner, Staff, Veterinarian, Administrator"],
+          ["accountStatus", "Trạng thái tài khoản", "active, locked, inactive"],
+          ["createdAt", "Thời điểm tạo tài khoản", "2026-05-01"]
+        ],
+        relationships: [
+          "Một chủ nuôi `User` có thể sở hữu nhiều bản ghi `Pet`.",
+          "Một bác sĩ thú y `User` có thể được phân công cho nhiều bản ghi `MedicalAppointment`.",
+          "Một nhân viên `User` có thể tạo/cập nhật nhiều bản ghi `GroomingTicket`, `BoardingRecord`, `BoardingUpdate` và `Invoice`.",
+          "Một quản trị viên `User` có thể xem báo cáo, nhưng báo cáo là dữ liệu dẫn xuất và không được mô hình hóa thành thực thể riêng."
+        ]
+      },
+      {
+        name: "Pet",
+        description: "Đại diện cho hồ sơ định danh của từng thú cưng.",
+        attributes: [
+          ["petId", "Định danh thú cưng", "PET001"],
+          ["petName", "Tên thú cưng", "Milo"],
+          ["species", "Loài thú cưng", "Dog, Cat"],
+          ["breed", "Giống", "Poodle"],
+          ["gender", "Giới tính", "male, female"],
+          ["birthDate", "Ngày sinh nếu biết", "2022-12-12"],
+          ["estimatedAge", "Tuổi ước tính nếu không có ngày sinh", "2"],
+          ["furColor", "Màu lông", "White"],
+          ["weightKg", "Cân nặng gần nhất", "5.5"],
+          ["profileImageUrl", "Ảnh nhận diện", "milo.png"],
+          ["identifyingMarks", "Đặc điểm riêng", "Black spot on leg"],
+          ["petStatus", "Trạng thái hồ sơ", "active"]
+        ],
+        relationships: [
+          "Một chủ nuôi `User` có thể sở hữu nhiều bản ghi `Pet`.",
+          "Một `Pet` có tối đa một `PetHealthProfile`.",
+          "Một `Pet` có thể có nhiều bản ghi `Vaccination`, `MedicalAppointment`, `GroomingTicket`, `BoardingRecord` và `Invoice`."
+        ]
+      },
+      {
+        name: "PetHealthProfile",
+        description: "Đại diện cho thông tin y tế nền và dinh dưỡng của thú cưng.",
+        attributes: [
+          ["healthProfileId", "Định danh hồ sơ sức khỏe", "HP001"],
+          ["medicalHistory", "Tiền sử bệnh án", "Previous skin inflammation"],
+          ["allergyNotes", "Dị ứng cần lưu ý", "Seafood allergy"],
+          ["chronicConditionNotes", "Bệnh mạn tính", "None"],
+          ["foodType", "Loại thức ăn phù hợp", "Dry food"],
+          ["feedingPortion", "Khẩu phần ăn", "3 meals/day"],
+          ["specialCareNotes", "Lưu ý chăm sóc", "Avoid strong-scent shampoo"],
+          ["updatedAt", "Lần cập nhật gần nhất", "2026-05-10"]
+        ],
+        relationships: [
+          "Một `Pet` có tối đa một `PetHealthProfile`.",
+          "Một `PetHealthProfile` thuộc về đúng một `Pet`."
+        ]
+      },
+      {
+        name: "Vaccination",
+        description: "Đại diện cho từng lần tiêm vaccine của thú cưng.",
+        attributes: [
+          ["vaccinationId", "Định danh bản ghi tiêm", "VC001"],
+          ["examId", "Phiếu khám tạo ra bản ghi tiêm chủng nếu có", "EX001"],
+          ["vaccineName", "Tên vaccine", "Rabies"],
+          ["vaccinationDate", "Ngày tiêm", "2026-04-01"],
+          ["note", "Ghi chú của bác sĩ", "Repeat after 1 year"]
+        ],
+        relationships: [
+          "Một `Pet` có thể có nhiều bản ghi `Vaccination`.",
+          "Một `MedicalExam` có thể tạo nhiều bản ghi `Vaccination` khi loại khám là tiêm chủng.",
+          "Mỗi `Vaccination` thuộc về đúng một `Pet`."
+        ]
+      },
+      {
+        name: "MedicalAppointment",
+        description: "Đại diện cho lịch hẹn khám bệnh do chủ nuôi đặt và nhân viên tiếp nhận.",
+        attributes: [
+          ["appointmentId", "Định danh lịch khám", "BK-7789"],
+          ["examTypeId", "Loại khám được chọn khi đặt lịch", "ET001"],
+          ["scheduledAt", "Ngày giờ hẹn", "2026-05-01 09:00"],
+          ["symptomDescription", "Triệu chứng ban đầu", "Not eating for 2 days"],
+          ["appointmentStatus", "Trạng thái lịch", "pending_payment, pending, confirmed, rejected, cancelled"],
+          ["internalNote", "Ghi chú cho nhân viên/bác sĩ thú y", "Check skin carefully"],
+          ["rejectionReason", "Lý do từ chối nếu có", "Veterinarian fully booked"],
+          ["handledByStaffId", "Nhân viên tiếp nhận/xác nhận/từ chối lịch", "U010"]
+        ],
+        relationships: [
+          "Một chủ nuôi `User` có thể tạo nhiều bản ghi `MedicalAppointment`.",
+          "Một `Pet` có thể có nhiều bản ghi `MedicalAppointment`.",
+          "Một `ExamType` có thể được dùng bởi nhiều bản ghi `MedicalAppointment`.",
+          "Một nhân viên `User` có thể xử lý nhiều bản ghi `MedicalAppointment`.",
+          "Một bác sĩ thú y `User` có thể được phân công cho nhiều bản ghi `MedicalAppointment`.",
+          "Một `MedicalAppointment` có tối đa một `MedicalExam`."
+        ]
+      },
+      {
+        name: "MedicalExam",
+        description: "Đại diện cho phiếu khám của một appointment. Thực thể này giữ các thông tin lõi dùng chung cho mọi loại khám; các field riêng theo từng loại khám được lưu bằng `MedicalExamFieldValue`.",
+        attributes: [
+          ["examId", "Định danh phiếu khám", "EX001"],
+          ["examTypeId", "Loại form khám áp dụng cho phiếu", "ET001"],
+          ["diagnosis", "Chẩn đoán", "Mild respiratory infection"],
+          ["conclusion", "Kết luận khám", "Monitor for 3 days"],
+          ["healthNote", "Ghi chú thêm", "Avoid strong activity"],
+          ["examStatus", "Trạng thái phiếu khám", "result_recorded, prescribed, follow_up_required"],
+          ["examDate", "Ngày thực hiện khám", "2026-05-01"],
+          ["examinedByVeterinarianId", "Bác sĩ thực hiện phiếu khám", "U020"]
+        ],
+        relationships: [
+          "Một `MedicalAppointment` có tối đa một `MedicalExam`.",
+          "Một `ExamType` có thể được dùng bởi nhiều bản ghi `MedicalExam`.",
+          "Một `MedicalExam` được thực hiện bởi một bác sĩ thú y `User`.",
+          "Một `MedicalExam` có không hoặc nhiều bản ghi `MedicalExamFieldValue`.",
+          "Một `MedicalExam` có thể có một `Prescription`.",
+          "Một `MedicalExam` có thể có một `FollowUpInstruction`."
+        ]
+      },
+      {
+        name: "ExamType",
+        description: "Đại diện cho loại phiếu khám và form khám tương ứng. Thực thể này giúp màn hình bác sĩ biết loại khám nào cần hiển thị bộ field nào.",
+        attributes: [
+          ["examTypeId", "Định danh loại khám", "ET001"],
+          ["typeCode", "Mã loại khám dùng trong hệ thống", "general_checkup, vaccination, lab_test, recheck"],
+          ["typeName", "Tên loại khám hiển thị", "General Checkup"],
+          ["description", "Mô tả loại khám", "Khám tổng quát"],
+          ["serviceId", "Dịch vụ y tế tương ứng để tính giá/báo cáo", "SV001"],
+          ["typeStatus", "Trạng thái loại khám", "active"]
+        ],
+        relationships: [
+          "Một `ExamType` có thể có nhiều bản ghi `ExamFieldDefinition`.",
+          "Một `ExamType` có thể được chọn bởi nhiều bản ghi `MedicalAppointment`.",
+          "Một `ExamType` có thể được dùng bởi nhiều bản ghi `MedicalExam`.",
+          "Một `ExamType` có thể liên kết tới một `Service` y tế."
+        ]
+      },
+      {
+        name: "ExamFieldDefinition",
+        description: "Đại diện cho cấu hình field cần hiển thị trong form của từng `ExamType`.",
+        attributes: [
+          ["fieldDefinitionId", "Định danh field cấu hình", "EFD001"],
+          ["examTypeId", "Loại khám sở hữu field này", "ET002"],
+          ["fieldName", "Tên field dùng trong hệ thống", "vaccineName"],
+          ["fieldLabel", "Nhãn hiển thị trên form", "Tên vaccine"],
+          ["fieldType", "Kiểu dữ liệu của field", "text, number, date, select, file"],
+          ["isRequired", "Field có bắt buộc nhập hay không", "true"],
+          ["displayOrder", "Thứ tự hiển thị trên form", "1"],
+          ["optionSource", "Nguồn option nếu là select", "vaccine_catalog"],
+          ["validationRule", "Quy tắc validate nếu có", "maxLength:100"],
+          ["fieldStatus", "Trạng thái field", "active"]
+        ],
+        relationships: [
+          "Một `ExamType` có nhiều bản ghi `ExamFieldDefinition`.",
+          "Một `ExamFieldDefinition` có thể nhận nhiều bản ghi `MedicalExamFieldValue`."
+        ]
+      },
+      {
+        name: "MedicalExamFieldValue",
+        description: "Đại diện cho giá trị bác sĩ nhập vào từng field của một phiếu khám.",
+        attributes: [
+          ["fieldValueId", "Định danh giá trị field", "EFV001"],
+          ["examId", "Phiếu khám mà giá trị này thuộc về", "EX001"],
+          ["fieldDefinitionId", "Field cấu hình mà giá trị này đang điền vào", "EFD001"],
+          ["valueText", "Giá trị dạng text", "Rabies"],
+          ["valueNumber", "Giá trị dạng số nếu field là number", "5.5"],
+          ["valueDate", "Giá trị ngày nếu field là date", "2026-05-24"],
+          ["fileUrl", "Tệp đính kèm nếu field là file", "/exam-files/lab-result.pdf"],
+          ["createdAt", "Thời điểm lưu giá trị", "2026-05-24 09:30"]
+        ],
+        relationships: [
+          "Một `MedicalExam` có không hoặc nhiều bản ghi `MedicalExamFieldValue`.",
+          "Mỗi `MedicalExamFieldValue` thuộc về đúng một `ExamFieldDefinition`."
+        ]
+      },
+      {
+        name: "Medicine",
+        description: "Đại diện cho danh mục thuốc do quản trị viên quản lý và bác sĩ thú y sử dụng khi kê đơn.",
+        attributes: [
+          ["medicineId", "Định danh thuốc", "MED001"],
+          ["medicineName", "Tên thuốc", "Amoxicillin"],
+          ["unit", "Đơn vị dùng/tính", "tablet, bottle, packet"],
+          ["description", "Mô tả thuốc", "Antibiotic for infection treatment"],
+          ["usageNote", "Lưu ý sử dụng chung", "Use after meal"],
+          ["unitPrice", "Đơn giá nếu thuốc được tính phí", "50000"],
+          ["medicineStatus", "Trạng thái thuốc", "active, inactive"]
+        ],
+        relationships: [
+          "Một `Medicine` có thể xuất hiện trong nhiều bản ghi `PrescriptionItem`.",
+          "Quản trị viên có thể quản lý các bản ghi `Medicine`."
+        ]
+      },
+      {
+        name: "Prescription",
+        description: "Đại diện cho đơn thuốc sau khi khám.",
+        attributes: [
+          ["prescriptionId", "Định danh đơn thuốc", "PR001"],
+          ["prescribedAt", "Ngày kê đơn", "2026-05-01"],
+          ["generalNote", "Ghi chú chung", "Stop medication if allergic reaction appears"]
+        ],
+        relationships: [
+          "Một `MedicalExam` có tối đa một `Prescription`.",
+          "Một `Prescription` có nhiều bản ghi `PrescriptionItem`."
+        ]
+      },
+      {
+        name: "PrescriptionItem",
+        description: "Đại diện cho từng loại thuốc trong đơn.",
+        attributes: [
+          ["prescriptionItemId", "Định danh dòng thuốc", "PRI001"],
+          ["medicineId", "Thuốc được chọn từ danh mục", "MED001"],
+          ["medicineName", "Tên thuốc", "Amoxicillin"],
+          ["dosage", "Liều lượng", "1 tablet/time"],
+          ["frequency", "Số lần dùng", "2 times/day"],
+          ["duration", "Thời gian dùng", "5 days"],
+          ["usageInstruction", "Hướng dẫn sử dụng", "Take after meal"],
+          ["note", "Lưu ý riêng", "Watch for allergy"]
+        ],
+        relationships: [
+          "Một `Prescription` có nhiều bản ghi `PrescriptionItem`.",
+          "Mỗi `PrescriptionItem` thuộc về đúng một `Prescription`.",
+          "Mỗi `PrescriptionItem` tham chiếu tới một `Medicine`."
+        ]
+      },
+      {
+        name: "FollowUpInstruction",
+        description: "Đại diện cho yêu cầu tái khám sau một lần khám.",
+        attributes: [
+          ["followUpId", "Định danh chỉ định tái khám", "FU001"],
+          ["followUpDate", "Ngày cần tái khám", "2026-05-20"],
+          ["reason", "Lý do tái khám", "Recheck respiratory condition"],
+          ["ownerNote", "Ghi chú cho chủ nuôi", "Bring old prescription"]
+        ],
+        relationships: [
+          "Một `MedicalExam` có tối đa một `FollowUpInstruction`."
+        ]
+      },
+      {
+        name: "Service",
+        description: "Đại diện cho danh mục dịch vụ mà trung tâm cung cấp.",
+        attributes: [
+          ["serviceId", "Định danh dịch vụ", "SV001"],
+          ["serviceName", "Tên dịch vụ", "Bathing, Nail trimming"],
+          ["serviceCategory", "Nhóm dịch vụ", "medical, grooming, boarding, medicine, other"],
+          ["description", "Mô tả dịch vụ", "Bath and dry"],
+          ["estimatedDurationMinutes", "Thời lượng dự kiến", "45"],
+          ["basePrice", "Giá tham khảo", "150000"],
+          ["serviceStatus", "Đang hoạt động hay tạm ngừng", "active"]
+        ],
+        relationships: [
+          "Một `Service` có thể xuất hiện trong nhiều bản ghi `GroomingTicketItem`.",
+          "Một `Service` có thể xuất hiện trong nhiều bản ghi `InvoiceLine`.",
+          "Một `Service` có thể có nhiều bản ghi `ServicePriceRule`."
+        ]
+      },
+      {
+        name: "ServicePriceRule",
+        description: "Đại diện cho quy tắc giá theo dịch vụ, cân nặng hoặc điều kiện áp dụng. Thực thể này được giữ lại vì HTML user story Spa yêu cầu hiển thị bảng giá theo cân nặng.",
+        attributes: [
+          ["priceRuleId", "Định danh mức giá", "SPR001"],
+          ["pricingCondition", "Điều kiện tính giá", "Under 5kg"],
+          ["priceAmount", "Giá tiền", "150000"],
+          ["effectiveFrom", "Ngày bắt đầu áp dụng", "2026-05-01"],
+          ["priceStatus", "Trạng thái bảng giá", "active"]
+        ],
+        relationships: [
+          "Một `Service` có thể có nhiều bản ghi `ServicePriceRule`.",
+          "Mỗi `ServicePriceRule` thuộc về đúng một `Service`."
+        ]
+      },
+      {
+        name: "GroomingTicket",
+        description: "Đại diện cho một lần đặt/tạo phiếu sử dụng dịch vụ grooming/spa. Có thể đến từ online booking hoặc được nhân viên tạo tại quầy.",
+        attributes: [
+          ["groomingTicketId", "Định danh grooming ticket", "GR-20260429-001"],
+          ["sourceType", "Nguồn tạo", "online, counter"],
+          ["scheduledAt", "Thời gian đặt hẹn", "2026-05-15 09:00"],
+          ["receivedAt", "Thời gian tiếp nhận thực tế", "2026-05-15 09:05"],
+          ["specialRequest", "Yêu cầu riêng", "Avoid strong-scent shampoo"],
+          ["estimatedTotal", "Tổng tiền dự kiến", "350000"],
+          ["ticketStatus", "Trạng thái xử lý", "pending_payment, pending, waiting, in_progress, completed, cancelled"],
+          ["ownerUserId", "Chủ nuôi của thú cưng sử dụng dịch vụ", "U001"],
+          ["createdByUserId", "Người tạo ticket, có thể là chủ nuôi hoặc nhân viên", "U010"]
+        ],
+        relationships: [
+          "Một chủ nuôi `User` có thể có nhiều bản ghi `GroomingTicket`.",
+          "Một `User` có thể tạo nhiều bản ghi `GroomingTicket`.",
+          "Một `Pet` có thể có nhiều bản ghi `GroomingTicket`.",
+          "Một `GroomingTicket` có nhiều bản ghi `GroomingTicketItem`.",
+          "Capacity grooming được kiểm tra bằng cách đếm các service unit đã booked/in-progress trong cùng khung 1 giờ rồi so với số staff active nhân 2. Ví dụ: 5 staff active xử lý được 10 service unit từ 09:00 đến 10:00; service unit thứ 11 trong khung đó bị từ chối vì đã đầy."
+        ]
+      },
+      {
+        name: "GroomingTicketItem",
+        description: "Thực thể liên kết giữa `GroomingTicket` và `Service`, vì một ticket có thể gồm nhiều service và mỗi service có giá tại thời điểm sử dụng.",
+        attributes: [
+          ["groomingTicketItemId", "Định danh dòng chi tiết", "GTI001"],
+          ["quantity", "Số lượng dịch vụ", "1"],
+          ["appliedUnitPrice", "Đơn giá tại thời điểm tạo ticket", "150000"],
+          ["lineAmount", "Thành tiền dòng dịch vụ", "150000"]
+        ],
+        relationships: [
+          "Mỗi `GroomingTicketItem` thuộc về một `GroomingTicket`.",
+          "Mỗi `GroomingTicketItem` tham chiếu tới một `Service`."
+        ]
+      },
+      {
+        name: "RoomType",
+        description: "Đại diện cho loại phòng/chuồng boarding và sức chứa.",
+        attributes: [
+          ["roomTypeId", "Định danh loại phòng", "RT001"],
+          ["roomTypeName", "Tên loại phòng", "VIP room"],
+          ["capacity", "Số lượng thú cưng tối đa", "10"],
+          ["boardingUnitPrice", "Đơn giá theo ngày/đêm", "200000"],
+          ["description", "Mô tả tiện ích", "Area A, air conditioning"],
+          ["roomTypeStatus", "Trạng thái", "active"]
+        ],
+        relationships: [
+          "Một `RoomType` có thể được dùng bởi nhiều bản ghi `BoardingRecord`."
+        ]
+      },
+      {
+        name: "BoardingRecord",
+        description: "Đại diện cho yêu cầu đặt phòng và quá trình lưu trú của thú cưng.",
+        attributes: [
+          ["boardingRecordId", "Định danh boarding record", "BR-005"],
+          ["plannedCheckInDate", "Ngày nhận phòng dự kiến", "2026-04-30"],
+          ["plannedCheckOutDate", "Ngày trả phòng dự kiến", "2026-05-05"],
+          ["actualCheckInAt", "Giờ nhận thực tế", "2026-04-30 09:30"],
+          ["actualCheckOutAt", "Giờ trả thực tế", "2026-05-05 17:00"],
+          ["careRequest", "Yêu cầu ăn uống/sức khỏe", "Dry food 3 meals/day"],
+          ["estimatedTotal", "Tổng tiền dự kiến", "1000000"],
+          ["boardingStatus", "Trạng thái lưu trú", "pending_payment, pending, confirmed, staying, checked_out, rejected, cancelled"],
+          ["rejectionReason", "Lý do từ chối nếu có", "Fully booked"],
+          ["handledByStaffId", "Nhân viên xác nhận/check-in/check-out boarding record", "U010"]
+        ],
+        relationships: [
+          "Một chủ nuôi `User` có thể có nhiều bản ghi `BoardingRecord`.",
+          "Một nhân viên `User` có thể xử lý nhiều bản ghi `BoardingRecord`.",
+          "Một `Pet` có thể có nhiều bản ghi `BoardingRecord`.",
+          "Một `RoomType` có thể có nhiều bản ghi `BoardingRecord`.",
+          "Một `BoardingRecord` có nhiều bản ghi `BoardingUpdate`."
+        ]
+      },
+      {
+        name: "BoardingUpdate",
+        description: "Đại diện cho ghi chú, nhật ký chăm sóc, ảnh/video và cảnh báo trong quá trình boarding.",
+        attributes: [
+          ["boardingUpdateId", "Định danh cập nhật", "BU001"],
+          ["updatedAt", "Thời điểm cập nhật", "2026-05-01 08:00"],
+          ["updateNote", "Nội dung cập nhật", "Pet ate well and slept well"],
+          ["attachmentUrl", "Ảnh/video nếu có", "update.mp4"],
+          ["alertLevel", "Mức cảnh báo sức khỏe", "normal, attention, urgent"],
+          ["visibilityStatus", "Nháp hay đã gửi cho chủ nuôi", "draft, published"]
+        ],
+        relationships: [
+          "Một `BoardingRecord` có nhiều bản ghi `BoardingUpdate`.",
+          "Mỗi `BoardingUpdate` được tạo bởi một nhân viên `User`."
+        ]
+      },
+      {
+        name: "Invoice",
+        description: "Đại diện cho hóa đơn tổng hợp các dịch vụ chưa thanh toán của thú cưng/chủ nuôi.",
+        attributes: [
+          ["invoiceId", "Định danh hóa đơn", "INV001"],
+          ["issuedAt", "Ngày lập hóa đơn", "2026-05-01"],
+          ["subtotalAmount", "Tổng trước điều chỉnh", "500000"],
+          ["discountAmount", "Tổng giảm giá", "50000"],
+          ["surchargeAmount", "Tổng phụ thu", "0"],
+          ["totalAmount", "Số tiền cần thanh toán", "450000"],
+          ["paymentOption", "Cách khách chọn thanh toán", "online, counter"],
+          ["paymentDueAt", "Hạn thanh toán", "2026-05-02 10:00"],
+          ["invoiceStatus", "Trạng thái hóa đơn", "draft, pending_payment, paid, cancelled, refunded"]
+        ],
+        relationships: [
+          "Một chủ nuôi `User` có nhiều bản ghi `Invoice`.",
+          "Một `Pet` có nhiều bản ghi `Invoice`.",
+          "Một `Invoice` có nhiều bản ghi `InvoiceLine`.",
+          "Một `Invoice` có thể có nhiều lần thử `Payment`, nhưng thường chỉ có một thanh toán thành công."
+        ]
+      },
+      {
+        name: "InvoiceLine",
+        description: "Đại diện cho từng dòng dịch vụ/phí trong hóa đơn.",
+        attributes: [
+          ["invoiceLineId", "Định danh dòng hóa đơn", "IL001"],
+          ["serviceId", "Dịch vụ dùng để tính/phân loại doanh thu", "SV001"],
+          ["sourceType", "Nguồn phát sinh phí", "medical_exam, grooming, boarding, prescription"],
+          ["sourceId", "Mã record liên quan", "EX001, GR001, BR001"],
+          ["description", "Mô tả dòng phí", "Pet bathing service"],
+          ["quantity", "Số lượng", "1"],
+          ["unitPrice", "Đơn giá", "150000"],
+          ["lineDiscountAmount", "Giảm giá dòng", "0"],
+          ["lineAmount", "Thành tiền", "150000"]
+        ],
+        relationships: [
+          "Một `Invoice` có nhiều bản ghi `InvoiceLine`.",
+          "Mỗi `InvoiceLine` thuộc về đúng một `Invoice`.",
+          "Mỗi `InvoiceLine` có thể tham chiếu tới một `Service` để nhóm doanh thu.",
+          "Một `InvoiceLine` có thể tham chiếu tới `MedicalExam`, `GroomingTicket`, `BoardingRecord` hoặc `Prescription` ở cấp nghiệp vụ."
+        ]
+      },
+      {
+        name: "Payment",
+        description: "Đại diện cho giao dịch thanh toán của hóa đơn.",
+        attributes: [
+          ["paymentId", "Định danh thanh toán", "PAY001"],
+          ["paymentMethod", "Phương thức thanh toán thực tế", "e_wallet, online_bank_card, cash_at_counter, card_at_counter"],
+          ["paymentProvider", "Cổng thanh toán", "MockBank"],
+          ["transactionCode", "Mã giao dịch trả về", "GD99882211"],
+          ["paidAmount", "Số tiền thanh toán", "450000"],
+          ["paidAt", "Thời điểm thanh toán", "2026-05-01 10:30"],
+          ["paymentStatus", "Trạng thái giao dịch", "success, failed, cancelled"],
+          ["receiptCode", "Mã biên lai điện tử do hệ thống phát hành", "RCPT-20260523-0001"],
+          ["receiptUrl", "Đường dẫn file biên lai nếu có xuất PDF/HTML", "/receipts/RCPT-20260523-0001.pdf"]
+        ],
+        relationships: [
+          "Một `Invoice` có thể có nhiều bản ghi `Payment`. `Payment` chỉ được tạo khi có giao dịch thanh toán thực tế.",
+          "Mỗi `Payment` thuộc về đúng một `Invoice`."
+        ]
+      },
+      {
+        name: "Notification",
+        description: "Đại diện cho thông báo gửi đến người dùng: nhắc tái khám, nhắc đón thú cưng, grooming hoàn tất, thanh toán thành công.",
+        attributes: [
+          ["notificationId", "Định danh thông báo", "NTF001"],
+          ["title", "Tiêu đề thông báo", "Grooming completed"],
+          ["message", "Nội dung thông báo", "Milo has completed grooming service"],
+          ["deliveryChannel", "Kênh thông báo", "app, email, sms"],
+          ["createdAt", "Thời điểm tạo", "2026-05-01 11:00"],
+          ["notificationStatus", "Trạng thái đọc/gửi", "unread, read, failed"],
+          ["relatedObjectType", "Nghiệp vụ liên quan", "GroomingTicket, Invoice, FollowUpInstruction"],
+          ["relatedObjectId", "Mã đối tượng liên quan", "GR001"]
+        ],
+        relationships: [
+          "Một `User` có thể nhận nhiều bản ghi `Notification`.",
+          "Mỗi `Notification` thuộc về đúng một receiver `User`."
+        ]
+      }
+    ];
+
+    const relationshipsToDraw = [
+      ["User - Pet", "1 - N", "Một chủ nuôi có thể sở hữu nhiều thú cưng; một thú cưng có một chủ sở hữu chính."],
+      ["Pet - PetHealthProfile", "1 - 0..1", "Mỗi thú cưng có thể có tối đa một hồ sơ sức khỏe."],
+      ["Pet - Vaccination", "1 - N", "Một thú cưng có nhiều bản ghi tiêm chủng."],
+      ["MedicalExam - Vaccination", "1 - 0..N", "Một phiếu khám có thể tạo các bản ghi lịch sử tiêm chủng."],
+      ["Pet - MedicalAppointment", "1 - N", "Một thú cưng có thể có nhiều lịch hẹn khám."],
+      ["Service - ExamType", "1 - N", "Một dịch vụ y tế có thể được biểu diễn bởi một hoặc nhiều loại khám."],
+      ["ExamType - MedicalAppointment", "1 - N", "Một loại khám có thể được chọn trong nhiều lịch hẹn."],
+      ["User(PetOwner) - MedicalAppointment", "1 - N", "Một chủ nuôi có thể tạo nhiều lịch hẹn khám."],
+      ["User(Staff) - MedicalAppointment", "1 - N", "Một nhân viên có thể xử lý/xác nhận/từ chối nhiều lịch hẹn."],
+      ["User(Veterinarian) - MedicalAppointment", "1 - N", "Một bác sĩ thú y có thể được phân công cho nhiều lịch hẹn."],
+      ["User(Veterinarian) - MedicalExam", "1 - N", "Một bác sĩ thú y có thể thực hiện nhiều phiếu khám."],
+      ["MedicalAppointment - MedicalExam", "1 - 0..1", "Một lịch hẹn có thể tạo ra một phiếu khám."],
+      ["ExamType - MedicalExam", "1 - N", "Một loại khám có thể được dùng bởi nhiều phiếu khám."],
+      ["ExamType - ExamFieldDefinition", "1 - N", "Một loại khám định nghĩa nhiều field trong form."],
+      ["MedicalExam - MedicalExamFieldValue", "1 - 0..N", "Một phiếu khám có thể lưu các giá trị field động."],
+      ["ExamFieldDefinition - MedicalExamFieldValue", "1 - N", "Một định nghĩa field có thể được điền trong nhiều phiếu khám."],
+      ["MedicalExam - Prescription", "1 - 0..1", "Một phiếu khám có thể có một đơn thuốc."],
+      ["Prescription - PrescriptionItem", "1 - N", "Một đơn thuốc có nhiều dòng thuốc."],
+      ["Medicine - PrescriptionItem", "1 - N", "Một thuốc có thể xuất hiện trong nhiều dòng đơn thuốc."],
+      ["MedicalExam - FollowUpInstruction", "1 - 0..1", "Một phiếu khám có thể có một chỉ định tái khám."],
+      ["Service - ServicePriceRule", "1 - N", "Một dịch vụ có thể có nhiều quy tắc giá."],
+      ["Pet - GroomingTicket", "1 - N", "Một thú cưng có thể có nhiều grooming ticket."],
+      ["User(PetOwner) - GroomingTicket", "1 - N", "Một chủ nuôi có thể sở hữu nhiều grooming ticket."],
+      ["User - GroomingTicket", "1 - N", "Một người dùng có thể tạo nhiều grooming ticket, online với vai trò chủ nuôi hoặc tại quầy với vai trò nhân viên."],
+      ["GroomingTicket - Service", "N - N", "Một ticket gồm nhiều dịch vụ; một dịch vụ xuất hiện trong nhiều ticket."],
+      ["GroomingTicket - GroomingTicketItem", "1 - N", "Một grooming ticket có nhiều dòng chi tiết."],
+      ["GroomingTicketItem - Service", "N - 1", "Mỗi dòng chi tiết tham chiếu tới một dịch vụ."],
+      ["RoomType - BoardingRecord", "1 - N", "Một loại phòng có thể được dùng bởi nhiều boarding record."],
+      ["Pet - BoardingRecord", "1 - N", "Một thú cưng có thể có nhiều lần lưu trú."],
+      ["User(PetOwner) - BoardingRecord", "1 - N", "Một chủ nuôi có thể tạo nhiều boarding record."],
+      ["User(Staff) - BoardingRecord", "1 - N", "Một nhân viên có thể xử lý/xác nhận/check-in/check-out nhiều boarding record."],
+      ["BoardingRecord - BoardingUpdate", "1 - N", "Một boarding record có nhiều cập nhật trên timeline."],
+      ["User(Staff) - BoardingUpdate", "1 - N", "Một nhân viên có thể tạo nhiều boarding update."],
+      ["User(PetOwner) - Invoice", "1 - N", "Một chủ nuôi có nhiều hóa đơn."],
+      ["Pet - Invoice", "1 - N", "Một thú cưng có thể có nhiều hóa đơn."],
+      ["Invoice - InvoiceLine", "1 - N", "Một hóa đơn có nhiều dòng hóa đơn."],
+      ["Service - InvoiceLine", "1 - N", "Một dịch vụ có thể xuất hiện trong nhiều dòng hóa đơn để phục vụ báo cáo doanh thu."],
+      ["Invoice - Payment", "1 - N", "Một hóa đơn có thể có nhiều lần thử thanh toán."],
+      ["User - Notification", "1 - N", "Một người dùng nhận nhiều thông báo."]
+    ];
+
+    const codePattern = /`([^`]+)`/g;
+
+    function slugify(value) {
+      return value.replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+    }
+
+    function withCode(value) {
+      return String(value).replace(codePattern, "<code>$1</code>");
+    }
+
+    function renderTableRows(rows) {
+      return rows.map(row => `
+        <tr>
+          <td><code>${row[0]}</code></td>
+          <td>${withCode(row[1])}</td>
+          <td>${withCode(row[2])}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderEntities() {
+      const toc = document.getElementById("tocEntities");
+      const entityList = document.getElementById("entityList");
+
+      toc.innerHTML = entities.map((entity, index) => {
+        const id = slugify(entity.name);
+        return `<li><a href="#${id}">${index + 1}. ${entity.name}</a></li>`;
+      }).join("");
+
+      entityList.innerHTML = entities.map((entity, index) => {
+        const id = slugify(entity.name);
+        return `
+          <section class="entity" id="${id}">
+            <div class="entity-header">
+              <h3>${index + 1}. ${entity.name}</h3>
+            </div>
+            <div class="entity-body">
+              <p class="entity-description">${withCode(entity.description)}</p>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Attribute</th>
+                      <th>Ý nghĩa</th>
+                      <th>Ví dụ</th>
+                    </tr>
+                  </thead>
+                  <tbody>${renderTableRows(entity.attributes)}</tbody>
+                </table>
+              </div>
+              <strong>Quan hệ chính:</strong>
+              <ul class="relationship-list">
+                ${entity.relationships.map(item => `<li>${withCode(item)}</li>`).join("")}
+              </ul>
+            </div>
+          </section>
+        `;
+      }).join("");
+    }
+
+    function renderRelationships() {
+      document.getElementById("relationshipRows").innerHTML = relationshipsToDraw.map(row => `
+        <tr>
+          <td>${withCode(row[0])}</td>
+          <td>${row[1]}</td>
+          <td>${withCode(row[2])}</td>
+        </tr>
+      `).join("");
+      document.getElementById("entityCount").textContent = entities.length;
+      document.getElementById("relationshipCount").textContent = relationshipsToDraw.length;
+    }
+
+    renderEntities();
+    renderRelationships();
+  </script>
+</body>
+</html>
