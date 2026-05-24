@@ -5,15 +5,17 @@ import { httpStatus } from "../shared/errors/http-status.js";
 
 export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
   if (error instanceof ZodError) {
+    const details = error.issues.map((issue) => ({
+      path: issue.path.join("."),
+      message: issue.message
+    }));
+
     res.status(httpStatus.BAD_REQUEST).json({
       success: false,
       error: {
         code: "VALIDATION_ERROR",
-        message: "Invalid request",
-        details: error.issues.map((issue) => ({
-          path: issue.path.join("."),
-          message: issue.message
-        }))
+        message: details[0]?.message ?? "Dữ liệu không hợp lệ",
+        details
       }
     });
     return;
@@ -35,7 +37,7 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     success: false,
     error: {
       code: "INTERNAL_SERVER_ERROR",
-      message: "Internal server error"
+      message: "Đã có lỗi xảy ra trên máy chủ"
     }
   });
 };

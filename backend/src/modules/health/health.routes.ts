@@ -28,6 +28,6 @@ healthRouter.get("/health", healthController.checkHealth);
  *       200:
  *         description: Database is connected
  *       500:
- *         description: Database health check failed
+ *         description: Không thể kết nối cơ sở dữ liệu
  */
 healthRouter.get("/db/health", asyncHandler(healthController.checkDatabaseHealth));

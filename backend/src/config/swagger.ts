@@ -28,7 +28,7 @@ export const swaggerSpec = swaggerJSDoc({
           properties: {
             success: { type: "boolean", example: true },
             data: { nullable: true },
-            message: { type: "string", example: "OK" }
+            message: { type: "string", example: "Thành công" }
           }
         },
         ErrorResponse: {
@@ -39,7 +39,7 @@ export const swaggerSpec = swaggerJSDoc({
               type: "object",
               properties: {
                 code: { type: "string", example: "NOT_FOUND" },
-                message: { type: "string", example: "Resource not found" },
+                message: { type: "string", example: "Không tìm thấy tài nguyên" },
                 details: {
                   type: "array",
                   items: { type: "object" }

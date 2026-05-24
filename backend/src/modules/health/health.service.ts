@@ -18,7 +18,7 @@ export async function checkDatabaseHealth() {
     };
   } catch {
     throw new AppError(
-      "Database health check failed",
+      "Không thể kết nối cơ sở dữ liệu",
       "DATABASE_UNAVAILABLE",
       httpStatus.SERVICE_UNAVAILABLE
     );

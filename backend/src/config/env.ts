@@ -5,7 +5,9 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(8080),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required")
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters").default("pet-center-local-development-secret-key"),
+  JWT_EXPIRES_IN_SECONDS: z.coerce.number().int().positive().default(60 * 60 * 24)
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

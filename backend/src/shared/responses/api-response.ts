@@ -12,7 +12,7 @@ type Pagination = {
 export function sendSuccess<T>(
   res: Response,
   data: T,
-  message = "OK",
+  message = "Thành công",
   statusCode: HttpStatus = httpStatus.OK
 ): void {
   res.status(statusCode).json({
