@@ -18,7 +18,7 @@ CREATE TABLE users (
     role VARCHAR(30) NOT NULL,
     account_status VARCHAR(20) NOT NULL DEFAULT 'active',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT chk_users_role CHECK (role IN ('PetOwner', 'Staff', 'Veterinarian', 'Administrator')),
+    CONSTRAINT chk_users_role CHECK (role IN ('Owner', 'Staff', 'Doctor', 'Admin')),
     CONSTRAINT chk_users_account_status CHECK (account_status IN ('active', 'locked', 'inactive')),
     CONSTRAINT chk_users_email_format CHECK (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'),
     CONSTRAINT chk_users_phone_number CHECK (phone_number IS NULL OR phone_number ~ '^[0-9+() .-]{8,20}$')
