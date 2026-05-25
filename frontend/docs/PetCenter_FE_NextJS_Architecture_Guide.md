@@ -1501,6 +1501,813 @@ Không phải feature nào cũng cần đủ các folder trên. Feature nhỏ th
 
 ---
 
+## 4.4.1. Nhiệm vụ từng folder con trong một feature
+
+Mỗi feature trong `src/features/` đại diện cho một domain nghiệp vụ cụ thể.
+
+Ví dụ:
+
+```txt
+features/auth/
+features/pets/
+features/boarding/
+features/spa/
+features/invoices/
+features/medical-records/
+features/prescriptions/
+features/follow-ups/
+````
+
+Một feature lớn nên có cấu trúc chuẩn:
+
+```txt
+features/<feature-name>/
+├── pages/
+├── components/
+├── api/
+├── hooks/
+├── types/
+├── schemas/
+├── constants/
+└── utils/
+```
+
+Không phải feature nào cũng bắt buộc phải có đủ tất cả folder. Chỉ tạo folder khi feature đó thật sự cần.
+
+Mục tiêu của cách chia này là để mỗi nghiệp vụ tự chứa đầy đủ code liên quan đến nó. Khi sửa nghiệp vụ nào, team chỉ cần vào đúng feature đó thay vì tìm rải rác trong toàn bộ project.
+
+---
+
+### `pages/`
+
+#### Nhiệm vụ
+
+Chứa page component thật sự của nghiệp vụ.
+
+File trong `app/` chỉ là route wrapper, còn UI và logic màn hình chính nằm trong `features/<feature>/pages/`.
+
+Ví dụ route:
+
+```txt
+src/app/(staff)/staff/boarding/page.tsx
+```
+
+chỉ nên gọi:
+
+```tsx
+import { StaffBoardingListPage } from '@/features/boarding/pages/staff/StaffBoardingListPage';
+
+export default function Page() {
+  return <StaffBoardingListPage />;
+}
+```
+
+UI thật nằm ở:
+
+```txt
+src/features/boarding/pages/staff/StaffBoardingListPage.tsx
+```
+
+#### Khi nào dùng `pages/`
+
+Dùng `pages/` cho các màn hoàn chỉnh của feature.
+
+Ví dụ:
+
+```txt
+features/boarding/pages/staff/StaffBoardingListPage.tsx
+features/boarding/pages/staff/StaffBoardingDetailPage.tsx
+features/boarding/pages/owner/OwnerBoardingListPage.tsx
+features/auth/pages/LoginPage.tsx
+features/auth/pages/RegisterPage.tsx
+features/pets/pages/staff/StaffPetListPage.tsx
+features/invoices/pages/staff/StaffInvoiceListPage.tsx
+```
+
+#### Quy tắc
+
+```txt
+- Page trong feature được phép gọi hook của feature.
+- Page trong feature được phép quản lý state UI của màn như tab, filter, modal open/close.
+- Page trong feature không định nghĩa URL. URL thuộc `app/`.
+- Page trong feature không nên chứa quá nhiều JSX nhỏ lẻ nếu có thể tách thành `components/`.
+```
+
+Ví dụ đúng:
+
+```tsx
+// features/boarding/pages/staff/StaffBoardingListPage.tsx
+
+import { useState } from 'react';
+import { StaffBoardingTabs } from '../../components/staff/StaffBoardingTabs';
+import { StaffBoardingFilterBar } from '../../components/staff/StaffBoardingFilterBar';
+import { StaffBoardingCard } from '../../components/staff/StaffBoardingCard';
+import { useBoardingList } from '../../hooks/useBoardingList';
+
+export function StaffBoardingListPage() {
+  const [tab, setTab] = useState('PENDING_CONFIRMATION');
+
+  const { data, isLoading } = useBoardingList({
+    status: tab,
+  });
+
+  return (
+    <div className="space-y-6">
+      <StaffBoardingFilterBar />
+      <StaffBoardingTabs value={tab} onChange={setTab} />
+
+      {/* Render danh sách card ở đây */}
+    </div>
+  );
+}
+```
+
+---
+
+### `components/`
+
+#### Nhiệm vụ
+
+Chứa component UI thuộc riêng feature đó.
+
+Component trong folder này có thể biết về nghiệp vụ, type, status, label, action của feature.
+
+Ví dụ với boarding:
+
+```txt
+features/boarding/components/staff/StaffBoardingCard.tsx
+features/boarding/components/staff/RejectBoardingModal.tsx
+features/boarding/components/staff/CareUpdateDrawer.tsx
+features/boarding/components/shared/BoardingStatusBadge.tsx
+```
+
+Ví dụ với auth:
+
+```txt
+features/auth/components/AuthBrandPanel.tsx
+features/auth/components/AuthTextInput.tsx
+features/auth/components/LoginForm.tsx
+features/auth/components/RegisterForm.tsx
+features/auth/components/SocialLoginButton.tsx
+```
+
+#### Chia theo role
+
+Nếu feature được nhiều role sử dụng, chia component theo role:
+
+```txt
+components/
+├── owner/
+├── staff/
+├── doctor/
+├── admin/
+└── shared/
+```
+
+Ý nghĩa:
+
+```txt
+components/owner/
+-> Component chỉ dùng cho Chủ nuôi.
+
+components/staff/
+-> Component chỉ dùng cho Nhân viên.
+
+components/doctor/
+-> Component chỉ dùng cho Bác sĩ.
+
+components/admin/
+-> Component chỉ dùng cho Admin.
+
+components/shared/
+-> Component dùng chung trong cùng feature.
+```
+
+Ví dụ:
+
+```txt
+features/boarding/components/staff/CareUpdateDrawer.tsx
+```
+
+chỉ nhân viên dùng, nên đặt trong `staff`.
+
+```txt
+features/boarding/components/shared/BoardingStatusBadge.tsx
+```
+
+owner và staff đều dùng, nên đặt trong `shared`.
+
+#### Quy tắc
+
+```txt
+- Component nghiệp vụ không đặt trong `src/components/common`.
+- Component nghiệp vụ phải đặt trong feature tương ứng.
+- Component trong feature được phép dùng shadcn/ui.
+- Component trong feature nên nhận data qua props.
+- Không gọi API trực tiếp trong component nếu có thể dùng hook.
+```
+
+Ví dụ đúng:
+
+```tsx
+// features/boarding/components/staff/StaffBoardingCard.tsx
+
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { BoardingStatusBadge } from '../shared/BoardingStatusBadge';
+import type { Boarding } from '../../types/boarding.types';
+
+interface StaffBoardingCardProps {
+  boarding: Boarding;
+  onView: (boardingId: string) => void;
+  onConfirm: (boardingId: string) => void;
+  onReject: (boardingId: string) => void;
+}
+
+export function StaffBoardingCard({
+  boarding,
+  onView,
+  onConfirm,
+  onReject,
+}: StaffBoardingCardProps) {
+  return (
+    <Card>
+      <BoardingStatusBadge status={boarding.status} />
+
+      <Button onClick={() => onView(boarding.id)}>
+        Xem
+      </Button>
+    </Card>
+  );
+}
+```
+
+Ví dụ sai:
+
+```txt
+src/components/common/StaffBoardingCard.tsx
+```
+
+Vì `StaffBoardingCard` là component nghiệp vụ của `boarding`, không phải component chung toàn app.
+
+---
+
+### `api/`
+
+#### Nhiệm vụ
+
+Chứa các hàm gọi API của feature.
+
+Ví dụ:
+
+```txt
+features/auth/api/auth.api.ts
+features/boarding/api/boarding.api.ts
+features/spa/api/spa.api.ts
+features/invoices/api/invoices.api.ts
+features/pets/api/pets.api.ts
+```
+
+Ví dụ:
+
+```ts
+// features/boarding/api/boarding.api.ts
+
+import { api } from '@/lib/api-client';
+
+export const boardingApi = {
+  getStaffList: async (params: unknown) => {
+    const res = await api.get('/staff/boarding', { params });
+    return res.data;
+  },
+
+  getStaffDetail: async (boardingId: string) => {
+    const res = await api.get(`/staff/boarding/${boardingId}`);
+    return res.data;
+  },
+
+  confirm: async (boardingId: string, payload: unknown) => {
+    const res = await api.patch(`/staff/boarding/${boardingId}/confirm`, payload);
+    return res.data;
+  },
+
+  reject: async (boardingId: string, payload: unknown) => {
+    const res = await api.patch(`/staff/boarding/${boardingId}/reject`, payload);
+    return res.data;
+  },
+};
+```
+
+Có thể có file query key riêng:
+
+```txt
+features/boarding/api/boarding.keys.ts
+```
+
+Ví dụ:
+
+```ts
+// features/boarding/api/boarding.keys.ts
+
+export const boardingKeys = {
+  all: ['boarding'] as const,
+  lists: () => [...boardingKeys.all, 'list'] as const,
+  list: (params: unknown) => [...boardingKeys.lists(), params] as const,
+  detail: (boardingId: string) => [...boardingKeys.all, 'detail', boardingId] as const,
+};
+```
+
+#### Quy tắc
+
+```txt
+- Không gọi axios/fetch trực tiếp trong component.
+- Không rải endpoint ở nhiều file.
+- Mỗi feature quản lý API của chính nó.
+- Nếu backend đổi endpoint, ưu tiên sửa trong `api/`.
+- API client chung nằm ở `src/lib/api-client.ts`, không tạo axios instance riêng trong từng feature.
+```
+
+Ví dụ đúng:
+
+```txt
+features/boarding/api/boarding.api.ts
+features/spa/api/spa.api.ts
+features/invoices/api/invoices.api.ts
+```
+
+Ví dụ không nên:
+
+```txt
+components/boarding/StaffBoardingCard.tsx gọi api.patch trực tiếp
+```
+
+---
+
+### `hooks/`
+
+#### Nhiệm vụ
+
+Chứa hook phục vụ riêng feature đó.
+
+Thường dùng để bọc API bằng React Query hoặc gom logic tương tác dữ liệu.
+
+Ví dụ:
+
+```txt
+features/boarding/hooks/useBoardingList.ts
+features/boarding/hooks/useBoardingDetail.ts
+features/boarding/hooks/useConfirmBoarding.ts
+features/auth/hooks/useLogin.ts
+features/auth/hooks/useRegister.ts
+features/pets/hooks/usePets.ts
+features/invoices/hooks/useInvoices.ts
+```
+
+Ví dụ:
+
+```ts
+// features/boarding/hooks/useBoardingList.ts
+
+import { useQuery } from '@tanstack/react-query';
+import { boardingApi } from '../api/boarding.api';
+import { boardingKeys } from '../api/boarding.keys';
+
+export function useBoardingList(params: unknown) {
+  return useQuery({
+    queryKey: boardingKeys.list(params),
+    queryFn: () => boardingApi.getStaffList(params),
+  });
+}
+```
+
+Ví dụ mutation:
+
+```ts
+// features/boarding/hooks/useConfirmBoarding.ts
+
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { boardingApi } from '../api/boarding.api';
+import { boardingKeys } from '../api/boarding.keys';
+
+export function useConfirmBoarding() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      boardingId,
+      payload,
+    }: {
+      boardingId: string;
+      payload: unknown;
+    }) => boardingApi.confirm(boardingId, payload),
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: boardingKeys.all,
+      });
+    },
+  });
+}
+```
+
+#### Quy tắc
+
+```txt
+- Hook chỉ dùng cho một feature thì đặt trong feature đó.
+- Hook dùng chung toàn app mới đặt ở `src/hooks`.
+- Component nên gọi hook thay vì gọi API trực tiếp.
+- Hook xử lý loading, error, cache, mutation, invalidate query.
+```
+
+Ví dụ đúng:
+
+```txt
+features/boarding/hooks/useBoardingList.ts
+```
+
+Ví dụ không nên:
+
+```txt
+src/hooks/useBoardingList.ts
+```
+
+vì hook này chỉ thuộc nghiệp vụ boarding.
+
+---
+
+### `types/`
+
+#### Nhiệm vụ
+
+Chứa TypeScript type/interface của feature.
+
+Ví dụ:
+
+```txt
+features/pets/types/pet.types.ts
+features/boarding/types/boarding.types.ts
+features/auth/types/auth.types.ts
+features/invoices/types/invoice.types.ts
+features/spa/types/spa.types.ts
+```
+
+Ví dụ:
+
+```ts
+// features/boarding/types/boarding.types.ts
+
+export type BoardingStatus =
+  | 'PENDING_CONFIRMATION'
+  | 'WAITING_CHECK_IN'
+  | 'STAYING'
+  | 'CHECKED_OUT'
+  | 'CANCELLED';
+
+export interface Boarding {
+  id: string;
+  code: string;
+  status: BoardingStatus;
+  totalAmount: number;
+}
+```
+
+#### Quy tắc
+
+```txt
+- Type nghiệp vụ đặt trong feature.
+- Type dùng chung toàn app mới đặt ở `src/types`.
+- Không dùng `any` nếu có thể định nghĩa type rõ ràng.
+- Type API response và type UI có thể tách riêng nếu cần.
+```
+
+Ví dụ:
+
+```txt
+features/boarding/types/boarding.types.ts
+```
+
+không nên đưa `Boarding` vào:
+
+```txt
+src/types/common.ts
+```
+
+vì `Boarding` là type nghiệp vụ riêng.
+
+---
+
+### `schemas/`
+
+#### Nhiệm vụ
+
+Chứa schema validate form/payload phía frontend của feature.
+
+Thường dùng với:
+
+```txt
+zod
+react-hook-form
+@hookform/resolvers
+```
+
+Ví dụ:
+
+```txt
+features/auth/schemas/login.schema.ts
+features/auth/schemas/register.schema.ts
+features/pets/schemas/create-pet.schema.ts
+features/boarding/schemas/care-update.schema.ts
+features/boarding/schemas/reject-boarding.schema.ts
+features/spa/schemas/create-spa-request.schema.ts
+```
+
+Ví dụ:
+
+```ts
+// features/auth/schemas/register.schema.ts
+
+import { z } from 'zod';
+
+export const registerSchema = z
+  .object({
+    fullName: z.string().min(1, 'Vui lòng nhập họ và tên'),
+    email: z.string().email('Email không hợp lệ'),
+    phoneNumber: z.string().min(10, 'Số điện thoại không hợp lệ'),
+    password: z.string().min(6, 'Mật khẩu tối thiểu 6 ký tự'),
+    confirmPassword: z.string().min(1, 'Vui lòng xác nhận mật khẩu'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Mật khẩu xác nhận không khớp',
+    path: ['confirmPassword'],
+  });
+```
+
+#### Vì sao frontend vẫn cần schema dù backend đã có schema?
+
+Backend schema và frontend schema có nhiệm vụ khác nhau.
+
+```txt
+Backend schema:
+- Validate request thật trước khi xử lý.
+- Bảo vệ API.
+- Không tin dữ liệu từ client.
+- Bắt buộc phải có.
+
+Frontend schema:
+- Validate form trước khi gọi API.
+- Hiển thị lỗi ngay trên UI.
+- Giúp UX tốt hơn.
+- Kết hợp với react-hook-form.
+```
+
+Ví dụ user nhập email sai:
+
+```txt
+Frontend schema -> báo lỗi ngay dưới input Email.
+Backend schema  -> vẫn validate lại lần cuối khi submit.
+```
+
+Không bao giờ chỉ tin frontend validation, vì người dùng có thể gọi API trực tiếp bằng Postman hoặc script.
+
+#### Quy tắc
+
+```txt
+- Schema nghiệp vụ đặt trong `features/<domain>/schemas`.
+- Schema dùng chung toàn app mới đặt ở common validation.
+- Không copy máy móc toàn bộ backend schema nếu frontend form không cần đủ field.
+- Schema frontend phục vụ UI form, không thay thế schema backend.
+```
+
+Ví dụ schema dùng chung toàn app có thể đặt ở:
+
+```txt
+src/lib/validations/
+```
+
+hoặc:
+
+```txt
+src/schemas/common/
+```
+
+nếu sau này team tạo folder schema chung.
+
+Ví dụ schema dùng chung:
+
+```txt
+email.schema.ts
+phone.schema.ts
+password.schema.ts
+date-range.schema.ts
+pagination.schema.ts
+```
+
+---
+
+### `constants/`
+
+#### Nhiệm vụ
+
+Chứa hằng số riêng của feature.
+
+Ví dụ:
+
+```txt
+features/boarding/constants/boarding.constants.ts
+features/spa/constants/spa.constants.ts
+features/invoices/constants/invoice.constants.ts
+features/pets/constants/pet.constants.ts
+```
+
+Dùng cho:
+
+```txt
+- Status label
+- Tab config
+- Filter option
+- Default values
+- Mapping màu badge nếu riêng feature
+```
+
+Ví dụ:
+
+```ts
+// features/boarding/constants/boarding.constants.ts
+
+export const boardingStatusLabel = {
+  PENDING_CONFIRMATION: 'Chờ xác nhận',
+  WAITING_CHECK_IN: 'Chờ check-in',
+  STAYING: 'Đang lưu trú',
+  CHECKED_OUT: 'Đã trả thú cưng',
+  CANCELLED: 'Đã hủy',
+} as const;
+
+export const staffBoardingTabs = [
+  {
+    label: 'Chờ xác nhận',
+    value: 'PENDING_CONFIRMATION',
+  },
+  {
+    label: 'Chờ check-in',
+    value: 'WAITING_CHECK_IN',
+  },
+  {
+    label: 'Đang lưu trú',
+    value: 'STAYING',
+  },
+  {
+    label: 'Lịch sử',
+    value: 'HISTORY',
+  },
+] as const;
+```
+
+#### Quy tắc
+
+```txt
+- Không hard-code label status rải rác trong component.
+- Không hard-code tab/filter option trong nhiều file.
+- Constants riêng feature đặt trong feature.
+- Constants dùng toàn app đặt trong `src/constants`.
+```
+
+Ví dụ đúng:
+
+```txt
+features/boarding/constants/boarding.constants.ts
+```
+
+Ví dụ không nên:
+
+```tsx
+if (status === 'STAYING') {
+  return 'Đang lưu trú';
+}
+```
+
+rải rác trong nhiều component.
+
+---
+
+### `utils/`
+
+#### Nhiệm vụ
+
+Chứa hàm xử lý nhỏ, chỉ phục vụ feature đó.
+
+Ví dụ:
+
+```txt
+features/boarding/utils/boarding-format.ts
+features/boarding/utils/boarding-mapper.ts
+features/pets/utils/pet-format.ts
+features/invoices/utils/invoice-format.ts
+features/spa/utils/spa-format.ts
+```
+
+Dùng cho:
+
+```txt
+- Format dữ liệu riêng feature
+- Mapping API response sang UI model
+- Tính toán nhỏ
+- Helper xử lý status
+```
+
+Ví dụ:
+
+```ts
+// features/boarding/utils/boarding-format.ts
+
+export function getBoardingDurationText(totalDays: number) {
+  return `${totalDays} ngày`;
+}
+
+export function getBoardingCodeText(code: string) {
+  return code.toUpperCase();
+}
+```
+
+Ví dụ mapper:
+
+```ts
+// features/boarding/utils/boarding-mapper.ts
+
+import type { Boarding } from '../types/boarding.types';
+
+export function mapBoardingResponseToBoarding(response: any): Boarding {
+  return {
+    id: response.id,
+    code: response.code,
+    status: response.status,
+    totalAmount: response.totalAmount,
+  };
+}
+```
+
+#### Quy tắc
+
+```txt
+- Utils chỉ dùng trong một feature thì đặt trong feature đó.
+- Utils dùng toàn app như format tiền, format ngày thì đặt trong `src/lib`.
+```
+
+Ví dụ:
+
+```txt
+features/boarding/utils/boarding-format.ts
+```
+
+chỉ dùng cho boarding.
+
+```txt
+src/lib/money.ts
+src/lib/date.ts
+```
+
+dùng toàn app.
+
+---
+
+### Tóm tắt nhiệm vụ folder con trong feature
+
+```txt
+pages/
+-> Màn hình hoàn chỉnh của feature, được route trong app gọi tới.
+
+components/
+-> Component UI nghiệp vụ của feature.
+
+api/
+-> Hàm gọi API của feature.
+
+hooks/
+-> React Query hooks hoặc custom hooks riêng feature.
+
+types/
+-> TypeScript types/interfaces riêng feature.
+
+schemas/
+-> Zod schemas validate form/payload phía frontend của feature.
+
+constants/
+-> Status label, tab config, filter option, default values riêng feature.
+
+utils/
+-> Hàm format, mapper, helper nhỏ riêng feature.
+```
+
+Nguyên tắc chốt:
+
+```txt
+Một nghiệp vụ nên tự chứa đầy đủ code của nó trong một feature.
+Khi sửa nghiệp vụ nào, ưu tiên vào đúng folder feature đó.
+Không rải logic nghiệp vụ ra app/, components/common/, hooks/ hoặc lib/ nếu nó chỉ thuộc một feature.
+```
+
+```
+
+
 ## 4.5. `src/lib/`
 
 ### Nhiệm vụ
