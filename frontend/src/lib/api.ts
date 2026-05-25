@@ -1,25 +1,33 @@
 const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
 const apiUrl = configuredApiUrl.replace(/\/$/, "");
 
+type ApiErrorDetails = Array<{
+  path?: string;
+  message?: string;
+}>;
+
 type ApiEnvelope<T> = {
   success: boolean;
   data: T;
   message?: string;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
   error?: {
     code: string;
     message: string;
-    details?: Array<{
-      path?: string;
-      message?: string;
-    }>;
+    details?: ApiErrorDetails;
   };
 };
 
 export class ApiError extends Error {
   readonly code?: string;
-  readonly details?: ApiEnvelope<unknown>["error"]["details"];
+  readonly details?: ApiErrorDetails;
 
-  constructor(message: string, code?: string, details?: ApiEnvelope<unknown>["error"]["details"]) {
+  constructor(message: string, code?: string, details?: ApiErrorDetails) {
     super(message);
     this.name = "ApiError";
     this.code = code;

@@ -33,6 +33,10 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
     return;
   }
 
+  if (process.env.NODE_ENV !== "production") {
+    console.error(error);
+  }
+
   res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
     success: false,
     error: {
