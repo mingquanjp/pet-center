@@ -2,7 +2,13 @@ import type { LucideIcon } from "lucide-react"
 
 export type OwnerSpaTab = "available" | "booked" | "history"
 
-export type SpaBookingStatus = "WAITING_ACCEPT" | "ACCEPTED" | "COMPLETED" | "CANCELLED"
+export type SpaBookingStatus =
+  | "WAITING_ACCEPT"
+  | "ACCEPTED"
+  | "IN_PROGRESS"
+  | "WAITING_COUNTER_PAYMENT"
+  | "COMPLETED"
+  | "CANCELLED"
 
 export interface SpaService {
   id: string
@@ -16,11 +22,19 @@ export interface SpaService {
 
 export interface OwnerSpaRequest {
   id: string
+  bookingCode: string
   serviceName: string
   petName: string
   scheduledAt: string
   status: SpaBookingStatus
   totalAmount: string
+  paymentMethodLabel: string
+  paymentStatusLabel: string
+  paymentStatusTone: "pending" | "paid"
+  icon: LucideIcon
+  specialRequest?: string
+  paymentNotice?: string
+  canCancel?: boolean
 }
 
 export interface OwnerSpaPet {

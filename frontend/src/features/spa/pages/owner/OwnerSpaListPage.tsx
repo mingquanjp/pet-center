@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Plus } from "lucide-react"
+import { ChevronDown, Plus, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -61,6 +61,7 @@ export function OwnerSpaListPage() {
         </TabsContent>
 
         <TabsContent value="booked" className="mt-0 flex-none space-y-4">
+          <BookedServiceFilters />
           {ownerBookedSpaRequests.map((request) => (
             <OwnerSpaRequestCard key={request.id} request={request} />
           ))}
@@ -73,5 +74,45 @@ export function OwnerSpaListPage() {
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+function BookedServiceFilters() {
+  const filters = ["Thú cưng: Tất cả", "Trạng thái: Tất cả", "Thời gian: Tất cả"]
+
+  return (
+    <section className="rounded-[16px] border border-[#E6E8DD] bg-white p-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
+        <label className="relative min-w-[240px] flex-1 xl:max-w-[320px]">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#3E4946]" aria-hidden="true" />
+          <span className="sr-only">Tìm dịch vụ đã đặt</span>
+          <input
+            type="search"
+            placeholder="Tìm theo mã dịch vụ, thú cưng"
+            className="h-10 w-full rounded-xl border border-transparent bg-[#F5F4E8] pl-10 pr-4 text-base leading-6 text-[#1B1C15] outline-none placeholder:text-[#3E4946] focus:border-[#005E53]"
+          />
+        </label>
+
+        <div className="flex flex-wrap gap-3">
+          {filters.map((filter) => (
+            <Button
+              key={filter}
+              variant="ghost"
+              className="h-10 rounded-xl bg-[#F5F4E8] px-4 text-base font-normal leading-6 text-[#3E4946] hover:bg-[#EDEBDE] hover:text-[#1B1C15]"
+            >
+              {filter}
+              <ChevronDown className="ml-2 size-4" aria-hidden="true" />
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <Button
+        variant="ghost"
+        className="mt-2 h-8 px-2 text-base font-normal leading-6 text-[#005E53] hover:bg-transparent hover:text-[#004C43]"
+      >
+        Đặt lại bộ lọc
+      </Button>
+    </section>
   )
 }
