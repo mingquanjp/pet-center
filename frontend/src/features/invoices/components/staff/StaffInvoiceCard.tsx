@@ -5,6 +5,8 @@ import { StaffInvoice } from "../../types/invoice.types"
 import { InvoiceStatusBadge } from "../shared/InvoiceStatusBadge"
 import { invoicePaymentOptionLabel } from "../../constants/invoice.constants"
 import { formatInvoiceMoney, formatInvoiceDate } from "../../utils/invoice-format"
+import { generateInvoicePdf } from "../../utils/pdf-generator"
+import { toast } from "sonner"
 
 export interface StaffInvoiceCardProps {
   invoice: StaffInvoice
@@ -15,6 +17,21 @@ export interface StaffInvoiceCardProps {
 export function StaffInvoiceCard({ invoice, onConfirmPayment, onCancelInvoice }: StaffInvoiceCardProps) {
   const isPendingAtCounter = invoice.paymentStatus === "PENDING_PAYMENT" && invoice.paymentOption === "AT_COUNTER"
   const isPaid = invoice.paymentStatus === "PAID"
+  const [isDownloading, setIsDownloading] = React.useState(false)
+
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true)
+      toast.info("Đang tạo file PDF...")
+      await generateInvoicePdf(invoice)
+      toast.success("Tải hóa đơn thành công!")
+    } catch (error) {
+      console.error(error)
+      toast.error("Không thể tải hóa đơn. Vui lòng thử lại sau.")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
 
   // Icon config
   let Icon = AlertCircle
@@ -94,9 +111,11 @@ export function StaffInvoiceCard({ invoice, onConfirmPayment, onCancelInvoice }:
             
             {isPaid && (
               <button 
-                className="flex-1 md:flex-none px-4 py-2 bg-petcenter-card text-petcenter-primary border border-petcenter-primary rounded-[0.75rem] body-md font-medium hover:bg-petcenter-background hover:text-petcenter-primary-hover transition-colors flex items-center justify-center gap-2"
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className={`flex-1 md:flex-none px-4 py-2 bg-petcenter-card text-petcenter-primary border border-petcenter-primary rounded-[0.75rem] body-md font-medium hover:bg-petcenter-background hover:text-petcenter-primary-hover transition-colors flex items-center justify-center gap-2 ${isDownloading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <Download className="w-4 h-4" /> Tải hóa đơn
+                <Download className="w-4 h-4" /> {isDownloading ? "Đang xử lý..." : "Tải hóa đơn"}
               </button>
             )}
           </div>
