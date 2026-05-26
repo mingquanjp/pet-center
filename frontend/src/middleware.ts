@@ -37,7 +37,7 @@ export function middleware(req: NextRequest) {
   );
 
   if (matchedEntry && !token) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL("/", req.url));
   }
 
   if (matchedEntry && !matchedEntry[1].includes(role as never)) {

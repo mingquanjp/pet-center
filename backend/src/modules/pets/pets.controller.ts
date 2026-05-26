@@ -1,0 +1,31 @@
+import type { Request, Response } from "express";
+import { httpStatus } from "../../shared/errors/http-status.js";
+import { sendPaginated, sendSuccess } from "../../shared/responses/api-response.js";
+import type { CreatePetPayload, ListPetsQuery, PetParams, UpdatePetPayload } from "./pets.schema.js";
+import * as petsService from "./pets.service.js";
+
+export async function listPets(req: Request, res: Response): Promise<void> {
+  const result = await petsService.listOwnerPets(req.user!, req.query as unknown as ListPetsQuery);
+
+  sendPaginated(res, result.data, result.pagination);
+}
+
+export async function getPet(req: Request, res: Response): Promise<void> {
+  const { petId } = req.params as PetParams;
+  const pet = await petsService.getOwnerPet(req.user!, petId);
+
+  sendSuccess(res, pet);
+}
+
+export async function createPet(req: Request, res: Response): Promise<void> {
+  const pet = await petsService.createOwnerPet(req.user!, req.body as CreatePetPayload);
+
+  sendSuccess(res, pet, "Tạo hồ sơ thú cưng thành công", httpStatus.CREATED);
+}
+
+export async function updatePet(req: Request, res: Response): Promise<void> {
+  const { petId } = req.params as PetParams;
+  const pet = await petsService.updateOwnerPet(req.user!, petId, req.body as UpdatePetPayload);
+
+  sendSuccess(res, pet, "Cập nhật hồ sơ thú cưng thành công");
+}

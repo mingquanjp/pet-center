@@ -1,11 +1,34 @@
 "use client"
+
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Bell, User } from "lucide-react"
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { authApi } from "@/features/auth/api/auth.api"
+import { clearAuthSession } from "@/features/auth/api/auth-session"
 
 export function OwnerHeader() {
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout()
+    } finally {
+      clearAuthSession()
+      router.replace("/")
+      router.refresh()
+    }
+  }
 
   return (
     <header className="h-18 bg-[#FBFAEE] border-b border-petcenter-border-strong flex justify-end items-center w-full px-6 py-2 shrink-0 z-10">
@@ -40,15 +63,18 @@ export function OwnerHeader() {
               Đổi mật khẩu
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-red-600 focus:text-red-600">
+            <DropdownMenuItem
+              className="cursor-pointer text-red-600 focus:text-red-600"
+              onSelect={(event) => {
+                event.preventDefault()
+                void handleLogout()
+              }}
+            >
               Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
     </header>
-  );
+  )
 }
-
-
-

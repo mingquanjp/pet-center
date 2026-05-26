@@ -117,17 +117,13 @@ pnpm install
 
 ### Frontend
 
-Tạo file:
+Frontend không cần tạo file `.env.local` để chạy local. Mặc định frontend gọi backend tại:
 
 ```txt
-frontend/.env.local
+http://localhost:8080/api/v1
 ```
 
-Nội dung:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
-```
+Chỉ cần cấu hình `NEXT_PUBLIC_API_URL` khi muốn trỏ frontend sang API khác với mặc định.
 
 ### Backend
 
@@ -348,10 +344,10 @@ backend/docs/PetCenter_BE_API_Design.md
 
 ## Lưu Ý Khi Phát Triển
 
-- Sau khi sửa `.env` hoặc `.env.local`, cần restart dev server.
-- Frontend chỉ dùng `NEXT_PUBLIC_API_URL` để gọi backend.
+- Sau khi sửa `.env`, cần restart dev server backend.
+- Frontend mặc định gọi `http://localhost:8080/api/v1`; chỉ dùng `NEXT_PUBLIC_API_URL` khi cần đổi API base URL.
 - Không đưa `DATABASE_URL` vào frontend.
-- Không commit `node_modules`, `.env`, `.env.local`, `.next`, `dist`.
+- Không commit `node_modules`, `.env`, `.next`, `dist`.
 - Commit `pnpm-lock.yaml` để cả team dùng cùng dependency version.
 - API mới dùng prefix `/api/v1`.
 - API dùng cho frontend nên có Swagger JSDoc để test ở `/api-docs`.
@@ -360,19 +356,13 @@ backend/docs/PetCenter_BE_API_Design.md
 
 ## Troubleshooting
 
-Nếu frontend báo lỗi:
+Nếu frontend không gọi được API, kiểm tra backend đang chạy tại:
 
 ```txt
-Failed to parse URL from undefined/health
+http://localhost:8080/api/v1/health
 ```
 
-Kiểm tra `frontend/.env.local` đã có:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
-```
-
-Sau đó restart frontend:
+Sau đó restart frontend nếu cần:
 
 ```bash
 pnpm dev:frontend
