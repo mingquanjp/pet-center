@@ -204,8 +204,9 @@ export function OwnerSpaListPage() {
         </TabsContent>
 
         <TabsContent value="history" className="mt-0 flex-none space-y-4">
-          <BookedServiceFilters searchValue={requestSearch} onSearchChange={setRequestSearch} />
-          <SpaRequestList emptyText="Không tìm thấy lịch sử spa." requests={filteredHistoryRequests} />
+          {ownerSpaHistory.map((request) => (
+            <OwnerSpaRequestCard key={request.id} request={request} />
+          ))}
         </TabsContent>
       </Tabs>
     </div>
