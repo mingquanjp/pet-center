@@ -2,7 +2,9 @@ import { Router } from "express";
 import { asyncHandler } from "../../middlewares/async-handler.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
+import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as groomingController from "./grooming.controller.js";
+import { availabilityQuerySchema, bookingOptionsQuerySchema, createGroomingTicketSchema } from "./grooming.schema.js";
 
 export const groomingRouter = Router();
 
@@ -116,4 +118,116 @@ groomingRouter.get(
   authMiddleware,
   requireRole("OWNER"),
   asyncHandler(groomingController.listAvailableServices)
+);
+
+/**
+ * @openapi
+ * /api/v1/grooming/booking-options:
+ *   get:
+ *     tags:
+ *       - Grooming
+ *     summary: Get owner grooming booking options
+ *     description: "Returns current owner's active pets and grooming services priced by the selected pet weight. Security BearerAuth. Roles: OWNER."
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: petId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Booking options returned successfully.
+ *       401:
+ *         description: Missing or invalid token.
+ *       403:
+ *         description: Role is not allowed.
+ *       404:
+ *         description: Pet not found.
+ *       422:
+ *         description: Pet weight is required.
+ */
+groomingRouter.get(
+  "/grooming/booking-options",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ query: bookingOptionsQuerySchema }),
+  asyncHandler(groomingController.getBookingOptions)
+);
+
+/**
+ * @openapi
+ * /api/v1/grooming/availability:
+ *   get:
+ *     tags:
+ *       - Grooming
+ *     summary: Get grooming slot availability
+ *     description: "Returns 30-minute grooming slots for a date. Capacity is calculated from active staff count."
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2026-05-26"
+ *     responses:
+ *       200:
+ *         description: Availability returned successfully.
+ */
+groomingRouter.get(
+  "/grooming/availability",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ query: availabilityQuerySchema }),
+  asyncHandler(groomingController.getAvailability)
+);
+
+/**
+ * @openapi
+ * /api/v1/grooming/tickets:
+ *   post:
+ *     tags:
+ *       - Grooming
+ *     summary: Create an owner grooming booking
+ *     description: "Creates grooming ticket, ticket item, invoice, and invoice line in one transaction. Online payment returns pending_payment for later VNPay integration."
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [petId, serviceId, scheduledAt, paymentOption]
+ *             properties:
+ *               petId:
+ *                 type: string
+ *               serviceId:
+ *                 type: string
+ *               scheduledAt:
+ *                 type: string
+ *                 format: date-time
+ *               specialRequest:
+ *                 type: string
+ *                 nullable: true
+ *               paymentOption:
+ *                 type: string
+ *                 enum: [counter, online]
+ *     responses:
+ *       201:
+ *         description: Grooming ticket created successfully.
+ *       400:
+ *         description: Invalid schedule time.
+ *       409:
+ *         description: Selected slot is full.
+ */
+groomingRouter.post(
+  "/grooming/tickets",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ body: createGroomingTicketSchema }),
+  asyncHandler(groomingController.createTicket)
 );

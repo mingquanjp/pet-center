@@ -1,29 +1,71 @@
 "use client"
 
-import { useState } from "react"
+import * as React from "react"
 import Link from "next/link"
-import { ChevronDown, Plus, Search } from "lucide-react"
+import { AlertCircle, ChevronDown, Plus, Search, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { includesSearchText, normalizeSearchText } from "@/lib/search"
+import { spaApi } from "../../api/spa.api"
 import {
   ownerBookedSpaRequests,
   ownerSpaHistory,
-  ownerSpaServices,
   ownerSpaTabs,
+  spaServiceIconById,
 } from "../../constants/spa.constants"
-import type { OwnerSpaTab } from "../../types/spa.types"
+import type { GroomingService, OwnerSpaRequest, OwnerSpaTab, SpaService } from "../../types/spa.types"
 import { OwnerSpaRequestCard } from "../../components/owner/OwnerSpaRequestCard"
 import { OwnerSpaServiceCard } from "../../components/owner/OwnerSpaServiceCard"
 
 export function OwnerSpaListPage() {
-  const [activeTab, setActiveTab] = useState<OwnerSpaTab>("available")
-  const [requestSearch, setRequestSearch] = useState("")
+  const [activeTab, setActiveTab] = React.useState<OwnerSpaTab>("available")
+  const [requestSearch, setRequestSearch] = React.useState("")
+  const [availableServices, setAvailableServices] = React.useState<SpaService[]>([])
+  const [isLoadingServices, setIsLoadingServices] = React.useState(true)
+  const [hasLoadedServices, setHasLoadedServices] = React.useState(false)
+  const [servicesError, setServicesError] = React.useState<string | null>(null)
   const debouncedRequestSearch = useDebouncedValue(requestSearch, 300)
   const requestQuery = normalizeSearchText(debouncedRequestSearch)
   const filteredBookedRequests = ownerBookedSpaRequests.filter((request) => matchesSpaRequest(request, requestQuery))
   const filteredHistoryRequests = ownerSpaHistory.filter((request) => matchesSpaRequest(request, requestQuery))
+  const shouldShowServiceSkeleton = isLoadingServices && !hasLoadedServices
+
+  React.useEffect(() => {
+    const abortController = new AbortController()
+
+    async function loadAvailableServices() {
+      try {
+        setIsLoadingServices(true)
+        setServicesError(null)
+
+        const services = await spaApi.listAvailableServices({
+          signal: abortController.signal,
+        })
+
+        if (!abortController.signal.aborted) {
+          setAvailableServices(services.map(mapGroomingServiceToCard))
+          setHasLoadedServices(true)
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setAvailableServices([])
+          setHasLoadedServices(true)
+          setServicesError(error instanceof Error ? error.message : "Không thể tải danh sách dịch vụ spa")
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoadingServices(false)
+        }
+      }
+    }
+
+    void loadAvailableServices()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -60,28 +102,40 @@ export function OwnerSpaListPage() {
         </TabsList>
 
         <TabsContent value="available" className="mt-0 flex-none">
-          <section className="grid grid-cols-1 gap-6 pt-2 md:grid-cols-2 xl:grid-cols-3">
-            {ownerSpaServices.map((service) => (
-              <OwnerSpaServiceCard key={service.id} service={service} />
-            ))}
-          </section>
+          <AvailableServicesTab
+            errorMessage={servicesError}
+            isLoading={shouldShowServiceSkeleton}
+            services={availableServices}
+          />
         </TabsContent>
 
         <TabsContent value="booked" className="mt-0 flex-none space-y-4">
           <BookedServiceFilters searchValue={requestSearch} onSearchChange={setRequestSearch} />
-          <SpaRequestList emptyText="KhÃ´ng tÃ¬m tháº¥y dá»‹ch vá»¥ Ä‘Ã£ Ä‘áº·t." requests={filteredBookedRequests} />
+          <SpaRequestList emptyText="Không tìm thấy dịch vụ đã đặt." requests={filteredBookedRequests} />
         </TabsContent>
 
         <TabsContent value="history" className="mt-0 flex-none space-y-4">
           <BookedServiceFilters searchValue={requestSearch} onSearchChange={setRequestSearch} />
-          <SpaRequestList emptyText="KhÃ´ng tÃ¬m tháº¥y lá»‹ch sá»­ spa." requests={filteredHistoryRequests} />
+          <SpaRequestList emptyText="Không tìm thấy lịch sử spa." requests={filteredHistoryRequests} />
         </TabsContent>
       </Tabs>
     </div>
   )
 }
 
-function matchesSpaRequest(request: (typeof ownerBookedSpaRequests)[number], query: string) {
+function mapGroomingServiceToCard(service: GroomingService): SpaService {
+  return {
+    id: service.serviceId,
+    title: service.serviceName,
+    description: service.description ?? "Chưa cập nhật mô tả dịch vụ.",
+    priceText: service.priceText,
+    durationText: service.durationText,
+    icon: spaServiceIconById[service.serviceId] ?? Sparkles,
+    featured: service.serviceId === "svc_groom_003_combo",
+  }
+}
+
+function matchesSpaRequest(request: OwnerSpaRequest, query: string) {
   return [
     request.bookingCode,
     request.serviceName,
@@ -93,7 +147,81 @@ function matchesSpaRequest(request: (typeof ownerBookedSpaRequests)[number], que
   ].some((value) => includesSearchText(value, query))
 }
 
-function SpaRequestList({ emptyText, requests }: { emptyText: string; requests: typeof ownerBookedSpaRequests }) {
+function AvailableServicesTab({
+  errorMessage,
+  isLoading,
+  services,
+}: {
+  errorMessage: string | null
+  isLoading: boolean
+  services: SpaService[]
+}) {
+  if (errorMessage) {
+    return <AvailableServicesError message={errorMessage} />
+  }
+
+  if (isLoading) {
+    return (
+      <section className="grid grid-cols-1 gap-6 pt-2 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <AvailableServiceSkeleton key={index} />
+        ))}
+      </section>
+    )
+  }
+
+  if (services.length === 0) {
+    return (
+      <section className="rounded-[16px] border border-dashed border-[#BDC9C5] bg-white px-6 py-12 text-center">
+        <h2 className="text-lg font-bold leading-[26px] text-[#1B1C15]">Chưa có dịch vụ khả dụng</h2>
+        <p className="mt-2 text-sm leading-5 text-[#3E4946]">
+          Khi trung tâm bật dịch vụ spa, danh sách sẽ hiển thị tại đây.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="grid grid-cols-1 gap-6 pt-2 md:grid-cols-2 xl:grid-cols-3">
+      {services.map((service) => (
+        <OwnerSpaServiceCard key={service.id} service={service} />
+      ))}
+    </section>
+  )
+}
+
+function AvailableServiceSkeleton() {
+  return (
+    <article className="flex min-h-[237px] animate-pulse flex-col rounded-[16px] border border-[#E6E8DD] bg-white p-[25px] shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
+      <div className="flex items-center gap-3 pb-4">
+        <div className="size-10 rounded-lg bg-[#E0F2F1]" />
+        <div className="h-6 w-1/2 rounded bg-[#E4E3D7]" />
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 w-full rounded bg-[#E4E3D7]" />
+        <div className="h-4 w-3/4 rounded bg-[#E4E3D7]" />
+        <div className="h-4 w-1/2 rounded bg-[#E4E3D7]" />
+      </div>
+      <div className="mt-auto flex justify-end border-t border-[#E6E8DD] pt-4">
+        <div className="h-9 w-28 rounded-xl bg-[#E4E3D7]" />
+      </div>
+    </article>
+  )
+}
+
+function AvailableServicesError({ message }: { message: string }) {
+  return (
+    <section className="flex items-start gap-3 rounded-[16px] border border-petcenter-danger-text/20 bg-petcenter-danger-bg p-4 text-petcenter-danger-text">
+      <AlertCircle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+      <div>
+        <h2 className="text-sm font-bold leading-5">Không thể tải danh sách dịch vụ spa</h2>
+        <p className="mt-1 text-sm leading-5">{message}</p>
+      </div>
+    </section>
+  )
+}
+
+function SpaRequestList({ emptyText, requests }: { emptyText: string; requests: OwnerSpaRequest[] }) {
   if (requests.length === 0) {
     return (
       <section className="rounded-[16px] border border-dashed border-[#BDC9C5] bg-[#FBFAF2] p-8 text-center text-sm leading-5 text-[#3E4946]">
