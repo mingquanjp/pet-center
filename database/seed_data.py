@@ -117,10 +117,10 @@ def make_users() -> tuple[list[tuple], dict[str, list[str]]]:
     role_prefix = {"Owner": "owner", "Staff": "staff", "Doctor": "doctor", "Admin": "admin"}
     role_id_prefix = {"Owner": "own", "Staff": "stf", "Doctor": "doc", "Admin": "adm"}
     role_names = {
-        "Owner": "Pet Owner",
-        "Staff": "Center Staff",
-        "Doctor": "Veterinarian",
-        "Admin": "System Admin",
+        "Owner": "Chủ thú cưng",
+        "Staff": "Nhân viên trung tâm",
+        "Doctor": "Bác sĩ thú y",
+        "Admin": "Quản trị viên",
     }
 
     rows: list[tuple] = []
@@ -138,7 +138,7 @@ def make_users() -> tuple[list[tuple], dict[str, list[str]]]:
                     email,
                     password_hash_by_role[role],
                     f"090{random.randint(1000000, 9999999)}",
-                    f"{index} Nguyen Trai, District {random.randint(1, 12)}, Ho Chi Minh City",
+                    f"{index} Nguyễn Trãi, Quận {random.randint(1, 12)}, TP. Hồ Chí Minh",
                     role,
                     "active" if index % 31 else "inactive",
                     utc_dt(-random.randint(30, 420), 8),
@@ -163,37 +163,37 @@ def build_seed() -> dict[str, list[tuple]]:
         ("svc_groom_005_massage", "Massage thư giãn", "grooming", 30, 100000),
     ]
     medical_services = [
-        ("svc_med_check", "General Checkup", "medical", 30, 180000),
-        ("svc_med_vaccine", "Vaccination Visit", "medical", 25, 220000),
-        ("svc_med_lab", "Lab Test", "medical", 45, 350000),
-        ("svc_med_recheck", "Recheck Visit", "medical", 20, 120000),
-        ("svc_med_xray", "X-Ray", "medical", 40, 450000),
-        ("svc_med_ultra", "Ultrasound", "medical", 40, 500000),
-        ("svc_med_dental", "Dental Exam", "medical", 35, 260000),
-        ("svc_med_skin", "Skin Exam", "medical", 35, 240000),
-        ("svc_med_eye", "Eye Exam", "medical", 25, 210000),
-        ("svc_med_emergency", "Emergency Care", "medical", 60, 700000),
+        ("svc_med_check", "Khám tổng quát", "medical", 30, 180000),
+        ("svc_med_vaccine", "Tiêm phòng", "medical", 25, 220000),
+        ("svc_med_lab", "Xét nghiệm", "medical", 45, 350000),
+        ("svc_med_recheck", "Tái khám", "medical", 20, 120000),
+        ("svc_med_xray", "Chụp X-quang", "medical", 40, 450000),
+        ("svc_med_ultra", "Siêu âm", "medical", 40, 500000),
+        ("svc_med_dental", "Khám răng miệng", "medical", 35, 260000),
+        ("svc_med_skin", "Khám da liễu", "medical", 35, 240000),
+        ("svc_med_eye", "Khám mắt", "medical", 25, 210000),
+        ("svc_med_emergency", "Cấp cứu thú cưng", "medical", 60, 700000),
     ]
     boarding_services = [
-        ("svc_board_day", "Day Boarding", "boarding", 720, 180000),
-        ("svc_board_night", "Overnight Boarding", "boarding", 1440, 280000),
-        ("svc_board_play", "Play Time", "boarding", 30, 80000),
-        ("svc_board_walk", "Dog Walking", "boarding", 30, 70000),
-        ("svc_board_feed", "Special Feeding", "boarding", 15, 50000),
+        ("svc_board_day", "Lưu trú ban ngày", "boarding", 720, 180000),
+        ("svc_board_night", "Lưu trú qua đêm", "boarding", 1440, 280000),
+        ("svc_board_play", "Giờ chơi vận động", "boarding", 30, 80000),
+        ("svc_board_walk", "Dắt chó đi dạo", "boarding", 30, 70000),
+        ("svc_board_feed", "Cho ăn theo yêu cầu", "boarding", 15, 50000),
     ]
     medicine_services = [
-        ("svc_rx_dispense", "Medicine Dispensing", "medicine", 10, 30000),
-        ("svc_rx_injection", "Injection", "medicine", 15, 90000),
-        ("svc_rx_deworm", "Deworming", "medicine", 15, 110000),
-        ("svc_rx_flea", "Flea Prevention", "medicine", 10, 140000),
-        ("svc_rx_vitamin", "Vitamin Support", "medicine", 10, 100000),
+        ("svc_rx_dispense", "Cấp phát thuốc", "medicine", 10, 30000),
+        ("svc_rx_injection", "Tiêm thuốc", "medicine", 15, 90000),
+        ("svc_rx_deworm", "Tẩy giun", "medicine", 15, 110000),
+        ("svc_rx_flea", "Phòng ve rận", "medicine", 10, 140000),
+        ("svc_rx_vitamin", "Bổ sung vitamin", "medicine", 10, 100000),
     ]
     other_services = [
-        ("svc_other_pickup", "Pet Pickup", "other", 30, 120000),
-        ("svc_other_photo", "Pet Photo", "other", 15, 60000),
-        ("svc_other_train", "Behavior Consultation", "other", 60, 300000),
-        ("svc_other_chip", "Microchip Registration", "other", 20, 250000),
-        ("svc_other_report", "Health Report Copy", "other", 10, 30000),
+        ("svc_other_pickup", "Đón thú cưng", "other", 30, 120000),
+        ("svc_other_photo", "Chụp ảnh thú cưng", "other", 15, 60000),
+        ("svc_other_train", "Tư vấn hành vi", "other", 60, 300000),
+        ("svc_other_chip", "Đăng ký vi mạch", "other", 20, 250000),
+        ("svc_other_report", "Sao y hồ sơ sức khỏe", "other", 10, 30000),
     ]
     services = grooming_services + medical_services + boarding_services + medicine_services + other_services
     grooming_descriptions = {
@@ -204,46 +204,46 @@ def build_seed() -> dict[str, list[tuple]]:
         "svc_groom_005_massage": "Massage nhẹ giúp thú cưng thư giãn và giảm căng thẳng.",
     }
     data["services"] = [
-        (sid, name, category, grooming_descriptions.get(sid, f"{name} service for pet center testing."), duration, money(price), "active")
+        (sid, name, category, grooming_descriptions.get(sid, f"Dịch vụ {name.lower()} dùng cho dữ liệu kiểm thử trung tâm thú cưng."), duration, money(price), "active")
         for sid, name, category, duration, price in services
     ]
 
     data["exam_types"] = [
-        ("ext_general", "general_checkup", "General Checkup", "Routine health examination", "svc_med_check", "active"),
-        ("ext_vaccine", "vaccination", "Vaccination", "Vaccination and vaccine follow-up", "svc_med_vaccine", "active"),
-        ("ext_lab", "lab_test", "Lab Test", "Blood and sample testing", "svc_med_lab", "active"),
-        ("ext_recheck", "recheck", "Recheck", "Follow-up examination", "svc_med_recheck", "active"),
+        ("ext_general", "general_checkup", "Khám tổng quát", "Kiểm tra sức khỏe định kỳ cho thú cưng", "svc_med_check", "active"),
+        ("ext_vaccine", "vaccination", "Tiêm phòng", "Tiêm phòng và theo dõi sau tiêm", "svc_med_vaccine", "active"),
+        ("ext_lab", "lab_test", "Xét nghiệm", "Xét nghiệm máu và mẫu bệnh phẩm", "svc_med_lab", "active"),
+        ("ext_recheck", "recheck", "Tái khám", "Khám lại sau điều trị hoặc theo dõi", "svc_med_recheck", "active"),
     ]
     field_specs = {
         "ext_general": [
-            ("temperature_c", "Temperature C", "number", True),
-            ("heart_rate", "Heart Rate", "number", True),
-            ("respiratory_rate", "Respiratory Rate", "number", False),
-            ("body_condition", "Body Condition", "select", True),
-            ("clinical_notes", "Clinical Notes", "text", False),
-            ("next_visit_date", "Next Visit Date", "date", False),
+            ("temperature_c", "Nhiệt độ C", "number", True),
+            ("heart_rate", "Nhịp tim", "number", True),
+            ("respiratory_rate", "Nhịp thở", "number", False),
+            ("body_condition", "Thể trạng", "select", True),
+            ("clinical_notes", "Ghi chú lâm sàng", "text", False),
+            ("next_visit_date", "Ngày hẹn tiếp theo", "date", False),
         ],
         "ext_vaccine": [
-            ("vaccine_lot", "Vaccine Lot", "text", True),
-            ("vaccine_brand", "Vaccine Brand", "text", True),
-            ("dose_ml", "Dose ML", "number", True),
-            ("next_due_date", "Next Due Date", "date", False),
-            ("reaction_note", "Reaction Note", "text", False),
+            ("vaccine_lot", "Lô vắc xin", "text", True),
+            ("vaccine_brand", "Hãng vắc xin", "text", True),
+            ("dose_ml", "Liều tiêm ml", "number", True),
+            ("next_due_date", "Ngày nhắc lại", "date", False),
+            ("reaction_note", "Ghi chú phản ứng", "text", False),
         ],
         "ext_lab": [
-            ("sample_type", "Sample Type", "select", True),
+            ("sample_type", "Loại mẫu xét nghiệm", "select", True),
             ("wbc", "WBC", "number", False),
             ("rbc", "RBC", "number", False),
-            ("platelet", "Platelet", "number", False),
-            ("lab_summary", "Lab Summary", "text", True),
-            ("report_file", "Report File", "file", False),
+            ("platelet", "Tiểu cầu", "number", False),
+            ("lab_summary", "Tóm tắt xét nghiệm", "text", True),
+            ("report_file", "Tệp kết quả", "file", False),
         ],
         "ext_recheck": [
-            ("progress_note", "Progress Note", "text", True),
-            ("weight_kg", "Weight KG", "number", False),
-            ("appetite", "Appetite", "select", False),
-            ("medication_response", "Medication Response", "text", False),
-            ("next_recheck_date", "Next Recheck Date", "date", False),
+            ("progress_note", "Ghi chú tiến triển", "text", True),
+            ("weight_kg", "Cân nặng kg", "number", False),
+            ("appetite", "Mức ăn uống", "select", False),
+            ("medication_response", "Đáp ứng thuốc", "text", False),
+            ("next_recheck_date", "Ngày tái khám tiếp theo", "date", False),
         ],
     }
     fields = []
@@ -257,11 +257,11 @@ def build_seed() -> dict[str, list[tuple]]:
     data["exam_field_definitions"] = fields
 
     species_breeds = {
-        "Dog": ["Poodle", "Corgi", "Golden Retriever", "Husky", "Shiba Inu", "Mixed"],
-        "Cat": ["British Shorthair", "Persian", "Maine Coon", "Siamese", "Tabby", "Mixed"],
-        "Other": ["Rabbit", "Hamster", "Guinea Pig", "Parrot"],
+        "Dog": ["Poodle", "Corgi", "Golden Retriever", "Husky", "Shiba Inu", "Lai"],
+        "Cat": ["Anh lông ngắn", "Ba Tư", "Maine Coon", "Xiêm", "Mèo mướp", "Lai"],
+        "Other": ["Thỏ", "Hamster", "Bọ ú", "Vẹt"],
     }
-    pet_names = ["Milo", "Luna", "Coco", "Bella", "Max", "Mochi", "Bong", "Bim", "Kem", "Nau", "Den", "Sua"]
+    pet_names = ["Milo", "Luna", "Coco", "Bella", "Max", "Mochi", "Bông", "Bim", "Kem", "Nâu", "Đen", "Sữa"]
     pets = []
     health_profiles = []
     owner_for_pet: dict[str, str] = {}
@@ -287,10 +287,10 @@ def build_seed() -> dict[str, list[tuple]]:
                 random.choice(["male", "female", "unknown"]),
                 birth_date,
                 estimated_age,
-                random.choice(["Black", "White", "Brown", "Golden", "Gray", "Mixed"]),
+                random.choice(["Đen", "Trắng", "Nâu", "Vàng", "Xám", "Pha màu"]),
                 money(weight),
                 random.choice(PET_IMAGE_URLS[species]),
-                random.choice(["White paws", "Small scar", "Curly tail", None]),
+                random.choice(["Bốn chân trắng", "Có sẹo nhỏ", "Đuôi cong", None]),
                 status,
             )
         )
@@ -298,12 +298,12 @@ def build_seed() -> dict[str, list[tuple]]:
             (
                 f"php{index:04d}",
                 pet_id,
-                random.choice(["No major history", "Previous skin allergy", "Digestive sensitivity", "Vaccinated regularly"]),
-                random.choice([None, "Chicken allergy", "Seafood allergy", "Dust sensitivity"]),
-                random.choice([None, "Mild obesity", "Chronic dermatitis", "Anxiety around strangers"]),
-                random.choice(["Dry food", "Wet food", "Mixed diet", "Prescription diet"]),
-                random.choice(["2 meals per day", "Small portions 3 times per day", "Follow owner note"]),
-                random.choice([None, "Needs gentle handling", "Keep warm after bath", "Avoid loud noise"]),
+                random.choice(["Chưa ghi nhận bệnh sử nghiêm trọng", "Từng dị ứng da", "Dễ rối loạn tiêu hóa", "Tiêm phòng định kỳ"]),
+                random.choice([None, "Dị ứng thịt gà", "Dị ứng hải sản", "Nhạy cảm với bụi"]),
+                random.choice([None, "Thừa cân nhẹ", "Viêm da mạn tính", "Lo lắng khi gặp người lạ"]),
+                random.choice(["Thức ăn khô", "Thức ăn ướt", "Khẩu phần kết hợp", "Khẩu phần theo toa"]),
+                random.choice(["2 bữa mỗi ngày", "Chia nhỏ 3 bữa mỗi ngày", "Theo ghi chú của chủ nuôi"]),
+                random.choice([None, "Cần thao tác nhẹ nhàng", "Giữ ấm sau khi tắm", "Tránh tiếng ồn lớn"]),
                 utc_dt(-random.randint(0, 90), 10),
             )
         )
@@ -312,7 +312,7 @@ def build_seed() -> dict[str, list[tuple]]:
 
     data["medicines"] = []
     med_units = ["tablet", "bottle", "packet", "tube", "ml", "dose", "other"]
-    med_names = ["Amoxicillin", "Doxycycline", "Meloxicam", "Prednisolone", "Vitamin B", "Probiotic", "Dewormer", "Eye Drop"]
+    med_names = ["Amoxicillin", "Doxycycline", "Meloxicam", "Prednisolone", "Vitamin B", "Men vi sinh", "Thuốc tẩy giun", "Thuốc nhỏ mắt"]
     for index in range(1, 81):
         name = f"{random.choice(med_names)} {index}"
         data["medicines"].append(
@@ -320,8 +320,8 @@ def build_seed() -> dict[str, list[tuple]]:
                 f"med{index:04d}",
                 name,
                 random.choice(med_units),
-                f"{name} for clinical testing.",
-                "Use as directed by veterinarian.",
+                f"{name} dùng cho dữ liệu kiểm thử đơn thuốc.",
+                "Sử dụng theo hướng dẫn của bác sĩ thú y.",
                 money(random.randint(15000, 260000)),
                 "active" if index % 17 else "inactive",
             )
@@ -334,19 +334,19 @@ def build_seed() -> dict[str, list[tuple]]:
             price_rules.append((f"spr{index:04d}b", sid, "FROM_5KG", money(150000), today - timedelta(days=180), "active"))
             continue
 
-        price_rules.append((f"spr{index:04d}a", sid, "standard", money(price), today - timedelta(days=180), "active"))
-        price_rules.append((f"spr{index:04d}b", sid, "large pet surcharge", money(int(price * 1.25)), today - timedelta(days=90), "active"))
+        price_rules.append((f"spr{index:04d}a", sid, "Giá tiêu chuẩn", money(price), today - timedelta(days=180), "active"))
+        price_rules.append((f"spr{index:04d}b", sid, "Phụ thu thú cưng lớn", money(int(price * 1.25)), today - timedelta(days=90), "active"))
     data["service_price_rules"] = price_rules[:80]
 
     data["room_types"] = [
-        ("room_std_cat", "Standard Cat Room", 1, money(220000), "Single cat room", "active"),
-        ("room_vip_cat", "VIP Cat Room", 1, money(380000), "Large cat room with camera", "active"),
-        ("room_std_dog", "Standard Dog Room", 1, money(260000), "Single dog room", "active"),
-        ("room_vip_dog", "VIP Dog Room", 1, money(450000), "Large dog room with camera", "active"),
-        ("room_family", "Family Room", 3, money(620000), "Shared room for pets from same owner", "active"),
-        ("room_quiet", "Quiet Care Room", 1, money(500000), "Quiet care boarding", "active"),
-        ("room_medical", "Medical Observation Room", 1, money(650000), "Observation room", "active"),
-        ("room_daycare", "Daycare Area", 8, money(180000), "Daycare shared area", "active"),
+        ("room_std_cat", "Phòng mèo tiêu chuẩn", 1, money(220000), "Phòng riêng cho một mèo", "active"),
+        ("room_vip_cat", "Phòng mèo VIP", 1, money(380000), "Phòng mèo rộng có camera", "active"),
+        ("room_std_dog", "Phòng chó tiêu chuẩn", 1, money(260000), "Phòng riêng cho một chó", "active"),
+        ("room_vip_dog", "Phòng chó VIP", 1, money(450000), "Phòng chó rộng có camera", "active"),
+        ("room_family", "Phòng gia đình", 3, money(620000), "Phòng chung cho thú cưng cùng chủ", "active"),
+        ("room_quiet", "Phòng chăm sóc yên tĩnh", 1, money(500000), "Phòng lưu trú hạn chế tiếng ồn", "active"),
+        ("room_medical", "Phòng theo dõi y tế", 1, money(650000), "Phòng lưu trú cần theo dõi sức khỏe", "active"),
+        ("room_daycare", "Khu chăm sóc ban ngày", 8, money(180000), "Khu sinh hoạt chung ban ngày", "active"),
     ]
 
     exam_type_ids = [row[0] for row in data["exam_types"]]
@@ -357,7 +357,7 @@ def build_seed() -> dict[str, list[tuple]]:
         owner_id = owner_for_pet[pet_id]
         exam_type_id = random.choice(exam_type_ids)
         status = "confirmed" if index <= 620 else random.choices(["pending_payment", "pending", "confirmed", "rejected", "cancelled"], [15, 20, 50, 8, 7])[0]
-        rejection_reason = "Requested time is unavailable." if status == "rejected" else None
+        rejection_reason = "Khung giờ yêu cầu không còn trống." if status == "rejected" else None
         scheduled_days = random.randint(-330, -1) if index <= 620 else random.randint(-330, 60)
         scheduled = utc_dt(scheduled_days, random.randint(8, 17), random.choice([0, 30]))
         vet_id = random.choice(user_ids["Doctor"]) if status in ["confirmed", "pending"] else None
@@ -371,9 +371,9 @@ def build_seed() -> dict[str, list[tuple]]:
                 exam_type_id,
                 vet_id,
                 scheduled,
-                random.choice(["Coughing and tired", "Routine check", "Skin itch", "Low appetite", "Vaccination request"]),
+                random.choice(["Ho và mệt mỏi", "Khám định kỳ", "Ngứa da", "Ăn ít", "Yêu cầu tiêm phòng"]),
                 status,
-                random.choice([None, "Owner requested morning slot", "Pet nervous around strangers"]),
+                random.choice([None, "Chủ nuôi muốn đặt lịch buổi sáng", "Thú cưng dễ căng thẳng khi gặp người lạ"]),
                 rejection_reason,
                 staff_id,
             )
@@ -400,9 +400,9 @@ def build_seed() -> dict[str, list[tuple]]:
                 exam_id,
                 appointment_id,
                 exam_type_id,
-                random.choice(["Healthy condition", "Mild infection", "Skin inflammation", "Digestive issue"]),
-                random.choice(["Stable", "Medication advised", "Monitor at home", "Follow up needed"]),
-                random.choice(["Hydration normal", "Owner advised on diet", "Keep pet rested"]),
+                random.choice(["Sức khỏe ổn định", "Nhiễm trùng nhẹ", "Viêm da", "Rối loạn tiêu hóa"]),
+                random.choice(["Tình trạng ổn định", "Cần dùng thuốc theo hướng dẫn", "Theo dõi tại nhà", "Cần tái khám"]),
+                random.choice(["Mức nước cơ thể bình thường", "Đã tư vấn khẩu phần ăn cho chủ nuôi", "Cần cho thú cưng nghỉ ngơi"]),
                 exam_status,
                 scheduled.date(),
                 vet_id,
@@ -413,9 +413,9 @@ def build_seed() -> dict[str, list[tuple]]:
         for field_id, field_type in field_ids_by_type[exam_type_id]:
             value_text = value_number = value_date = file_url = None
             if field_type == "text":
-                value_text = random.choice(["Normal", "Mild finding", "Owner reports improvement", "No abnormality detected"])
+                value_text = random.choice(["Bình thường", "Có dấu hiệu nhẹ", "Chủ nuôi báo đã cải thiện", "Chưa phát hiện bất thường"])
             elif field_type == "select":
-                value_text = random.choice(["normal", "mild", "moderate", "good", "reduced"])
+                value_text = random.choice(["bình thường", "nhẹ", "trung bình", "tốt", "giảm"])
             elif field_type == "number":
                 value_number = money(round(random.uniform(1, 120), 2))
             elif field_type == "date":
@@ -432,12 +432,12 @@ def build_seed() -> dict[str, list[tuple]]:
                     exam_id,
                     random.choice(["Rabies", "DHPPi", "FVRCP", "Bordetella", "Leptospirosis"]),
                     min(scheduled.date(), today),
-                    random.choice([None, "No adverse reaction", "Next dose scheduled"]),
+                    random.choice([None, "Không ghi nhận phản ứng bất lợi", "Đã hẹn mũi tiếp theo"]),
                 )
             )
         if index <= 300 or exam_status == "prescribed" or random.random() < 0.42:
             prescription_id = f"pre{len(prescriptions) + 1:04d}"
-            prescriptions.append((prescription_id, exam_id, min(scheduled.date(), today), "Follow dosage and contact clinic if symptoms worsen."))
+            prescriptions.append((prescription_id, exam_id, min(scheduled.date(), today), "Dùng đúng liều và liên hệ phòng khám nếu triệu chứng nặng hơn."))
             for _ in range(random.randint(1, 4)):
                 med_id = f"med{random.randint(1, 80):04d}"
                 med_row = data["medicines"][int(med_id[-4:]) - 1]
@@ -447,11 +447,11 @@ def build_seed() -> dict[str, list[tuple]]:
                         prescription_id,
                         med_id,
                         med_row[1],
-                        random.choice(["1 tablet", "2 ml", "1 dose", "Apply thin layer"]),
-                        random.choice(["Once daily", "Twice daily", "Every 12 hours", "After meal"]),
-                        random.choice(["3 days", "5 days", "7 days", "10 days"]),
-                        "Use after feeding when applicable.",
-                        random.choice([None, "Stop if vomiting occurs"]),
+                        random.choice(["1 viên", "2 ml", "1 liều", "Bôi một lớp mỏng"]),
+                        random.choice(["Mỗi ngày một lần", "Mỗi ngày hai lần", "Mỗi 12 giờ", "Sau bữa ăn"]),
+                        random.choice(["3 ngày", "5 ngày", "7 ngày", "10 ngày"]),
+                        "Ưu tiên dùng sau khi ăn nếu phù hợp.",
+                        random.choice([None, "Ngừng dùng nếu thú cưng bị nôn"]),
                     )
                 )
             invoice_sources.append(("prescription", prescription_id, owner_id, pet_id, "svc_rx_dispense", random.randint(80000, 600000)))
@@ -461,8 +461,8 @@ def build_seed() -> dict[str, list[tuple]]:
                     f"fup{len(followups) + 1:04d}",
                     exam_id,
                     today + timedelta(days=random.randint(3, 45)),
-                    random.choice(["Recheck symptoms", "Review lab result", "Second vaccine dose", "Medication response check"]),
-                    "Please book a suitable time with the clinic.",
+                    random.choice(["Kiểm tra lại triệu chứng", "Đánh giá kết quả xét nghiệm", "Tiêm mũi nhắc lại", "Theo dõi đáp ứng thuốc"]),
+                    "Vui lòng đặt lịch phù hợp với phòng khám.",
                 )
             )
     data["medical_exams"] = exams
@@ -495,7 +495,7 @@ def build_seed() -> dict[str, list[tuple]]:
                 random.choice(["online", "counter"]),
                 scheduled,
                 received,
-                random.choice([None, "Please use hypoallergenic shampoo", "Trim short for summer", "Be gentle around ears"]),
+                random.choice([None, "Vui lòng dùng sữa tắm ít gây kích ứng", "Cắt tỉa ngắn cho mùa nóng", "Thao tác nhẹ quanh vùng tai"]),
                 money(total),
                 status,
             )
@@ -533,10 +533,10 @@ def build_seed() -> dict[str, list[tuple]]:
                 end,
                 actual_in,
                 actual_out,
-                random.choice(["Regular feeding", "Medication at night", "Extra play time", "Quiet room preferred"]),
+                random.choice(["Cho ăn theo lịch cố định", "Cho uống thuốc buổi tối", "Tăng thời gian chơi vận động", "Ưu tiên phòng yên tĩnh"]),
                 estimated_total,
                 status,
-                "Room is unavailable." if status == "rejected" else None,
+                "Phòng đã kín trong thời gian yêu cầu." if status == "rejected" else None,
                 random.choice(user_ids["Staff"]) if status not in ["pending_payment", "pending"] else None,
             )
         )
@@ -548,7 +548,7 @@ def build_seed() -> dict[str, list[tuple]]:
                     record_id,
                     random.choice(user_ids["Staff"]),
                     utc_dt(random.randint(-120, 15), random.randint(8, 20)),
-                    random.choice(["Ate well", "Played in common area", "Resting normally", "Needs attention for appetite"]),
+                    random.choice(["Ăn uống tốt", "Đã chơi ở khu sinh hoạt chung", "Nghỉ ngơi bình thường", "Cần theo dõi khẩu vị"]),
                     random.choice([None, random.choice(BOARDING_IMAGE_URLS)]),
                     random.choices(["normal", "attention", "urgent"], [82, 16, 2])[0],
                     random.choices(["draft", "published"], [20, 80])[0],
@@ -561,6 +561,12 @@ def build_seed() -> dict[str, list[tuple]]:
     invoice_lines = []
     payments = []
     notifications = []
+    source_type_labels = {
+        "medical_exam": "lần khám bệnh",
+        "grooming": "phiếu spa và làm đẹp",
+        "boarding": "hồ sơ lưu trú",
+        "prescription": "đơn thuốc",
+    }
     random.shuffle(invoice_sources)
     for index, source in enumerate(invoice_sources[:1500], 1):
         source_type, source_id, owner_id, pet_id, service_id, amount = source
@@ -594,7 +600,12 @@ def build_seed() -> dict[str, list[tuple]]:
                 service_id,
                 source_type,
                 source_id,
-                f"{source_type.replace('_', ' ').title()} charge",
+                {
+                    "medical_exam": "Phí khám bệnh",
+                    "grooming": "Phí spa và làm đẹp",
+                    "boarding": "Phí lưu trú",
+                    "prescription": "Phí đơn thuốc",
+                }[source_type],
                 1,
                 subtotal,
                 discount_amount,
@@ -602,7 +613,7 @@ def build_seed() -> dict[str, list[tuple]]:
             )
         )
         if surcharge_amount > 0:
-            invoice_lines.append((f"inl{len(invoice_lines) + 1:05d}", invoice_id, None, source_type, source_id, "Service surcharge", 1, surcharge_amount, money(0), surcharge_amount))
+            invoice_lines.append((f"inl{len(invoice_lines) + 1:05d}", invoice_id, None, source_type, source_id, "Phụ thu dịch vụ", 1, surcharge_amount, money(0), surcharge_amount))
         if status in ["paid", "refunded"] or random.random() < 0.18:
             pay_status = "success" if status in ["paid", "refunded"] else random.choice(["failed", "cancelled"])
             payments.append(
@@ -623,8 +634,8 @@ def build_seed() -> dict[str, list[tuple]]:
             (
                 f"not{len(notifications) + 1:05d}",
                 owner_id,
-                random.choice(["Invoice update", "Appointment reminder", "Pet center notification"]),
-                f"Notification related to {source_type} {source_id}.",
+                random.choice(["Cập nhật hóa đơn", "Nhắc lịch hẹn", "Thông báo từ trung tâm thú cưng"]),
+                f"Thông báo liên quan đến {source_type_labels[source_type]} {source_id}.",
                 random.choice(["app", "email", "sms"]),
                 utc_dt(-random.randint(0, 120), random.randint(8, 21)),
                 random.choices(["unread", "read", "failed"], [42, 55, 3])[0],
@@ -638,8 +649,8 @@ def build_seed() -> dict[str, list[tuple]]:
             (
                 f"not{index:05d}",
                 receiver,
-                random.choice(["System notice", "Schedule update", "Care update"]),
-                "This is seeded notification data for testing.",
+                random.choice(["Thông báo hệ thống", "Cập nhật lịch hẹn", "Cập nhật chăm sóc"]),
+                "Đây là thông báo seed dùng cho dữ liệu kiểm thử.",
                 random.choice(["app", "email", "sms"]),
                 utc_dt(-random.randint(0, 180), random.randint(8, 21)),
                 random.choices(["unread", "read", "failed"], [40, 57, 3])[0],

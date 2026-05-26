@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 export function createId(prefix: string): string {
-  return `${prefix}_${randomUUID()}`;
+  return `${prefix}_${randomBytes(12).toString("hex")}`;
 }
