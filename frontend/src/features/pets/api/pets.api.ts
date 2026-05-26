@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/api";
-import type { CreatePetInput, Pagination, Pet, PetsListParams } from "../types/pet.types";
+import type { CreatePetInput, Pagination, Pet, PetDetail, PetsListParams } from "../types/pet.types";
 
 function buildQuery(params: PetsListParams): string {
   const searchParams = new URLSearchParams();
@@ -35,6 +35,12 @@ export const petsApi = {
       method: "POST",
       body: JSON.stringify(payload),
     });
+
+    return response.data;
+  },
+
+  async get(petId: string): Promise<PetDetail> {
+    const response = await apiRequest<PetDetail>(`/pets/${encodeURIComponent(petId)}`);
 
     return response.data;
   },

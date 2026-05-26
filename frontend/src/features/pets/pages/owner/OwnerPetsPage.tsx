@@ -262,9 +262,6 @@ function PetCard({ pet }: { pet: Pet }) {
             <h2 className="heading-sm truncate text-petcenter-text">{pet.petName}</h2>
             <p className="body-md mt-1 text-petcenter-text-secondary">{petSubtitle}</p>
           </div>
-          <span className="label-sm shrink-0 rounded-pill bg-petcenter-sidebar px-2 py-1 uppercase text-petcenter-text-muted">
-            {pet.petId}
-          </span>
         </div>
 
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-petcenter-text-secondary">
@@ -279,9 +276,12 @@ function PetCard({ pet }: { pet: Pet }) {
         </div>
       </div>
 
-      <button className="label-md h-11 rounded-control bg-petcenter-cta px-4 font-semibold text-white shadow-card transition-colors hover:bg-petcenter-cta-hover active:bg-petcenter-cta-active">
+      <Link
+        className="label-md flex h-11 items-center justify-center rounded-control bg-petcenter-cta px-4 font-semibold text-white shadow-card transition-colors hover:bg-petcenter-cta-hover active:bg-petcenter-cta-active"
+        href={`/owner/pets/${encodeURIComponent(pet.petId)}`}
+      >
         Xem hồ sơ
-      </button>
+      </Link>
     </article>
   )
 }
