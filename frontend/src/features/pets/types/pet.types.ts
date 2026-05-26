@@ -22,6 +22,29 @@ export type Pet = {
   displayStatusLabel: string;
 };
 
+export type PetHealthProfileInput = {
+  medicalHistory?: string | null;
+  allergyNotes?: string | null;
+  chronicConditionNotes?: string | null;
+  foodType?: string | null;
+  feedingPortion?: string | null;
+  specialCareNotes?: string | null;
+};
+
+export type CreatePetInput = {
+  petName: string;
+  species: PetSpecies;
+  breed?: string | null;
+  gender?: PetGender | null;
+  birthDate?: string | null;
+  estimatedAge?: number | null;
+  furColor?: string | null;
+  weightKg?: number | null;
+  profileImageUrl?: string | null;
+  identifyingMarks?: string | null;
+  healthProfile?: PetHealthProfileInput;
+};
+
 export type PetsListParams = {
   species?: "all" | PetSpecies;
   status?: "all" | PetDisplayStatus;

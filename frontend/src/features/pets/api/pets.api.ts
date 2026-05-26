@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/api";
-import type { Pagination, Pet, PetsListParams } from "../types/pet.types";
+import type { CreatePetInput, Pagination, Pet, PetsListParams } from "../types/pet.types";
 
 function buildQuery(params: PetsListParams): string {
   const searchParams = new URLSearchParams();
@@ -28,5 +28,14 @@ export const petsApi = {
         totalPages: response.data.length > 0 ? 1 : 0,
       },
     };
+  },
+
+  async create(payload: CreatePetInput): Promise<Pet> {
+    const response = await apiRequest<Pet>("/pets", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    return response.data;
   },
 };
