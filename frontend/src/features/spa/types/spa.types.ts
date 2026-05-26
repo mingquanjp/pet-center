@@ -113,6 +113,43 @@ export interface GroomingTicketCreated {
   scheduledAt: string
 }
 
+export type BookedGroomingTicketStatus = "pending" | "waiting" | "in_progress"
+
+export interface GroomingTicketListItem {
+  groomingTicketId: string
+  bookingCode: string
+  serviceName: string
+  petName: string
+  scheduledAt: string
+  scheduledDate: string
+  scheduledTime: string
+  ticketStatus: BookedGroomingTicketStatus
+  ticketStatusLabel: string
+  paymentOption: SpaPaymentMethod
+  paymentMethodLabel: string
+  invoiceStatus: InvoiceStatus | null
+  paymentStatusLabel: string
+  totalAmount: number
+  specialRequest: string | null
+  canCancel: boolean
+}
+
+export interface GroomingTicketListParams {
+  search?: string
+  petId?: string
+  status?: "all" | BookedGroomingTicketStatus
+  timeRange?: "all" | "today" | "upcoming" | "past"
+  page?: number
+  limit?: number
+}
+
+export interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 export interface OwnerSpaRequest {
   id: string
   bookingCode: string

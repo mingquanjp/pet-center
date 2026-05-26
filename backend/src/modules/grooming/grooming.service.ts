@@ -1,14 +1,17 @@
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
-import type { AvailabilityQuery, BookingOptionsQuery, CreateGroomingTicketPayload } from "./grooming.schema.js";
-import type { GroomingBookingOptionsDto } from "./grooming.types.js";
+import type { AvailabilityQuery, BookingOptionsQuery, CreateGroomingTicketPayload, ListGroomingTicketsQuery } from "./grooming.schema.js";
+import type { GroomingBookingOptionsDto, GroomingBookingServiceDto, GroomingBookingServicePriceBaseDto } from "./grooming.types.js";
 import * as groomingRepository from "./grooming.repository.js";
 
 const timeZone = "Asia/Ho_Chi_Minh";
 const firstSlotHour = 8;
 const lastSlotHour = 17;
 const lastSlotMinute = 30;
+const largePetThresholdKg = 5;
+const largePetSurchargeStepKg = 3;
+const largePetSurchargeAmount = 50000;
 
 function assertOwner(authUser: AuthUser): void {
   if (authUser.role !== "OWNER") {
@@ -16,8 +19,55 @@ function assertOwner(authUser: AuthUser): void {
   }
 }
 
-function getPricingCondition(weightKg: number): "UNDER_5KG" | "FROM_5KG" {
-  return weightKg < 5 ? "UNDER_5KG" : "FROM_5KG";
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat("vi-VN").format(value);
+}
+
+function calculateGroomingPrice(basePrice: number, weightKg: number): number {
+  if (weightKg < largePetThresholdKg) {
+    return basePrice;
+  }
+
+  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg);
+
+  return basePrice + surchargeSteps * largePetSurchargeAmount;
+}
+
+function getAppliedPricingCondition(weightKg: number): "UNDER_5KG" | "FROM_5KG_INCREMENTAL" {
+  return weightKg < largePetThresholdKg ? "UNDER_5KG" : "FROM_5KG_INCREMENTAL";
+}
+
+function getAppliedPricingConditionLabel(weightKg: number): string {
+  if (weightKg < largePetThresholdKg) {
+    return "Dưới 5kg";
+  }
+
+  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg);
+
+  if (surchargeSteps === 0) {
+    return "Từ 5kg trở lên";
+  }
+
+  return `Từ 5kg trở lên (+${formatMoney(surchargeSteps * largePetSurchargeAmount)} VNĐ)`;
+}
+
+function applyWeightBasedPrice(
+  service: GroomingBookingServicePriceBaseDto,
+  weightKg: number
+): GroomingBookingServiceDto {
+  const appliedPrice = calculateGroomingPrice(service.basePrice, weightKg);
+
+  return {
+    serviceId: service.serviceId,
+    serviceName: service.serviceName,
+    description: service.description,
+    estimatedDurationMinutes: service.estimatedDurationMinutes,
+    durationText: service.durationText,
+    appliedPrice,
+    appliedPricingCondition: getAppliedPricingCondition(weightKg),
+    appliedPricingConditionLabel: getAppliedPricingConditionLabel(weightKg),
+    priceText: `${formatMoney(appliedPrice)} VNĐ`
+  };
 }
 
 function toVietnamDateString(value: Date): string {
@@ -93,7 +143,9 @@ export async function getBookingOptions(authUser: AuthUser, query: BookingOption
     throw new AppError("Cần cập nhật cân nặng thú cưng để tính giá dịch vụ spa", "PET_WEIGHT_REQUIRED", httpStatus.UNPROCESSABLE_ENTITY);
   }
 
-  const services = await groomingRepository.findBookingServicesForCondition(getPricingCondition(selectedPet.weightKg));
+  const selectedPetWeightKg = selectedPet.weightKg;
+  const servicePriceBases = await groomingRepository.findBookingServicePriceBases();
+  const services = servicePriceBases.map((service) => applyWeightBasedPrice(service, selectedPetWeightKg));
 
   return {
     pets,
@@ -106,6 +158,68 @@ export async function getAvailability(authUser: AuthUser, query: AvailabilityQue
   assertOwner(authUser);
 
   return groomingRepository.getAvailability(toVietnamDateString(query.date));
+}
+
+export async function listBookedTickets(authUser: AuthUser, query: ListGroomingTicketsQuery) {
+  assertOwner(authUser);
+
+  const page = query.page;
+  const limit = query.limit;
+  const result = await groomingRepository.findBookedGroomingTickets({
+    ownerUserId: authUser.userId,
+    search: query.search,
+    petId: query.petId,
+    status: query.status,
+    timeRange: query.timeRange,
+    limit,
+    offset: (page - 1) * limit
+  });
+
+  return {
+    tickets: result.tickets,
+    pagination: {
+      page,
+      limit,
+      total: result.total,
+      totalPages: Math.ceil(result.total / limit)
+    }
+  };
+}
+
+export async function getBookedTicket(authUser: AuthUser, ticketId: string) {
+  assertOwner(authUser);
+
+  const ticket = await groomingRepository.findBookedGroomingTicketById(authUser.userId, ticketId);
+
+  if (!ticket) {
+    throw new AppError("Không tìm thấy yêu cầu dịch vụ spa phù hợp", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  return ticket;
+}
+
+export async function cancelBookedTicket(authUser: AuthUser, ticketId: string) {
+  assertOwner(authUser);
+
+  try {
+    const ticket = await groomingRepository.cancelBookedGroomingTicket(authUser.userId, ticketId);
+
+    if (!ticket) {
+      throw new AppError("Không tìm thấy yêu cầu dịch vụ spa phù hợp", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+    }
+
+    return ticket;
+  } catch (error) {
+    if (error instanceof Error && error.message === "GROOMING_TICKET_CANCEL_NOT_ALLOWED") {
+      throw new AppError("Chỉ có thể hủy yêu cầu đang chờ tiếp nhận", "GROOMING_TICKET_CANCEL_NOT_ALLOWED", httpStatus.CONFLICT);
+    }
+
+    if (error instanceof Error && error.message === "GROOMING_TICKET_PAID_CANCEL_NOT_ALLOWED") {
+      throw new AppError("Yêu cầu đã thanh toán chưa hỗ trợ hủy ở bước này", "GROOMING_TICKET_PAID_CANCEL_NOT_ALLOWED", httpStatus.CONFLICT);
+    }
+
+    throw error;
+  }
 }
 
 export async function createTicket(authUser: AuthUser, payload: CreateGroomingTicketPayload) {
@@ -122,12 +236,13 @@ export async function createTicket(authUser: AuthUser, payload: CreateGroomingTi
     throw new AppError("Cần cập nhật cân nặng thú cưng để tính giá dịch vụ spa", "PET_WEIGHT_REQUIRED", httpStatus.UNPROCESSABLE_ENTITY);
   }
 
-  const pricingCondition = getPricingCondition(pet.weightKg);
-  const service = await groomingRepository.findBookingServiceForCondition(payload.serviceId, pricingCondition);
+  const servicePriceBase = await groomingRepository.findBookingServicePriceBase(payload.serviceId);
 
-  if (!service) {
+  if (!servicePriceBase) {
     throw new AppError("Không tìm thấy dịch vụ spa hoặc bảng giá phù hợp", "GROOMING_SERVICE_NOT_FOUND", httpStatus.NOT_FOUND);
   }
+
+  const service = applyWeightBasedPrice(servicePriceBase, pet.weightKg);
 
   try {
     return await groomingRepository.createGroomingBooking({

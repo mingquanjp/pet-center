@@ -1,11 +1,28 @@
 import { apiRequest } from "@/lib/api"
 import type {
+  GroomingTicketListItem,
+  GroomingTicketListParams,
   CreateGroomingTicketPayload,
   GroomingAvailability,
   GroomingBookingOptions,
   GroomingService,
   GroomingTicketCreated,
+  Pagination,
 } from "../types/spa.types"
+
+function buildQuery(params: Record<string, string | number | undefined>): string {
+  const searchParams = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") {
+      searchParams.set(key, String(value))
+    }
+  })
+
+  const query = searchParams.toString()
+
+  return query ? `?${query}` : ""
+}
 
 export const spaApi = {
   async listAvailableServices(init: RequestInit = {}): Promise<GroomingService[]> {
@@ -47,5 +64,32 @@ export const spaApi = {
     })
 
     return response.data
+  },
+
+  async listBookedTickets(
+    params: GroomingTicketListParams = {},
+    init: RequestInit = {}
+  ): Promise<{ tickets: GroomingTicketListItem[]; pagination: Pagination }> {
+    const response = await apiRequest<GroomingTicketListItem[]>(
+      `/grooming/tickets${buildQuery({
+        search: params.search,
+        petId: params.petId,
+        status: params.status,
+        timeRange: params.timeRange,
+        page: params.page,
+        limit: params.limit,
+      })}`,
+      init
+    )
+
+    return {
+      tickets: response.data,
+      pagination: response.pagination ?? {
+        page: params.page ?? 1,
+        limit: params.limit ?? response.data.length,
+        total: response.data.length,
+        totalPages: response.data.length > 0 ? 1 : 0,
+      },
+    }
   },
 }

@@ -4,7 +4,13 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as groomingController from "./grooming.controller.js";
-import { availabilityQuerySchema, bookingOptionsQuerySchema, createGroomingTicketSchema } from "./grooming.schema.js";
+import {
+  availabilityQuerySchema,
+  bookingOptionsQuerySchema,
+  createGroomingTicketSchema,
+  groomingTicketParamsSchema,
+  listGroomingTicketsQuerySchema
+} from "./grooming.schema.js";
 
 export const groomingRouter = Router();
 
@@ -63,7 +69,7 @@ export const groomingRouter = Router();
  *           example: 150000
  *         priceText:
  *           type: string
- *           example: 100.000 - 150.000 VNĐ
+ *           example: Từ 100.000 VNĐ
  *         priceRules:
  *           type: array
  *           items:
@@ -127,7 +133,7 @@ groomingRouter.get(
  *     tags:
  *       - Grooming
  *     summary: Get owner grooming booking options
- *     description: "Returns current owner's active pets and grooming services priced by the selected pet weight. Security BearerAuth. Roles: OWNER."
+ *     description: "Returns current owner's active pets and grooming services priced by the selected pet weight. The UNDER_5KG price rule is used as the base price; pets from 5kg upward add 50,000 VND for each completed 3kg block. Security BearerAuth. Roles: OWNER."
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -162,7 +168,7 @@ groomingRouter.get(
  *     tags:
  *       - Grooming
  *     summary: Get grooming slot availability
- *     description: "Returns 30-minute grooming slots for a date. Capacity is calculated from active staff count."
+ *     description: "Returns 30-minute grooming slots for a date. Each 30-minute slot capacity equals the active staff count."
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -188,11 +194,125 @@ groomingRouter.get(
 /**
  * @openapi
  * /api/v1/grooming/tickets:
+ *   get:
+ *     tags:
+ *       - Grooming
+ *     summary: List current owner's booked grooming tickets
+ *     description: "Returns grooming tickets that are already counted as booked. Pending online payments are excluded until payment succeeds. Roles: OWNER."
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: petId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [all, pending, waiting, in_progress]
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           enum: [all, today, upcoming, past]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *     responses:
+ *       200:
+ *         description: Booked grooming tickets returned successfully.
+ */
+groomingRouter.get(
+  "/grooming/tickets",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ query: listGroomingTicketsQuerySchema }),
+  asyncHandler(groomingController.listBookedTickets)
+);
+
+/**
+ * @openapi
+ * /api/v1/grooming/tickets/{ticketId}:
+ *   get:
+ *     tags:
+ *       - Grooming
+ *     summary: Get current owner's booked grooming ticket detail
+ *     description: "Returns detail for a booked grooming ticket. Pending online payments are excluded until payment succeeds. Roles: OWNER."
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: ticketId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Grooming ticket returned successfully.
+ *       404:
+ *         description: Grooming ticket not found.
+ */
+groomingRouter.get(
+  "/grooming/tickets/:ticketId",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: groomingTicketParamsSchema }),
+  asyncHandler(groomingController.getBookedTicket)
+);
+
+/**
+ * @openapi
+ * /api/v1/grooming/tickets/{ticketId}/cancel:
+ *   patch:
+ *     tags:
+ *       - Grooming
+ *     summary: Cancel a pending grooming ticket
+ *     description: "Allows the owner to cancel only tickets that are still pending reception and not paid."
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: ticketId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Grooming ticket cancelled successfully.
+ *       404:
+ *         description: Grooming ticket not found.
+ *       409:
+ *         description: Grooming ticket cannot be cancelled in its current state.
+ */
+groomingRouter.patch(
+  "/grooming/tickets/:ticketId/cancel",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: groomingTicketParamsSchema }),
+  asyncHandler(groomingController.cancelBookedTicket)
+);
+
+/**
+ * @openapi
+ * /api/v1/grooming/tickets:
  *   post:
  *     tags:
  *       - Grooming
  *     summary: Create an owner grooming booking
- *     description: "Creates grooming ticket, ticket item, invoice, and invoice line in one transaction. Online payment returns pending_payment for later VNPay integration."
+ *     description: "Creates grooming ticket, ticket item, invoice, and invoice line in one transaction using the weight-based grooming price. Online payment returns pending_payment for later VNPay integration."
  *     security:
  *       - bearerAuth: []
  *     requestBody:
