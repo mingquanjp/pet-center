@@ -1,4 +1,11 @@
-import { LayoutDashboard, Calendar, PawPrint, Sparkles, Home, Receipt } from "lucide-react";
+import {
+  BedDouble,
+  CalendarDays,
+  LayoutDashboard,
+  PawPrint,
+  ReceiptText,
+  Sparkles,
+} from "lucide-react"
 
 export const staffSidebarConfig = [
   {
@@ -9,10 +16,10 @@ export const staffSidebarConfig = [
   {
     title: "Lịch hẹn",
     href: "/staff/appointments",
-    icon: Calendar,
+    icon: CalendarDays,
   },
   {
-    title: "Thú cưng",
+    title: "Hồ sơ thú cưng",
     href: "/staff/pets",
     icon: PawPrint,
   },
@@ -24,11 +31,11 @@ export const staffSidebarConfig = [
   {
     title: "Lưu trú",
     href: "/staff/boarding",
-    icon: Home,
+    icon: BedDouble,
   },
   {
     title: "Hóa đơn",
     href: "/staff/invoices",
-    icon: Receipt,
+    icon: ReceiptText,
   },
-];
+]
