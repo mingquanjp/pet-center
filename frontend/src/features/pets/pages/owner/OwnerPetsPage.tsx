@@ -7,6 +7,7 @@ import {
   Cake,
   ChevronLeft,
   ChevronRight,
+  LoaderCircle,
   Mars,
   PawPrint,
   PlusCircle,
@@ -17,6 +18,8 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { normalizeSearchText } from "@/lib/search"
 import { petsApi } from "../../api/pets.api"
 import type { Pet, PetSpecies } from "../../types/pet.types"
 
@@ -35,29 +38,25 @@ export function OwnerPetsPage() {
   const [totalPages, setTotalPages] = React.useState(0)
   const [page, setPage] = React.useState(1)
   const [searchInput, setSearchInput] = React.useState("")
-  const [searchQuery, setSearchQuery] = React.useState("")
   const [species, setSpecies] = React.useState<"all" | PetSpecies>("all")
   const [isLoading, setIsLoading] = React.useState(true)
   const [isPageChanging, setIsPageChanging] = React.useState(false)
   const [hasLoaded, setHasLoaded] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const hasLoadedRef = React.useRef(false)
+  const debouncedSearchInput = useDebouncedValue(searchInput, 450)
+  const searchQuery = React.useMemo(() => normalizeSearchText(debouncedSearchInput), [debouncedSearchInput])
+  const isSearchSettling = normalizeSearchText(searchInput) !== searchQuery
   const shouldShowSkeleton = isLoading && !hasLoaded
+  const isRefreshingResults = hasLoaded && (isLoading || isSearchSettling)
   const displayedPets = pets
-
-  React.useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setSearchQuery(searchInput.trim())
-    }, 350)
-
-    return () => window.clearTimeout(timer)
-  }, [searchInput])
 
   React.useEffect(() => {
     const abortController = new AbortController()
 
     async function loadPets() {
       try {
-        setIsLoading(!hasLoaded)
+        setIsLoading(true)
         setErrorMessage(null)
 
         const result = await petsApi.list({
@@ -66,13 +65,14 @@ export function OwnerPetsPage() {
           page: 1,
           limit: PETS_PAGE_SIZE,
           sort: "petName:asc",
-        })
+        }, { signal: abortController.signal })
 
         if (!abortController.signal.aborted) {
           setPets(result.pets)
           setTotal(result.pagination.total)
           setTotalPages(result.pagination.totalPages)
           setPage(1)
+          hasLoadedRef.current = true
           setHasLoaded(true)
         }
       } catch (error) {
@@ -80,6 +80,7 @@ export function OwnerPetsPage() {
           setPets([])
           setTotal(0)
           setTotalPages(0)
+          hasLoadedRef.current = true
           setHasLoaded(true)
           setErrorMessage(error instanceof Error ? error.message : "Không thể tải danh sách thú cưng")
         }
@@ -149,7 +150,11 @@ export function OwnerPetsPage() {
       <section className="rounded-card border border-petcenter-border bg-petcenter-filter p-4 shadow-card">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+            {isRefreshingResults ? (
+              <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-petcenter-primary" />
+            ) : (
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+            )}
             <input
               className="body-md h-11 w-full rounded-pill border border-petcenter-border-strong bg-white pl-11 pr-4 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
               onChange={(event) => setSearchInput(event.target.value)}
@@ -170,8 +175,16 @@ export function OwnerPetsPage() {
 
           <div className="label-md flex min-w-[150px] items-center justify-start gap-2 text-petcenter-text-secondary xl:ml-auto xl:justify-end">
             <SlidersHorizontal className="h-4 w-4" />
-            {shouldShowSkeleton ? "Đang tải..." : `Hiển thị ${displayedPets.length}/${total} thú cưng`}
+            {shouldShowSkeleton ? "Đang tải..." : isRefreshingResults ? "Đang tìm..." : `Hiển thị ${displayedPets.length}/${total} thú cưng`}
           </div>
+        </div>
+        <div
+          className={cn(
+            "mt-3 h-0.5 overflow-hidden rounded-full bg-petcenter-border transition-opacity duration-200",
+            isRefreshingResults ? "opacity-100" : "opacity-0"
+          )}
+        >
+          <div className="h-full w-1/3 animate-[search-progress_1.1s_ease-in-out_infinite] rounded-full bg-petcenter-primary" />
         </div>
       </section>
 
@@ -187,7 +200,12 @@ export function OwnerPetsPage() {
 
       {!errorMessage && !shouldShowSkeleton && displayedPets.length > 0 ? (
         <>
-          <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <section
+            className={cn(
+              "grid grid-cols-1 gap-6 transition-opacity duration-200 md:grid-cols-2 xl:grid-cols-3",
+              isRefreshingResults && "opacity-80"
+            )}
+          >
             {displayedPets.map((pet) => (
               <PetCard key={pet.petId} pet={pet} />
             ))}
@@ -262,9 +280,6 @@ function PetCard({ pet }: { pet: Pet }) {
             <h2 className="heading-sm truncate text-petcenter-text">{pet.petName}</h2>
             <p className="body-md mt-1 text-petcenter-text-secondary">{petSubtitle}</p>
           </div>
-          <span className="label-sm shrink-0 rounded-pill bg-petcenter-sidebar px-2 py-1 uppercase text-petcenter-text-muted">
-            {pet.petId}
-          </span>
         </div>
 
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-petcenter-text-secondary">
@@ -279,9 +294,12 @@ function PetCard({ pet }: { pet: Pet }) {
         </div>
       </div>
 
-      <button className="label-md h-11 rounded-control bg-petcenter-cta px-4 font-semibold text-white shadow-card transition-colors hover:bg-petcenter-cta-hover active:bg-petcenter-cta-active">
+      <Link
+        className="label-md flex h-11 items-center justify-center rounded-control bg-petcenter-cta px-4 font-semibold text-white shadow-card transition-colors hover:bg-petcenter-cta-hover active:bg-petcenter-cta-active"
+        href={`/owner/pets/${encodeURIComponent(pet.petId)}`}
+      >
         Xem hồ sơ
-      </button>
+      </Link>
     </article>
   )
 }
