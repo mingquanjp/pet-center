@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { uploadsApi } from "@/features/uploads/api/uploads.api"
 import { petsApi } from "../../api/pets.api"
 import type { CreatePetInput, Pet, PetGender, PetSpecies } from "../../types/pet.types"
 
@@ -33,6 +34,7 @@ type FormState = {
   birthDate: string
   estimatedAge: string
   weightKg: string
+  profileImageUrl: string | null
   identifyingMarks: string
 }
 
@@ -45,6 +47,7 @@ const initialFormState: FormState = {
   birthDate: "",
   estimatedAge: "",
   weightKg: "",
+  profileImageUrl: null,
   identifyingMarks: "",
 }
 
@@ -70,6 +73,7 @@ export function OwnerAddPetPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const avatarPreviewRef = React.useRef<string | null>(null)
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null)
 
   React.useEffect(() => {
     return () => {
@@ -98,11 +102,13 @@ export function OwnerAddPetPage() {
 
     if (!file.type.startsWith("image/")) {
       setErrorMessage("Vui lòng chọn file ảnh định dạng JPG hoặc PNG.")
+      event.target.value = ""
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
       setErrorMessage("Ảnh đại diện không được vượt quá 5MB.")
+      event.target.value = ""
       return
     }
 
@@ -125,6 +131,10 @@ export function OwnerAddPetPage() {
 
     setAvatarFile(null)
     setAvatarPreviewUrl(null)
+
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = ""
+    }
   }
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -143,7 +153,11 @@ export function OwnerAddPetPage() {
 
     try {
       setIsSubmitting(true)
-      const pet = await petsApi.create(buildCreatePayload(form))
+      const uploadedAvatar = avatarFile ? await uploadsApi.uploadImage(avatarFile) : null
+      const pet = await petsApi.create(buildCreatePayload({
+        ...form,
+        profileImageUrl: uploadedAvatar?.secureUrl ?? form.profileImageUrl,
+      }))
 
       setCreatedPet(pet)
       router.refresh()
@@ -194,6 +208,7 @@ export function OwnerAddPetPage() {
               className="sr-only"
               id={fileInputId}
               onChange={handleAvatarChange}
+              ref={avatarInputRef}
               type="file"
             />
             <label
@@ -381,6 +396,7 @@ function buildCreatePayload(form: FormState): CreatePetInput {
     birthDate: optionalString(form.birthDate),
     estimatedAge: optionalNumber(form.estimatedAge),
     weightKg: optionalNumber(form.weightKg),
+    profileImageUrl: form.profileImageUrl,
     identifyingMarks: optionalString(form.identifyingMarks),
     furColor: optionalString(form.furColor),
   }
