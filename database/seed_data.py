@@ -156,16 +156,11 @@ def build_seed() -> dict[str, list[tuple]]:
     data["users"] = users
 
     grooming_services = [
-        ("svc_groom_basic", "Basic Bath", "grooming", 45, 120000),
-        ("svc_groom_full", "Full Grooming", "grooming", 90, 280000),
-        ("svc_groom_trim", "Fur Trimming", "grooming", 60, 180000),
-        ("svc_groom_nail", "Nail Care", "grooming", 20, 60000),
-        ("svc_groom_ear", "Ear Cleaning", "grooming", 20, 70000),
-        ("svc_groom_spa", "Spa Treatment", "grooming", 120, 420000),
-        ("svc_groom_tick", "Tick Treatment", "grooming", 50, 160000),
-        ("svc_groom_teeth", "Teeth Cleaning", "grooming", 30, 130000),
-        ("svc_groom_deodor", "Deodorizing", "grooming", 25, 90000),
-        ("svc_groom_shed", "De-shedding", "grooming", 70, 220000),
+        ("svc_groom_001_basic", "Tắm gội cơ bản", "grooming", 30, 100000),
+        ("svc_groom_002_trim", "Cắt tỉa lông", "grooming", 30, 100000),
+        ("svc_groom_003_combo", "Spa & Cắt tỉa", "grooming", 60, 100000),
+        ("svc_groom_004_nail", "Chăm sóc móng", "grooming", 30, 100000),
+        ("svc_groom_005_massage", "Massage thư giãn", "grooming", 30, 100000),
     ]
     medical_services = [
         ("svc_med_check", "General Checkup", "medical", 30, 180000),
@@ -201,8 +196,15 @@ def build_seed() -> dict[str, list[tuple]]:
         ("svc_other_report", "Health Report Copy", "other", 10, 30000),
     ]
     services = grooming_services + medical_services + boarding_services + medicine_services + other_services
+    grooming_descriptions = {
+        "svc_groom_001_basic": "Làm sạch lông, khử mùi nhẹ và sấy khô cho thú cưng.",
+        "svc_groom_002_trim": "Cắt tỉa gọn gàng, tạo kiểu lông cơ bản theo nhu cầu chăm sóc.",
+        "svc_groom_003_combo": "Gói chăm sóc kết hợp tắm gội, cắt tỉa và chăm sóc lông toàn diện.",
+        "svc_groom_004_nail": "Cắt, mài móng an toàn và vệ sinh vùng đệm chân.",
+        "svc_groom_005_massage": "Massage nhẹ giúp thú cưng thư giãn và giảm căng thẳng.",
+    }
     data["services"] = [
-        (sid, name, category, f"{name} service for pet center testing.", duration, money(price), "active")
+        (sid, name, category, grooming_descriptions.get(sid, f"{name} service for pet center testing."), duration, money(price), "active")
         for sid, name, category, duration, price in services
     ]
 
@@ -326,11 +328,14 @@ def build_seed() -> dict[str, list[tuple]]:
         )
 
     price_rules = []
-    for index, (sid, _name, _category, _duration, price) in enumerate(services, 1):
+    for index, (sid, _name, category, _duration, price) in enumerate(services, 1):
+        if category == "grooming":
+            price_rules.append((f"spr{index:04d}a", sid, "UNDER_5KG", money(price), today - timedelta(days=180), "active"))
+            price_rules.append((f"spr{index:04d}b", sid, "FROM_5KG", money(150000), today - timedelta(days=180), "active"))
+            continue
+
         price_rules.append((f"spr{index:04d}a", sid, "standard", money(price), today - timedelta(days=180), "active"))
         price_rules.append((f"spr{index:04d}b", sid, "large pet surcharge", money(int(price * 1.25)), today - timedelta(days=90), "active"))
-        if index <= 10:
-            price_rules.append((f"spr{index:04d}c", sid, "weekend rate", money(int(price * 1.15)), today - timedelta(days=60), "active"))
     data["service_price_rules"] = price_rules[:80]
 
     data["room_types"] = [

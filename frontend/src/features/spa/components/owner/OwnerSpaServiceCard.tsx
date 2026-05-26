@@ -31,13 +31,7 @@ export function OwnerSpaServiceCard({ service }: OwnerSpaServiceCardProps) {
 
         <div className="mt-auto pt-4">
           <Separator className="bg-[#E6E8DD]" />
-          <div className="flex items-center justify-between gap-3 pt-4">
-            <Button
-              variant="ghost"
-              className="h-9 px-0 text-base font-normal leading-6 text-[#005E53] hover:bg-transparent hover:text-[#005E53]"
-            >
-              Xem chi tiết
-            </Button>
+          <div className="flex items-center justify-end pt-4">
             <Button
               asChild
               variant="outline"
