@@ -5,6 +5,8 @@ import Link from "next/link"
 import { AlertCircle, Plus, Search, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { includesSearchText, normalizeSearchText } from "@/lib/search"
 import { spaApi } from "../../api/spa.api"
 import {
   ownerSpaHistory,
@@ -26,6 +28,7 @@ import { OwnerSpaServiceCard } from "../../components/owner/OwnerSpaServiceCard"
 
 export function OwnerSpaListPage() {
   const [activeTab, setActiveTab] = React.useState<OwnerSpaTab>("available")
+  const [requestSearch, setRequestSearch] = React.useState("")
   const [availableServices, setAvailableServices] = React.useState<SpaService[]>([])
   const [bookedRequests, setBookedRequests] = React.useState<OwnerSpaRequest[]>([])
   const [bookedPets, setBookedPets] = React.useState<GroomingBookingPet[]>([])
@@ -201,9 +204,8 @@ export function OwnerSpaListPage() {
         </TabsContent>
 
         <TabsContent value="history" className="mt-0 flex-none space-y-4">
-          {ownerSpaHistory.map((request) => (
-            <OwnerSpaRequestCard key={request.id} request={request} />
-          ))}
+          <BookedServiceFilters searchValue={requestSearch} onSearchChange={setRequestSearch} />
+          <SpaRequestList emptyText="Không tìm thấy lịch sử spa." requests={filteredHistoryRequests} />
         </TabsContent>
       </Tabs>
     </div>

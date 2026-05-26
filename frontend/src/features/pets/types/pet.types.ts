@@ -22,6 +22,20 @@ export type Pet = {
   displayStatusLabel: string;
 };
 
+export type PetHealthProfile = {
+  medicalHistory: string | null;
+  allergyNotes: string | null;
+  chronicConditionNotes: string | null;
+  foodType: string | null;
+  feedingPortion: string | null;
+  specialCareNotes: string | null;
+  updatedAt: string | null;
+};
+
+export type PetDetail = Pet & {
+  healthProfile: PetHealthProfile;
+};
+
 export type PetHealthProfileInput = {
   medicalHistory?: string | null;
   allergyNotes?: string | null;
