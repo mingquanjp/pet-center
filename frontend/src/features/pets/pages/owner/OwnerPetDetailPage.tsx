@@ -17,7 +17,9 @@ import {
   FileText,
   HeartPulse,
   History,
+  Info,
   Mars,
+  Pill,
   PawPrint,
   RotateCcw,
   Scissors,
@@ -28,6 +30,7 @@ import {
   Weight,
 } from "lucide-react"
 
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { petsApi } from "../../api/pets.api"
 import type { PetDetail } from "../../types/pet.types"
@@ -37,7 +40,6 @@ const tabs = [
   { id: "medical-history", label: "Lịch sử khám" },
   { id: "vaccination", label: "Sổ tiêm chủng" },
   { id: "spa-history", label: "Lịch sử spa" },
-  { id: "boarding-history", label: "Lịch sử lưu trú" },
 ] as const
 
 type PetDetailTab = (typeof tabs)[number]["id"]
@@ -105,6 +107,140 @@ const examinationRecords = [
     conclusion: "Không cần điều trị thêm. Tiếp tục theo dõi và duy trì vệ sinh định kỳ.",
   },
 ]
+
+const vaccinationFilters = [
+  { id: "all", label: "Tất cả" },
+  { id: "completed", label: "Đã hoàn thành" },
+  { id: "due-soon", label: "Sắp đến hạn" },
+  { id: "overdue", label: "Quá hạn" },
+] as const
+
+type VaccinationFilter = (typeof vaccinationFilters)[number]["id"]
+
+const vaccinationRecords = [
+  {
+    id: "rabies-2023",
+    name: "Vaccine Rabies (Dại)",
+    shortName: "Vaccine Rabies",
+    type: "Tiêm phòng dại",
+    status: "due-soon",
+    statusLabel: "Sắp đến hạn",
+    performedDate: "10/06/2023",
+    reminderDate: "10/06/2024",
+    doctor: "Bs. Trần Văn B",
+    note: "Cần theo dõi 24h sau tiêm.",
+    reaction: "Không ghi nhận bất thường.",
+    reminderNote: "Vui lòng đặt lịch trước 3-5 ngày",
+    icon: Syringe,
+  },
+  {
+    id: "care-2023",
+    name: "Vaccine Care (5 trong 1)",
+    shortName: "Vaccine Care",
+    type: "Vaccine tổng hợp",
+    status: "completed",
+    statusLabel: "Đã hoàn thành",
+    performedDate: "15/04/2023",
+    reminderDate: "15/04/2024",
+    doctor: "Bs. Nguyễn Thị A",
+    note: "Không có dấu hiệu bất thường.",
+    reaction: "Không ghi nhận bất thường.",
+    reminderNote: "Nhắc lại theo chỉ định bác sĩ",
+    icon: Syringe,
+  },
+  {
+    id: "deworm-2023",
+    name: "Tẩy giun định kỳ",
+    shortName: "Tẩy giun định kỳ",
+    type: "Phòng ký sinh trùng",
+    status: "completed",
+    statusLabel: "Đã hoàn thành",
+    performedDate: "12/10/2023",
+    reminderDate: "12/01/2024",
+    doctor: "Bs. Lê Văn C",
+    note: "Uống thuốc Nexgard.",
+    reaction: "Không ghi nhận bất thường.",
+    reminderNote: "Duy trì tẩy giun định kỳ mỗi 3 tháng",
+    icon: Pill,
+  },
+  {
+    id: "parvo-2023",
+    name: "Vaccine Parvo",
+    shortName: "Vaccine Parvo",
+    type: "Tiêm phòng Parvo",
+    status: "completed",
+    statusLabel: "Đã hoàn thành",
+    performedDate: "10/02/2023",
+    reminderDate: "10/02/2024",
+    doctor: "Bs. Trần Văn B",
+    note: "Thú cưng khỏe mạnh.",
+    reaction: "Không ghi nhận bất thường.",
+    reminderNote: "Theo dõi lịch nhắc lại hàng năm",
+    icon: Syringe,
+  },
+] satisfies Array<{
+  id: string
+  name: string
+  shortName: string
+  type: string
+  status: VaccinationFilter
+  statusLabel: string
+  performedDate: string
+  reminderDate: string
+  doctor: string
+  note: string
+  reaction: string
+  reminderNote: string
+  icon: typeof Syringe
+}>
+
+const spaServiceTypeOptions = ["Tất cả", "Cắt tỉa tạo kiểu", "Tắm gội", "Chăm sóc móng"] as const
+const spaTimeOptions = ["Tất cả thời gian", "3 tháng gần đây", "6 tháng gần đây", "Năm nay"] as const
+
+type SpaServiceTypeFilter = (typeof spaServiceTypeOptions)[number]
+type SpaTimeFilter = (typeof spaTimeOptions)[number]
+
+const spaRecords = [
+  {
+    id: "spa-2023-09-25",
+    title: "Cắt tỉa tạo kiểu",
+    date: "25/09/2023",
+    time: "14:00 PM",
+    serviceType: "Cắt tỉa tạo kiểu",
+    packageName: "Gói tạo kiểu Golden",
+    includedServices: "Tắm sấy, cắt tỉa lông, vệ sinh tai, xịt dưỡng khử mùi.",
+    staff: "Nguyễn Thị C",
+  },
+  {
+    id: "spa-2023-08-10",
+    title: "Tắm gội cơ bản",
+    date: "10/08/2023",
+    time: "09:30 AM",
+    serviceType: "Tắm gội",
+    packageName: "Tắm thảo mộc",
+    includedServices: "Tắm sấy khử mùi, chải lông, vệ sinh tuyến hôi.",
+    staff: "Trần Văn D",
+  },
+  {
+    id: "spa-2023-07-15",
+    title: "Chăm sóc móng",
+    date: "15/07/2023",
+    time: "16:15 PM",
+    serviceType: "Chăm sóc móng",
+    packageName: "Cắt mài móng",
+    includedServices: "Cắt móng, mài dũa an toàn, dưỡng viền móng.",
+    staff: "Nguyễn Thị C",
+  },
+] satisfies Array<{
+  id: string
+  title: string
+  date: string
+  time: string
+  serviceType: Exclude<SpaServiceTypeFilter, "Tất cả">
+  packageName: string
+  includedServices: string
+  staff: string
+}>
 
 export function OwnerPetDetailPage({ petId }: { petId: string }) {
   const [pet, setPet] = React.useState<PetDetail | null>(null)
@@ -249,7 +385,8 @@ export function OwnerPetDetailPage({ petId }: { petId: string }) {
 
       {activeTab === "basic" ? <BasicProfileTab GenderIcon={GenderIcon} pet={pet} /> : null}
       {activeTab === "medical-history" ? <MedicalHistoryTab petName={pet.petName} /> : null}
-      {activeTab !== "basic" && activeTab !== "medical-history" ? <ComingSoonTab label={tabs.find((tab) => tab.id === activeTab)?.label ?? ""} /> : null}
+      {activeTab === "vaccination" ? <VaccinationTab petName={pet.petName} /> : null}
+      {activeTab === "spa-history" ? <SpaHistoryTab petName={pet.petName} /> : null}
     </div>
   )
 }
@@ -352,6 +489,457 @@ function MedicalHistoryTab({ petName }: { petName: string }) {
   )
 }
 
+function VaccinationTab({ petName }: { petName: string }) {
+  const [searchValue, setSearchValue] = React.useState("")
+  const [activeFilter, setActiveFilter] = React.useState<VaccinationFilter>("all")
+  const [selectedRecord, setSelectedRecord] = React.useState<(typeof vaccinationRecords)[number] | null>(null)
+
+  const filteredRecords = vaccinationRecords.filter((record) => {
+    const matchesFilter = activeFilter === "all" || record.status === activeFilter
+    const normalizedSearch = searchValue.trim().toLowerCase()
+    const matchesSearch =
+      normalizedSearch.length === 0 ||
+      [record.name, record.type, record.doctor, record.note].some((value) => value.toLowerCase().includes(normalizedSearch))
+
+    return matchesFilter && matchesSearch
+  })
+
+  const latestRecord = vaccinationRecords[0]
+
+  return (
+    <div className="flex w-full flex-col gap-6">
+      <section className="rounded-card border border-petcenter-border bg-white p-6 shadow-card">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <Activity className="h-5 w-5 text-petcenter-primary" />
+            <h2 className="label-md font-bold text-petcenter-primary">Tóm tắt tiêm chủng</h2>
+          </div>
+          <div className="grid flex-1 gap-4 sm:grid-cols-2 lg:max-w-3xl lg:divide-x lg:divide-petcenter-border-strong">
+            <SummaryInline label="Tổng số liều" value={`${vaccinationRecords.length} liều`} />
+            <SummaryInline label="Mũi gần nhất" value={`${latestRecord.shortName} - ${latestRecord.performedDate}`} />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-card border border-petcenter-border bg-white p-6 shadow-card lg:p-8">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-petcenter-primary/10 text-petcenter-primary">
+              <Syringe className="h-7 w-7" />
+            </div>
+            <div>
+              <h2 className="heading-sm text-petcenter-text">Sổ tiêm chủng</h2>
+              <p className="body-md text-petcenter-text-secondary">Theo dõi lịch trình tiêm chủng và phòng bệnh của {petName}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center">
+          <label className="relative block min-w-[220px] flex-1">
+            <span className="sr-only">Tìm vaccine</span>
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-muted" />
+            <input
+              className="body-sm h-10 w-full rounded-control border-0 bg-petcenter-sidebar pl-10 pr-3 text-petcenter-text outline-none transition placeholder:text-petcenter-text-muted/70 focus:bg-white focus:ring-2 focus:ring-petcenter-primary/20"
+              onChange={(event) => setSearchValue(event.target.value)}
+              placeholder="Tìm vaccine..."
+              type="search"
+              value={searchValue}
+            />
+          </label>
+
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {vaccinationFilters.map((filter) => (
+              <button
+                key={filter.id}
+                className={cn(
+                  "label-sm h-8 shrink-0 rounded-control px-3 font-bold transition",
+                  activeFilter === filter.id
+                    ? "bg-petcenter-primary text-white"
+                    : "bg-petcenter-sidebar text-petcenter-text-secondary hover:bg-petcenter-border"
+                )}
+                onClick={() => setActiveFilter(filter.id)}
+                type="button"
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filteredRecords.length > 0 ? (
+          <div className="space-y-4">
+            {filteredRecords.map((record) => (
+              <VaccinationRecordCard key={record.id} onViewDetails={() => setSelectedRecord(record)} record={record} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-card border border-dashed border-petcenter-border-strong bg-petcenter-filter p-8 text-center">
+            <Info className="mx-auto mb-3 h-8 w-8 text-petcenter-text-muted" />
+            <h3 className="title-md text-petcenter-text">Không tìm thấy bản ghi</h3>
+            <p className="body-md mt-1 text-petcenter-text-secondary">Thử đổi từ khóa hoặc bộ lọc tiêm chủng.</p>
+          </div>
+        )}
+      </section>
+
+      <VaccinationDetailDialog onOpenChange={(open) => !open && setSelectedRecord(null)} petName={petName} record={selectedRecord} />
+    </div>
+  )
+}
+
+function SpaHistoryTab({ petName }: { petName: string }) {
+  const [searchValue, setSearchValue] = React.useState("")
+  const [serviceTypeFilter, setServiceTypeFilter] = React.useState<SpaServiceTypeFilter>("Tất cả")
+  const [timeFilter, setTimeFilter] = React.useState<SpaTimeFilter>("Tất cả thời gian")
+
+  const filteredRecords = spaRecords.filter((record) => {
+    const normalizedSearch = searchValue.trim().toLowerCase()
+    const matchesSearch =
+      normalizedSearch.length === 0 ||
+      [record.title, record.packageName, record.includedServices, record.staff].some((value) =>
+        value.toLowerCase().includes(normalizedSearch)
+      )
+    const matchesType = serviceTypeFilter === "Tất cả" || record.serviceType === serviceTypeFilter
+
+    return matchesSearch && matchesType
+  })
+
+  const latestRecord = spaRecords[0]
+
+  function resetFilters() {
+    setSearchValue("")
+    setServiceTypeFilter("Tất cả")
+    setTimeFilter("Tất cả thời gian")
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-6">
+      <section className="rounded-card border border-petcenter-border bg-white p-6 shadow-card">
+        <div className="grid gap-6 md:grid-cols-3 md:divide-x md:divide-petcenter-border-strong">
+          <SummaryMetric label="Tổng số lần sử dụng" value={String(spaRecords.length)} />
+          <SummaryMetric label="Lần gần nhất" value={latestRecord?.date ?? "Chưa có dữ liệu"} />
+          <SummaryMetric label="Nhân viên" value={latestRecord?.staff ?? "Chưa có dữ liệu"} />
+        </div>
+      </section>
+
+      <section className="rounded-card border border-petcenter-border bg-white p-4 shadow-card">
+        <div className="grid items-end gap-4 md:grid-cols-[minmax(260px,2fr)_minmax(160px,1fr)_minmax(170px,1fr)_auto]">
+          <label className="block">
+            <span className="label-sm mb-1 block font-bold text-petcenter-text-secondary">Tìm kiếm</span>
+            <span className="relative block">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-muted" />
+              <input
+                className="body-sm h-10 w-full rounded-control border-0 bg-petcenter-sidebar pl-10 pr-3 text-petcenter-text outline-none transition focus:bg-white focus:ring-2 focus:ring-petcenter-primary/20"
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder="Tìm theo dịch vụ, nhân viên..."
+                type="search"
+                value={searchValue}
+              />
+            </span>
+          </label>
+
+          <SpaHistorySelect
+            label="Loại dịch vụ"
+            onChange={(value) => setServiceTypeFilter(value as SpaServiceTypeFilter)}
+            options={spaServiceTypeOptions}
+            value={serviceTypeFilter}
+          />
+          <SpaHistorySelect
+            label="Thời gian"
+            onChange={(value) => setTimeFilter(value as SpaTimeFilter)}
+            options={spaTimeOptions}
+            value={timeFilter}
+          />
+
+          <button
+            className="label-md inline-flex h-10 w-full items-center justify-center gap-2 rounded-control px-4 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5 md:w-auto"
+            onClick={resetFilters}
+            type="button"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Đặt lại bộ lọc
+          </button>
+        </div>
+
+        {timeFilter !== "Tất cả thời gian" ? (
+          <p className="label-sm mt-3 text-petcenter-text-secondary">Bộ lọc thời gian đang được giữ cho dữ liệu API thật.</p>
+        ) : null}
+      </section>
+
+      <section className="w-full">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-petcenter-primary/10 text-petcenter-primary">
+              <Scissors className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="heading-sm text-petcenter-text">Lịch sử spa</h2>
+              <p className="body-sm text-petcenter-text-secondary">Chi tiết các lần làm đẹp và chăm sóc của {petName}.</p>
+            </div>
+          </div>
+
+          <button className="label-md inline-flex w-fit items-center gap-2 font-semibold text-petcenter-primary transition hover:underline">
+            Xuất lịch sử
+            <Download className="h-4 w-4" />
+          </button>
+        </div>
+
+        {filteredRecords.length > 0 ? (
+          <div className="space-y-4">
+            {filteredRecords.map((record) => (
+              <SpaRecordCard key={record.id} record={record} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-card border border-dashed border-petcenter-border-strong bg-petcenter-filter p-8 text-center">
+            <Info className="mx-auto mb-3 h-8 w-8 text-petcenter-text-muted" />
+            <h3 className="title-md text-petcenter-text">Không tìm thấy lịch sử spa</h3>
+            <p className="body-md mt-1 text-petcenter-text-secondary">Thử đổi từ khóa hoặc bộ lọc dịch vụ.</p>
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function SpaHistorySelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string
+  onChange: (value: string) => void
+  options: readonly string[]
+  value: string
+}) {
+  return (
+    <label className="block">
+      <span className="label-sm mb-1 block font-bold text-petcenter-text-secondary">{label}</span>
+      <select
+        className="body-sm h-10 w-full rounded-control border-0 bg-petcenter-sidebar px-3 text-petcenter-text outline-none transition focus:bg-white focus:ring-2 focus:ring-petcenter-primary/20"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {options.map((option) => (
+          <option key={option}>{option}</option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function SpaRecordCard({ record }: { record: (typeof spaRecords)[number] }) {
+  return (
+    <article className="rounded-card border border-petcenter-border bg-white p-6 shadow-card">
+      <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="mb-1 flex flex-wrap items-center gap-3">
+            <h3 className="title-md text-petcenter-text">{record.title}</h3>
+            <span className="label-sm rounded-pill bg-petcenter-primary/10 px-2.5 py-1 font-semibold text-petcenter-primary">
+              {record.serviceType}
+            </span>
+          </div>
+          <p className="body-sm flex items-center gap-1.5 text-petcenter-text-secondary">
+            <CalendarDays className="h-4 w-4" />
+            {record.date} - {record.time}
+          </p>
+        </div>
+
+        <div className="md:text-right">
+          <p className="label-sm uppercase text-petcenter-text-secondary">Nhân viên thực hiện</p>
+          <p className="body-md font-bold text-petcenter-text">{record.staff}</p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <RecordNote label="Gói dịch vụ" value={record.packageName} />
+        <RecordNote label="Dịch vụ bao gồm" value={record.includedServices} />
+      </div>
+    </article>
+  )
+}
+
+function SummaryInline({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 lg:pl-8 first:lg:pl-0">
+      <span className="body-md text-petcenter-text-secondary">{label}:</span>
+      <strong className="body-md font-bold text-petcenter-text">{value}</strong>
+    </div>
+  )
+}
+
+function VaccinationRecordCard({
+  onViewDetails,
+  record,
+}: {
+  onViewDetails: () => void
+  record: (typeof vaccinationRecords)[number]
+}) {
+  const Icon = record.icon
+
+  return (
+    <article className="flex flex-col gap-6 rounded-card border border-petcenter-border bg-white p-5 shadow-card lg:p-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 items-start gap-4">
+          <div
+            className={cn(
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-control",
+              record.status === "due-soon"
+                ? "bg-petcenter-warning-bg text-petcenter-warning-text"
+                : "bg-petcenter-success-bg text-petcenter-success-text"
+            )}
+          >
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="body-lg font-semibold text-petcenter-text">{record.name}</h3>
+              <VaccinationStatusBadge status={record.status} label={record.statusLabel} />
+            </div>
+          </div>
+        </div>
+
+        <button
+          className="label-sm inline-flex h-10 w-full items-center justify-center rounded-control border border-petcenter-primary px-4 font-bold text-petcenter-primary transition hover:bg-petcenter-primary/5 md:w-auto"
+          onClick={onViewDetails}
+          type="button"
+        >
+          Xem chi tiết
+        </button>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <VaccinationField label="Ngày thực hiện" value={record.performedDate} />
+        <VaccinationField emphasis label="Ngày nhắc lại" value={record.reminderDate} />
+        <VaccinationField label="Bác sĩ" value={record.doctor} />
+        <VaccinationField italic label="Ghi chú" value={record.note} />
+      </div>
+    </article>
+  )
+}
+
+function VaccinationField({ emphasis = false, italic = false, label, value }: { emphasis?: boolean; italic?: boolean; label: string; value: string }) {
+  return (
+    <div>
+      <p className="label-md mb-1 text-petcenter-text-secondary">{label}</p>
+      <p className={cn("body-md font-medium text-petcenter-text", emphasis && "text-petcenter-cta-active", italic && "italic")}>{value}</p>
+    </div>
+  )
+}
+
+function VaccinationStatusBadge({ label, status }: { label: string; status: VaccinationFilter }) {
+  return (
+    <span
+      className={cn(
+        "label-sm inline-flex h-7 items-center rounded-pill px-3 font-bold uppercase",
+        status === "due-soon" && "bg-petcenter-warning-bg text-petcenter-warning-text",
+        status === "completed" && "bg-petcenter-success-bg text-petcenter-success-text",
+        status === "overdue" && "bg-petcenter-danger-bg text-petcenter-danger-text"
+      )}
+    >
+      {label}
+    </span>
+  )
+}
+
+function VaccinationDetailDialog({
+  onOpenChange,
+  petName,
+  record,
+}: {
+  onOpenChange: (open: boolean) => void
+  petName: string
+  record: (typeof vaccinationRecords)[number] | null
+}) {
+  return (
+    <Dialog open={Boolean(record)} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-card border-petcenter-border bg-white p-0 shadow-modal" showCloseButton={false}>
+        {record ? (
+          <>
+            <DialogHeader className="border-b border-petcenter-border p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <DialogTitle className="heading-sm text-petcenter-text">Chi tiết bản ghi tiêm chủng</DialogTitle>
+                  <DialogDescription className="body-md mt-1 text-petcenter-text-secondary">
+                    {record.shortName} • {petName}
+                  </DialogDescription>
+                </div>
+                <div className="flex items-center gap-3">
+                  <VaccinationStatusBadge status={record.status} label={record.statusLabel} />
+                  <DialogClose className="rounded-full p-2 text-petcenter-text-secondary transition hover:bg-petcenter-sidebar" aria-label="Đóng">
+                    <span className="text-lg leading-none">×</span>
+                  </DialogClose>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-6 p-6">
+              <DetailSection title="Thông tin tiêm chủng">
+                <div className="grid gap-4 rounded-control border border-petcenter-border bg-petcenter-filter p-5 sm:grid-cols-2">
+                  <DialogInfo label="Tên vaccine" value={record.shortName} />
+                  <DialogInfo label="Loại" value={record.type} />
+                  <DialogInfo label="Thú cưng" value={petName} />
+                  <DialogInfo label="Trạng thái" value={record.statusLabel} valueClassName={record.status === "due-soon" ? "text-petcenter-warning-text" : "text-petcenter-success-text"} />
+                  <DialogInfo label="Ngày thực hiện" value={record.performedDate} />
+                  <DialogInfo label="Ngày nhắc lại" value={record.reminderDate} valueClassName="text-petcenter-cta-active" />
+                  <DialogInfo className="sm:col-span-2" label="Bác sĩ thực hiện" value={record.doctor} />
+                </div>
+              </DetailSection>
+
+              <DetailSection title="Ghi chú">
+                <div className="rounded-control border border-petcenter-border bg-petcenter-filter p-4">
+                  <p className="body-md italic text-petcenter-text">{record.note}</p>
+                </div>
+              </DetailSection>
+
+              <DetailSection title="Phản ứng sau tiêm">
+                <div className="flex items-center gap-2 text-petcenter-primary">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <p className="body-md font-medium">{record.reaction}</p>
+                </div>
+              </DetailSection>
+
+              <DetailSection title="Kế hoạch nhắc lại">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="heading-sm font-bold text-petcenter-cta-active">{record.reminderDate}</div>
+                  <div className="flex flex-col gap-1">
+                    <VaccinationStatusBadge status={record.status} label={record.statusLabel} />
+                    <p className="label-sm text-petcenter-text-secondary">{record.reminderNote}</p>
+                  </div>
+                </div>
+              </DetailSection>
+            </div>
+
+            <DialogFooter className="m-0 rounded-none border-petcenter-border bg-white p-6">
+              <DialogClose className="label-md inline-flex h-10 items-center justify-center rounded-control border border-petcenter-primary px-6 font-bold text-petcenter-primary transition hover:bg-petcenter-primary/5">
+                Đóng
+              </DialogClose>
+            </DialogFooter>
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DetailSection({ children, title }: { children: React.ReactNode; title: string }) {
+  return (
+    <section>
+      <h3 className="label-md mb-3 font-bold uppercase text-petcenter-text-secondary">{title}</h3>
+      {children}
+    </section>
+  )
+}
+
+function DialogInfo({ className, label, value, valueClassName }: { className?: string; label: string; value: string; valueClassName?: string }) {
+  return (
+    <div className={className}>
+      <p className="label-sm text-petcenter-text-secondary">{label}</p>
+      <p className={cn("body-md font-medium text-petcenter-text", valueClassName)}>{value}</p>
+    </div>
+  )
+}
+
 function SummaryMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col items-center text-center md:items-start md:pl-6 md:text-left first:md:pl-0">
@@ -420,15 +1008,6 @@ function RecordNote({ label, value }: { label: string; value: string }) {
       <p className="label-sm mb-1 font-bold uppercase text-petcenter-primary">{label}</p>
       <p className="body-md font-medium text-petcenter-text">{value}</p>
     </div>
-  )
-}
-
-function ComingSoonTab({ label }: { label: string }) {
-  return (
-    <section className="rounded-card border border-dashed border-petcenter-border-strong bg-petcenter-filter p-8 text-center">
-      <h2 className="title-md text-petcenter-text">{label}</h2>
-      <p className="body-md mt-2 text-petcenter-text-secondary">Nội dung tab này sẽ được bổ sung sau.</p>
-    </section>
   )
 }
 
