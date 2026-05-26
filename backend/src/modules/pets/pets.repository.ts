@@ -2,6 +2,7 @@ import type { PoolClient, QueryResultRow } from "pg";
 import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
 import { createId } from "../../shared/utils/id.js";
+import { normalizeSearchText } from "../../shared/utils/search.js";
 import type { CreatePetPayload, UpdatePetPayload } from "./pets.schema.js";
 import type { PetDetailDto, PetDisplayStatus, PetDto, PetListFilters, PetSpecies } from "./pets.types.js";
 
@@ -152,8 +153,8 @@ function buildListWhere(filters: PetListFilters): { whereSql: string; params: un
   const conditions = ["p.owner_user_id = $1"];
 
   if (filters.q) {
-    params.push(`%${filters.q}%`);
-    conditions.push(`(p.pet_name ilike $${params.length} or p.breed ilike $${params.length} or p.pet_id ilike $${params.length})`);
+    params.push(`%${normalizeSearchText(filters.q)}%`);
+    conditions.push(`${normalizedSql("p.pet_name")} like $${params.length}`);
   }
 
   if (filters.species) {
@@ -165,6 +166,14 @@ function buildListWhere(filters: PetListFilters): { whereSql: string; params: un
     whereSql: conditions.join(" and "),
     params
   };
+}
+
+function normalizedSql(column: string): string {
+  return `translate(
+    lower(coalesce(${column}, '')),
+    'àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ',
+    'aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd'
+  )`;
 }
 
 const petSelectSql = `

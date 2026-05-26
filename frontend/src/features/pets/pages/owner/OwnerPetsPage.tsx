@@ -17,6 +17,8 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { normalizeSearchText } from "@/lib/search"
 import { petsApi } from "../../api/pets.api"
 import type { Pet, PetSpecies } from "../../types/pet.types"
 
@@ -35,29 +37,23 @@ export function OwnerPetsPage() {
   const [totalPages, setTotalPages] = React.useState(0)
   const [page, setPage] = React.useState(1)
   const [searchInput, setSearchInput] = React.useState("")
-  const [searchQuery, setSearchQuery] = React.useState("")
   const [species, setSpecies] = React.useState<"all" | PetSpecies>("all")
   const [isLoading, setIsLoading] = React.useState(true)
   const [isPageChanging, setIsPageChanging] = React.useState(false)
   const [hasLoaded, setHasLoaded] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const hasLoadedRef = React.useRef(false)
+  const debouncedSearchInput = useDebouncedValue(searchInput, 450)
+  const searchQuery = React.useMemo(() => normalizeSearchText(debouncedSearchInput), [debouncedSearchInput])
   const shouldShowSkeleton = isLoading && !hasLoaded
   const displayedPets = pets
-
-  React.useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setSearchQuery(searchInput.trim())
-    }, 350)
-
-    return () => window.clearTimeout(timer)
-  }, [searchInput])
 
   React.useEffect(() => {
     const abortController = new AbortController()
 
     async function loadPets() {
       try {
-        setIsLoading(!hasLoaded)
+        setIsLoading(!hasLoadedRef.current)
         setErrorMessage(null)
 
         const result = await petsApi.list({
@@ -66,13 +62,14 @@ export function OwnerPetsPage() {
           page: 1,
           limit: PETS_PAGE_SIZE,
           sort: "petName:asc",
-        })
+        }, { signal: abortController.signal })
 
         if (!abortController.signal.aborted) {
           setPets(result.pets)
           setTotal(result.pagination.total)
           setTotalPages(result.pagination.totalPages)
           setPage(1)
+          hasLoadedRef.current = true
           setHasLoaded(true)
         }
       } catch (error) {
@@ -80,6 +77,7 @@ export function OwnerPetsPage() {
           setPets([])
           setTotal(0)
           setTotalPages(0)
+          hasLoadedRef.current = true
           setHasLoaded(true)
           setErrorMessage(error instanceof Error ? error.message : "Không thể tải danh sách thú cưng")
         }

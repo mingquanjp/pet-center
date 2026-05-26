@@ -16,8 +16,8 @@ function buildQuery(params: PetsListParams): string {
 }
 
 export const petsApi = {
-  async list(params: PetsListParams = {}): Promise<{ pets: Pet[]; pagination: Pagination }> {
-    const response = await apiRequest<Pet[]>(`/pets${buildQuery(params)}`);
+  async list(params: PetsListParams = {}, init: RequestInit = {}): Promise<{ pets: Pet[]; pagination: Pagination }> {
+    const response = await apiRequest<Pet[]>(`/pets${buildQuery(params)}`, init);
 
     return {
       pets: response.data,

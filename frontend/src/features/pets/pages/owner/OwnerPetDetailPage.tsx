@@ -31,6 +31,8 @@ import {
 } from "lucide-react"
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { includesSearchText, normalizeSearchText } from "@/lib/search"
 import { cn } from "@/lib/utils"
 import { petsApi } from "../../api/pets.api"
 import type { PetDetail } from "../../types/pet.types"
@@ -493,13 +495,14 @@ function VaccinationTab({ petName }: { petName: string }) {
   const [searchValue, setSearchValue] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState<VaccinationFilter>("all")
   const [selectedRecord, setSelectedRecord] = React.useState<(typeof vaccinationRecords)[number] | null>(null)
+  const debouncedSearchValue = useDebouncedValue(searchValue, 300)
 
   const filteredRecords = vaccinationRecords.filter((record) => {
     const matchesFilter = activeFilter === "all" || record.status === activeFilter
-    const normalizedSearch = searchValue.trim().toLowerCase()
+    const normalizedSearch = normalizeSearchText(debouncedSearchValue)
     const matchesSearch =
       normalizedSearch.length === 0 ||
-      [record.name, record.type, record.doctor, record.note].some((value) => value.toLowerCase().includes(normalizedSearch))
+      [record.name, record.type, record.doctor, record.note].some((value) => includesSearchText(value, normalizedSearch))
 
     return matchesFilter && matchesSearch
   })
@@ -590,13 +593,14 @@ function SpaHistoryTab({ petName }: { petName: string }) {
   const [searchValue, setSearchValue] = React.useState("")
   const [serviceTypeFilter, setServiceTypeFilter] = React.useState<SpaServiceTypeFilter>("Tất cả")
   const [timeFilter, setTimeFilter] = React.useState<SpaTimeFilter>("Tất cả thời gian")
+  const debouncedSearchValue = useDebouncedValue(searchValue, 300)
 
   const filteredRecords = spaRecords.filter((record) => {
-    const normalizedSearch = searchValue.trim().toLowerCase()
+    const normalizedSearch = normalizeSearchText(debouncedSearchValue)
     const matchesSearch =
       normalizedSearch.length === 0 ||
       [record.title, record.packageName, record.includedServices, record.staff].some((value) =>
-        value.toLowerCase().includes(normalizedSearch)
+        includesSearchText(value, normalizedSearch)
       )
     const matchesType = serviceTypeFilter === "Tất cả" || record.serviceType === serviceTypeFilter
 

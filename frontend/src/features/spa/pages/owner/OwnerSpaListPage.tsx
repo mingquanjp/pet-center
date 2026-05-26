@@ -5,6 +5,8 @@ import Link from "next/link"
 import { ChevronDown, Plus, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { includesSearchText, normalizeSearchText } from "@/lib/search"
 import {
   ownerBookedSpaRequests,
   ownerSpaHistory,
@@ -17,6 +19,11 @@ import { OwnerSpaServiceCard } from "../../components/owner/OwnerSpaServiceCard"
 
 export function OwnerSpaListPage() {
   const [activeTab, setActiveTab] = useState<OwnerSpaTab>("available")
+  const [requestSearch, setRequestSearch] = useState("")
+  const debouncedRequestSearch = useDebouncedValue(requestSearch, 300)
+  const requestQuery = normalizeSearchText(debouncedRequestSearch)
+  const filteredBookedRequests = ownerBookedSpaRequests.filter((request) => matchesSpaRequest(request, requestQuery))
+  const filteredHistoryRequests = ownerSpaHistory.filter((request) => matchesSpaRequest(request, requestQuery))
 
   return (
     <div className="space-y-6">
@@ -61,23 +68,52 @@ export function OwnerSpaListPage() {
         </TabsContent>
 
         <TabsContent value="booked" className="mt-0 flex-none space-y-4">
-          <BookedServiceFilters />
-          {ownerBookedSpaRequests.map((request) => (
-            <OwnerSpaRequestCard key={request.id} request={request} />
-          ))}
+          <BookedServiceFilters searchValue={requestSearch} onSearchChange={setRequestSearch} />
+          <SpaRequestList emptyText="KhÃ´ng tÃ¬m tháº¥y dá»‹ch vá»¥ Ä‘Ã£ Ä‘áº·t." requests={filteredBookedRequests} />
         </TabsContent>
 
         <TabsContent value="history" className="mt-0 flex-none space-y-4">
-          {ownerSpaHistory.map((request) => (
-            <OwnerSpaRequestCard key={request.id} request={request} />
-          ))}
+          <BookedServiceFilters searchValue={requestSearch} onSearchChange={setRequestSearch} />
+          <SpaRequestList emptyText="KhÃ´ng tÃ¬m tháº¥y lá»‹ch sá»­ spa." requests={filteredHistoryRequests} />
         </TabsContent>
       </Tabs>
     </div>
   )
 }
 
-function BookedServiceFilters() {
+function matchesSpaRequest(request: (typeof ownerBookedSpaRequests)[number], query: string) {
+  return [
+    request.bookingCode,
+    request.serviceName,
+    request.petName,
+    request.scheduledAt,
+    request.paymentMethodLabel,
+    request.paymentStatusLabel,
+    request.specialRequest,
+  ].some((value) => includesSearchText(value, query))
+}
+
+function SpaRequestList({ emptyText, requests }: { emptyText: string; requests: typeof ownerBookedSpaRequests }) {
+  if (requests.length === 0) {
+    return (
+      <section className="rounded-[16px] border border-dashed border-[#BDC9C5] bg-[#FBFAF2] p-8 text-center text-sm leading-5 text-[#3E4946]">
+        {emptyText}
+      </section>
+    )
+  }
+
+  return requests.map((request) => (
+    <OwnerSpaRequestCard key={request.id} request={request} />
+  ))
+}
+
+function BookedServiceFilters({
+  onSearchChange,
+  searchValue,
+}: {
+  onSearchChange: (value: string) => void
+  searchValue: string
+}) {
   const filters = ["Thú cưng: Tất cả", "Trạng thái: Tất cả", "Thời gian: Tất cả"]
 
   return (
@@ -89,6 +125,8 @@ function BookedServiceFilters() {
           <input
             type="search"
             placeholder="Tìm theo mã dịch vụ, thú cưng"
+            value={searchValue}
+            onChange={(event) => onSearchChange(event.target.value)}
             className="h-10 w-full rounded-xl border border-transparent bg-[#F5F4E8] pl-10 pr-4 text-base leading-6 text-[#1B1C15] outline-none placeholder:text-[#3E4946] focus:border-[#005E53]"
           />
         </label>
@@ -109,6 +147,7 @@ function BookedServiceFilters() {
 
       <Button
         variant="ghost"
+        onClick={() => onSearchChange("")}
         className="mt-2 h-8 px-2 text-base font-normal leading-6 text-[#005E53] hover:bg-transparent hover:text-[#004C43]"
       >
         Đặt lại bộ lọc
