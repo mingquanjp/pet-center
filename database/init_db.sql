@@ -414,4 +414,24 @@ CREATE INDEX idx_payments_status_paid_at ON payments(payment_status, paid_at DES
 CREATE INDEX idx_notifications_receiver_status ON notifications(receiver_user_id, notification_status, created_at DESC);
 CREATE INDEX idx_notifications_related ON notifications(related_object_type, related_object_id);
 
+CREATE TABLE appointments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    appointment_code VARCHAR(50) UNIQUE NOT NULL,
+    user_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    pet_id VARCHAR(30) REFERENCES pets(pet_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    appointment_type VARCHAR(100) NOT NULL,
+    appointment_date DATE NOT NULL,
+    appointment_time TIME NOT NULL,
+    symptoms TEXT,
+    note TEXT,
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_appointments_status CHECK (status IN ('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'))
+);
+
+CREATE INDEX idx_appointments_user_date ON appointments(user_id, appointment_date DESC);
+CREATE INDEX idx_appointments_pet_date ON appointments(pet_id, appointment_date DESC);
+CREATE INDEX idx_appointments_code ON appointments(appointment_code);
+
 COMMIT;

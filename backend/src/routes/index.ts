@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authRouter } from "../modules/auth/auth.routes.js";
+import { appointmentRoutes } from "../modules/appointments/appointments.routes.js";
 import { groomingRouter } from "../modules/grooming/grooming.routes.js";
 import { healthRouter } from "../modules/health/health.routes.js";
 import { petsRouter } from "../modules/pets/pets.routes.js";
@@ -7,6 +8,7 @@ import { uploadsRouter } from "../modules/uploads/uploads.routes.js";
 
 export const apiRouter = Router();
 
+apiRouter.use(appointmentRoutes);
 apiRouter.use(authRouter);
 apiRouter.use(healthRouter);
 apiRouter.use(groomingRouter);
