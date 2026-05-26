@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler } from "express";
+import { MulterError } from "multer";
 import { ZodError } from "zod";
 import { AppError } from "../shared/errors/app-error.js";
 import { httpStatus } from "../shared/errors/http-status.js";
@@ -28,6 +29,17 @@ export const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
         code: error.code,
         message: error.message,
         details: error.details
+      }
+    });
+    return;
+  }
+
+  if (error instanceof MulterError) {
+    res.status(httpStatus.BAD_REQUEST).json({
+      success: false,
+      error: {
+        code: error.code,
+        message: error.code === "LIMIT_FILE_SIZE" ? "Ảnh không được vượt quá 5MB" : "File upload không hợp lệ"
       }
     });
     return;

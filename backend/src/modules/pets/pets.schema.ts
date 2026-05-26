@@ -7,12 +7,9 @@ export const petSpeciesSchema = z.enum(["Dog", "Cat", "Other"]);
 export const petGenderSchema = z.enum(["male", "female", "unknown"]);
 
 export const listPetsQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
   species: z
     .union([petSpeciesSchema, z.literal("all")])
-    .optional()
-    .transform((value) => (value === "all" ? undefined : value)),
-  status: z
-    .union([z.enum(["healthy", "watching", "boarding", "inactive", "deceased"]), z.literal("all")])
     .optional()
     .transform((value) => (value === "all" ? undefined : value)),
   sort: z.enum(["petName:asc", "petName:desc"]).optional().default("petName:asc"),

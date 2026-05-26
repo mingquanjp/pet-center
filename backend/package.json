@@ -11,10 +11,12 @@
     "db:init": "tsx scripts/init-database.ts"
   },
   "dependencies": {
+    "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "helmet": "^8.2.0",
+    "multer": "^2.1.1",
     "pg": "^8.21.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
@@ -25,6 +27,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
     "@types/node": "^20.19.41",
     "@types/pg": "^8.20.0",
     "@types/swagger-jsdoc": "^6.0.4",

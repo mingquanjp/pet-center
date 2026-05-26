@@ -46,8 +46,9 @@ function getAccessToken(): string | null {
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {
   const headers = new Headers(init.headers);
   const token = getAccessToken();
+  const isFormDataBody = typeof FormData !== "undefined" && init.body instanceof FormData;
 
-  if (!headers.has("Content-Type") && init.body) {
+  if (!headers.has("Content-Type") && init.body && !isFormDataBody) {
     headers.set("Content-Type", "application/json");
   }
 

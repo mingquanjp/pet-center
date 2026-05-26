@@ -17,8 +17,8 @@ export async function listOwnerPets(authUser: AuthUser, query: ListPetsQuery) {
   const paginationInput = normalizePagination(query.page, query.limit);
   const result = await petsRepository.findPets({
     ownerUserId: authUser.userId,
+    q: query.q,
     species: query.species,
-    status: query.status,
     sort: query.sort,
     ...paginationInput
   });

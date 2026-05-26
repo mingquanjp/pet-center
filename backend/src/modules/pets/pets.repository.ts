@@ -151,51 +151,14 @@ function buildListWhere(filters: PetListFilters): { whereSql: string; params: un
   const params: unknown[] = [filters.ownerUserId];
   const conditions = ["p.owner_user_id = $1"];
 
+  if (filters.q) {
+    params.push(`%${filters.q}%`);
+    conditions.push(`(p.pet_name ilike $${params.length} or p.breed ilike $${params.length} or p.pet_id ilike $${params.length})`);
+  }
+
   if (filters.species) {
     params.push(filters.species);
     conditions.push(`p.species = $${params.length}`);
-  }
-
-  if (filters.status) {
-    if (filters.status === "inactive" || filters.status === "deceased") {
-      params.push(filters.status);
-      conditions.push(`p.pet_status = $${params.length}`);
-    } else if (filters.status === "boarding") {
-      conditions.push(`exists (
-        select 1 from pet_center.boarding_records br
-        where br.pet_id = p.pet_id and br.boarding_status = 'staying'
-      )`);
-    } else if (filters.status === "watching") {
-      conditions.push(`p.pet_status = 'active'`);
-      conditions.push(`not exists (
-        select 1 from pet_center.boarding_records br
-        where br.pet_id = p.pet_id and br.boarding_status = 'staying'
-      )`);
-      conditions.push(`exists (
-        select 1 from pet_center.pet_health_profiles php
-        where php.pet_id = p.pet_id
-          and (
-            nullif(trim(coalesce(php.allergy_notes, '')), '') is not null
-            or nullif(trim(coalesce(php.chronic_condition_notes, '')), '') is not null
-            or nullif(trim(coalesce(php.special_care_notes, '')), '') is not null
-          )
-      )`);
-    } else {
-      conditions.push(`p.pet_status = 'active'`);
-      conditions.push(`not exists (
-        select 1 from pet_center.boarding_records br
-        where br.pet_id = p.pet_id and br.boarding_status = 'staying'
-      )`);
-      conditions.push(`not exists (
-        select 1 from pet_center.pet_health_profiles php
-        where php.pet_id = p.pet_id
-          and (
-            nullif(trim(coalesce(php.allergy_notes, '')), '') is not null
-            or nullif(trim(coalesce(php.chronic_condition_notes, '')), '') is not null
-            or nullif(trim(coalesce(php.special_care_notes, '')), '') is not null
-          )
-      )`);
-    }
   }
 
   return {
