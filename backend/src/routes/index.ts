@@ -5,6 +5,7 @@ import { healthRouter } from "../modules/health/health.routes.js";
 import { petsRouter } from "../modules/pets/pets.routes.js";
 import { uploadsRouter } from "../modules/uploads/uploads.routes.js";
 import { invoicesRouter } from "../modules/invoices/invoices.routes.js";
+import { appointmentsRouter } from "../modules/appointments/appointments.routes.js";
 
 export const apiRouter = Router();
 
@@ -14,3 +15,4 @@ apiRouter.use(groomingRouter);
 apiRouter.use(petsRouter);
 apiRouter.use(uploadsRouter);
 apiRouter.use(invoicesRouter);
+apiRouter.use(appointmentsRouter);
