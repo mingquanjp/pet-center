@@ -46,8 +46,8 @@ export type PetDetailDto = PetDto & {
 
 export type PetListFilters = {
   ownerUserId: string;
+  q?: string;
   species?: PetSpecies;
-  status?: PetDisplayStatus;
   sort: "petName:asc" | "petName:desc";
   page: number;
   limit: number;

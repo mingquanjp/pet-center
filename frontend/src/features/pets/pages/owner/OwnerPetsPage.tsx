@@ -18,22 +18,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { petsApi } from "../../api/pets.api"
-import type { Pet, PetDisplayStatus, PetSpecies } from "../../types/pet.types"
-
-const statusClassName: Record<PetDisplayStatus, string> = {
-  healthy: "bg-petcenter-primary text-white",
-  watching: "bg-petcenter-cta text-white",
-  boarding: "bg-petcenter-info-text text-white",
-  inactive: "bg-petcenter-text-muted text-white",
-  deceased: "bg-petcenter-danger-text text-white",
-}
-
-const statusOptions: Array<{ label: string; value: "all" | PetDisplayStatus }> = [
-  { label: "Tất cả", value: "all" },
-  { label: "Khỏe mạnh", value: "healthy" },
-  { label: "Cần theo dõi", value: "watching" },
-  { label: "Đang lưu trú", value: "boarding" },
-]
+import type { Pet, PetSpecies } from "../../types/pet.types"
 
 const speciesOptions: Array<{ label: string; value: "all" | PetSpecies }> = [
   { label: "Tất cả", value: "all" },
@@ -49,35 +34,34 @@ export function OwnerPetsPage() {
   const [total, setTotal] = React.useState(0)
   const [totalPages, setTotalPages] = React.useState(0)
   const [page, setPage] = React.useState(1)
-  const [search, setSearch] = React.useState("")
-  const [status, setStatus] = React.useState<"all" | PetDisplayStatus>("all")
+  const [searchInput, setSearchInput] = React.useState("")
+  const [searchQuery, setSearchQuery] = React.useState("")
   const [species, setSpecies] = React.useState<"all" | PetSpecies>("all")
   const [isLoading, setIsLoading] = React.useState(true)
   const [isPageChanging, setIsPageChanging] = React.useState(false)
   const [hasLoaded, setHasLoaded] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const shouldShowSkeleton = isLoading && !hasLoaded
-  const displayedPets = React.useMemo(() => {
-    const keyword = search.trim().toLowerCase()
+  const displayedPets = pets
 
-    if (!keyword) return pets
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim())
+    }, 350)
 
-    return pets.filter((pet) =>
-      [pet.petId, pet.petName, pet.breed ?? "", pet.speciesLabel]
-        .some((value) => value.toLowerCase().includes(keyword))
-    )
-  }, [pets, search])
+    return () => window.clearTimeout(timer)
+  }, [searchInput])
 
   React.useEffect(() => {
     const abortController = new AbortController()
 
     async function loadPets() {
       try {
-        setIsLoading(true)
+        setIsLoading(!hasLoaded)
         setErrorMessage(null)
 
         const result = await petsApi.list({
-          status,
+          q: searchQuery || undefined,
           species,
           page: 1,
           limit: PETS_PAGE_SIZE,
@@ -106,17 +90,12 @@ export function OwnerPetsPage() {
       }
     }
 
-    const timer = window.setTimeout(loadPets, 250)
+    void loadPets()
 
     return () => {
       abortController.abort()
-      window.clearTimeout(timer)
     }
-  }, [species, status])
-
-  const handleStatusChange = (value: string) => {
-    setStatus(value as "all" | PetDisplayStatus)
-  }
+  }, [searchQuery, species])
 
   const handleSpeciesChange = (value: string) => {
     setSpecies(value as "all" | PetSpecies)
@@ -130,7 +109,7 @@ export function OwnerPetsPage() {
       setErrorMessage(null)
 
       const result = await petsApi.list({
-        status,
+        q: searchQuery || undefined,
         species,
         page: nextPage,
         limit: PETS_PAGE_SIZE,
@@ -173,20 +152,14 @@ export function OwnerPetsPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
             <input
               className="body-md h-11 w-full rounded-pill border border-petcenter-border-strong bg-white pl-11 pr-4 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Tìm theo tên thú cưng..."
               type="search"
-              value={search}
+              value={searchInput}
             />
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <FilterSelect
-              label="Trạng thái"
-              onChange={handleStatusChange}
-              options={statusOptions}
-              value={status}
-            />
             <FilterSelect
               label="Loài"
               onChange={handleSpeciesChange}
@@ -281,14 +254,6 @@ function PetCard({ pet }: { pet: Pet }) {
         style={pet.profileImageUrl ? { backgroundImage: `url(${pet.profileImageUrl})` } : undefined}
       >
         {!pet.profileImageUrl ? <PawPrint className="h-16 w-16 text-petcenter-primary/30" /> : null}
-        <span
-          className={cn(
-            "label-sm absolute right-3 top-3 rounded-pill px-3 py-1 uppercase text-white shadow-card",
-            statusClassName[pet.displayStatus]
-          )}
-        >
-          {pet.displayStatusLabel}
-        </span>
       </div>
 
       <div className="flex flex-1 flex-col gap-4">

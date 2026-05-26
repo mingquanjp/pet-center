@@ -8,7 +8,7 @@ export function OwnerLayout({ children }: { children: React.ReactNode }) {
       <OwnerSidebar />
       <main className="md:ml-[280px] flex-1 flex flex-col h-screen overflow-hidden w-[calc(100%-280px)]">
         <OwnerHeader />
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-scroll p-8 [scrollbar-gutter:stable]">
           {children}
         </div>
       </main>

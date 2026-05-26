@@ -46,8 +46,8 @@ export type CreatePetInput = {
 };
 
 export type PetsListParams = {
+  q?: string;
   species?: "all" | PetSpecies;
-  status?: "all" | PetDisplayStatus;
   page?: number;
   limit?: number;
   sort?: "petName:asc" | "petName:desc";

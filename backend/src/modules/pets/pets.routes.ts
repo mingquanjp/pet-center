@@ -118,13 +118,6 @@ export const petsRouter = Router();
  *           type: string
  *           enum: [active, inactive, deceased]
  *           example: active
- *         displayStatus:
- *           type: string
- *           enum: [healthy, watching, boarding, inactive, deceased]
- *           example: healthy
- *         displayStatusLabel:
- *           type: string
- *           example: Khỏe mạnh
  *     PetDetail:
  *       allOf:
  *         - $ref: '#/components/schemas/Pet'
@@ -230,16 +223,17 @@ export const petsRouter = Router();
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *           maxLength: 100
+ *         description: Search across all pets owned by the current user by pet name, breed, or pet id.
+ *         example: doraemon
+ *       - in: query
  *         name: species
  *         schema:
  *           type: string
  *           enum: [all, Dog, Cat, Other]
- *           default: all
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [all, healthy, watching, boarding, inactive, deceased]
  *           default: all
  *       - in: query
  *         name: page
