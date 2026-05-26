@@ -1,6 +1,19 @@
+import { randomBytes } from "node:crypto";
+import type { PoolClient } from "pg";
 import type { QueryResultRow } from "pg";
 import { query } from "../../db/query.js";
-import type { GroomingServiceDto, GroomingServicePriceRuleDto } from "./grooming.types.js";
+import { withTransaction } from "../../db/transactions.js";
+import type {
+  GroomingAvailabilityDto,
+  GroomingBookingPetDto,
+  GroomingBookingServiceDto,
+  GroomingPaymentOption,
+  GroomingServiceDto,
+  GroomingServicePriceRuleDto,
+  GroomingTicketCreatedDto,
+  GroomingTicketStatus,
+  InvoiceStatus
+} from "./grooming.types.js";
 
 type GroomingServiceRow = QueryResultRow & {
   service_id: string;
@@ -13,6 +26,48 @@ type GroomingServiceRow = QueryResultRow & {
   price_amount: string | number | null;
   effective_from: string | null;
 };
+
+type BookingPetRow = QueryResultRow & {
+  pet_id: string;
+  pet_name: string;
+  species: "Dog" | "Cat" | "Other";
+  weight_kg: string | number | null;
+  profile_image_url: string | null;
+};
+
+type BookingServiceRow = QueryResultRow & {
+  service_id: string;
+  service_name: string;
+  description: string | null;
+  estimated_duration_minutes: number | null;
+  base_price: string | number;
+  price_rule_id: string | null;
+  pricing_condition: string | null;
+  price_amount: string | number | null;
+};
+
+type CountRow = QueryResultRow & {
+  total: string;
+};
+
+type BookedUnitsRow = QueryResultRow & {
+  hour: string | number;
+  booked_units: string | number;
+};
+
+type CreateBookingInput = {
+  ownerUserId: string;
+  pet: GroomingBookingPetDto;
+  service: GroomingBookingServiceDto;
+  scheduledAt: Date;
+  specialRequest?: string | null;
+  paymentOption: GroomingPaymentOption;
+};
+
+const timeZone = "Asia/Ho_Chi_Minh";
+const slotStartHour = 8;
+const slotEndHour = 17;
+const slotEndMinute = 30;
 
 function getPricingConditionLabel(condition: string): string {
   const labels: Record<string, string> = {
@@ -44,6 +99,71 @@ function formatDuration(minutes: number | null): string {
   const remainingMinutes = minutes % 60;
 
   return `${hours} giờ ${remainingMinutes} phút`;
+}
+
+function createShortId(prefix: string): string {
+  return `${prefix}_${randomBytes(10).toString("hex")}`;
+}
+
+function createBookingCode(date: Date): string {
+  const datePart = toVietnamDateString(date).replaceAll("-", "");
+
+  return `SPA-${datePart}-${randomBytes(3).toString("hex").toUpperCase()}`;
+}
+
+function getSpeciesLabel(species: BookingPetRow["species"]): string {
+  const labels = {
+    Dog: "Chó",
+    Cat: "Mèo",
+    Other: "Khác"
+  } as const;
+
+  return labels[species];
+}
+
+function mapBookingPet(row: BookingPetRow): GroomingBookingPetDto {
+  return {
+    petId: row.pet_id,
+    petName: row.pet_name,
+    species: row.species,
+    speciesLabel: getSpeciesLabel(row.species),
+    weightKg: row.weight_kg === null ? null : Number(row.weight_kg),
+    profileImageUrl: row.profile_image_url
+  };
+}
+
+function toVietnamDateString(value: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(value);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+function mapBookingService(row: BookingServiceRow): GroomingBookingServiceDto | null {
+  if (!row.pricing_condition || row.price_amount === null) {
+    return null;
+  }
+
+  const appliedPrice = Number(row.price_amount);
+
+  return {
+    serviceId: row.service_id,
+    serviceName: row.service_name,
+    description: row.description,
+    estimatedDurationMinutes: row.estimated_duration_minutes,
+    durationText: formatDuration(row.estimated_duration_minutes),
+    appliedPrice,
+    appliedPricingCondition: row.pricing_condition,
+    appliedPricingConditionLabel: getPricingConditionLabel(row.pricing_condition),
+    priceText: `${formatMoney(appliedPrice)} VNĐ`
+  };
 }
 
 function mapGroomingServices(rows: GroomingServiceRow[]): GroomingServiceDto[] {
@@ -136,4 +256,251 @@ export async function findActiveGroomingServices(): Promise<GroomingServiceDto[]
   );
 
   return mapGroomingServices(result.rows);
+}
+
+export async function findOwnerBookingPets(ownerUserId: string): Promise<GroomingBookingPetDto[]> {
+  const result = await query<BookingPetRow>(
+    `select p.pet_id, p.pet_name, p.species, p.weight_kg, p.profile_image_url
+     from pet_center.pets p
+     where p.owner_user_id = $1
+       and p.pet_status = 'active'
+     order by p.pet_name asc, p.pet_id asc`,
+    [ownerUserId]
+  );
+
+  return result.rows.map(mapBookingPet);
+}
+
+export async function findOwnerBookingPet(ownerUserId: string, petId: string): Promise<GroomingBookingPetDto | null> {
+  const result = await query<BookingPetRow>(
+    `select p.pet_id, p.pet_name, p.species, p.weight_kg, p.profile_image_url
+     from pet_center.pets p
+     where p.owner_user_id = $1
+       and p.pet_id = $2
+       and p.pet_status = 'active'
+     limit 1`,
+    [ownerUserId, petId]
+  );
+
+  return result.rows[0] ? mapBookingPet(result.rows[0]) : null;
+}
+
+export async function findBookingServicesForCondition(pricingCondition: string): Promise<GroomingBookingServiceDto[]> {
+  const result = await query<BookingServiceRow>(
+    `with latest_price_rules as (
+       select distinct on (spr.service_id)
+         spr.price_rule_id,
+         spr.service_id,
+         spr.pricing_condition,
+         spr.price_amount
+       from pet_center.service_price_rules spr
+       where spr.price_status = 'active'
+         and spr.pricing_condition = $1
+         and spr.effective_from <= current_date
+       order by spr.service_id, spr.effective_from desc
+     )
+     select
+       s.service_id,
+       s.service_name,
+       s.description,
+       s.estimated_duration_minutes,
+       s.base_price,
+       lpr.price_rule_id,
+       lpr.pricing_condition,
+       lpr.price_amount
+     from pet_center.services s
+     left join latest_price_rules lpr on lpr.service_id = s.service_id
+     where s.service_category = 'grooming'
+       and s.service_status = 'active'
+     order by s.service_id asc`,
+    [pricingCondition]
+  );
+
+  return result.rows.map(mapBookingService).filter((service): service is GroomingBookingServiceDto => service !== null);
+}
+
+export async function findBookingServiceForCondition(
+  serviceId: string,
+  pricingCondition: string,
+  client?: PoolClient
+): Promise<GroomingBookingServiceDto | null> {
+  const sql = `with latest_price_rule as (
+     select spr.price_rule_id, spr.service_id, spr.pricing_condition, spr.price_amount
+     from pet_center.service_price_rules spr
+     where spr.service_id = $1
+       and spr.price_status = 'active'
+       and spr.pricing_condition = $2
+       and spr.effective_from <= current_date
+     order by spr.effective_from desc
+     limit 1
+   )
+   select
+     s.service_id,
+     s.service_name,
+     s.description,
+     s.estimated_duration_minutes,
+     s.base_price,
+     lpr.price_rule_id,
+     lpr.pricing_condition,
+     lpr.price_amount
+   from pet_center.services s
+   left join latest_price_rule lpr on lpr.service_id = s.service_id
+   where s.service_id = $1
+     and s.service_category = 'grooming'
+     and s.service_status = 'active'
+   limit 1`;
+  const params = [serviceId, pricingCondition];
+  const result = client
+    ? await client.query<BookingServiceRow>(sql, params)
+    : await query<BookingServiceRow>(sql, params);
+
+  return result.rows[0] ? mapBookingService(result.rows[0]) : null;
+}
+
+export async function countActiveStaff(client?: PoolClient): Promise<number> {
+  const sql = `select count(*)::text as total
+   from pet_center.users u
+   where u.role = 'Staff'
+     and u.account_status = 'active'`;
+  const result = client ? await client.query<CountRow>(sql) : await query<CountRow>(sql);
+
+  return Number(result.rows[0]?.total ?? 0);
+}
+
+export async function findBookedUnitsByHour(date: string, client?: PoolClient): Promise<Map<number, number>> {
+  const sql = `select
+     extract(hour from gt.scheduled_at at time zone $2)::int as hour,
+     coalesce(sum(gti.quantity), 0)::text as booked_units
+   from pet_center.grooming_tickets gt
+   join pet_center.grooming_ticket_items gti on gti.grooming_ticket_id = gt.grooming_ticket_id
+   where (gt.scheduled_at at time zone $2)::date = $1::date
+     and gt.ticket_status in ('pending', 'waiting', 'in_progress', 'completed')
+   group by extract(hour from gt.scheduled_at at time zone $2)::int`;
+  const params = [date, timeZone];
+  const result = client
+    ? await client.query<BookedUnitsRow>(sql, params)
+    : await query<BookedUnitsRow>(sql, params);
+
+  return new Map(result.rows.map((row) => [Number(row.hour), Number(row.booked_units)]));
+}
+
+export async function getAvailability(date: string): Promise<GroomingAvailabilityDto> {
+  const [activeStaffCount, bookedUnitsByHour] = await Promise.all([
+    countActiveStaff(),
+    findBookedUnitsByHour(date)
+  ]);
+  const capacity = activeStaffCount * 2;
+  const slots = [];
+
+  for (let hour = slotStartHour; hour <= slotEndHour; hour += 1) {
+    for (const minute of [0, 30]) {
+      if (hour === slotEndHour && minute > slotEndMinute) continue;
+
+      const bookedUnits = bookedUnitsByHour.get(hour) ?? 0;
+      const availableUnits = Math.max(capacity - bookedUnits, 0);
+
+      slots.push({
+        time: `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`,
+        capacity,
+        bookedUnits,
+        availableUnits,
+        available: availableUnits > 0
+      });
+    }
+  }
+
+  return {
+    date,
+    slots
+  };
+}
+
+export async function createGroomingBooking(input: CreateBookingInput): Promise<GroomingTicketCreatedDto> {
+  return withTransaction(async (client) => {
+    await client.query("lock table pet_center.grooming_tickets in share row exclusive mode");
+
+    const activeStaffCount = await countActiveStaff(client);
+    const capacity = activeStaffCount * 2;
+    const bookedUnitsByHour = await findBookedUnitsByHour(toVietnamDateString(input.scheduledAt), client);
+    const scheduledHour = Number(
+      new Intl.DateTimeFormat("en-US", { timeZone, hour: "2-digit", hour12: false }).format(input.scheduledAt)
+    );
+    const bookedUnits = bookedUnitsByHour.get(scheduledHour) ?? 0;
+
+    if (capacity <= 0 || bookedUnits >= capacity) {
+      throw new Error("GROOMING_SLOT_FULL");
+    }
+
+    const groomingTicketId = createBookingCode(input.scheduledAt);
+    const groomingTicketItemId = createShortId("gti");
+    const invoiceId = createShortId("inv");
+    const invoiceLineId = createShortId("inl");
+    const ticketStatus: GroomingTicketStatus = input.paymentOption === "online" ? "pending_payment" : "pending";
+    const invoiceStatus: InvoiceStatus = "pending_payment";
+
+    await client.query(
+      `insert into pet_center.grooming_tickets (
+         grooming_ticket_id, pet_id, owner_user_id, created_by_user_id, source_type,
+         scheduled_at, special_request, estimated_total, ticket_status
+       )
+       values ($1, $2, $3, $4, 'online', $5, $6, $7, $8)`,
+      [
+        groomingTicketId,
+        input.pet.petId,
+        input.ownerUserId,
+        input.ownerUserId,
+        input.scheduledAt,
+        input.specialRequest ?? null,
+        input.service.appliedPrice,
+        ticketStatus
+      ]
+    );
+
+    await client.query(
+      `insert into pet_center.grooming_ticket_items (
+         grooming_ticket_item_id, grooming_ticket_id, service_id, quantity, applied_unit_price, line_amount
+       )
+       values ($1, $2, $3, 1, $4, $4)`,
+      [groomingTicketItemId, groomingTicketId, input.service.serviceId, input.service.appliedPrice]
+    );
+
+    await client.query(
+      `insert into pet_center.invoices (
+         invoice_id, owner_user_id, pet_id, subtotal_amount, discount_amount, surcharge_amount,
+         total_amount, payment_option, invoice_status
+       )
+       values ($1, $2, $3, $4, 0, 0, $4, $5, $6)`,
+      [invoiceId, input.ownerUserId, input.pet.petId, input.service.appliedPrice, input.paymentOption, invoiceStatus]
+    );
+
+    await client.query(
+      `insert into pet_center.invoice_lines (
+         invoice_line_id, invoice_id, service_id, source_type, source_id, description,
+         quantity, unit_price, line_discount_amount, line_amount
+       )
+       values ($1, $2, $3, 'grooming', $4, $5, 1, $6, 0, $6)`,
+      [
+        invoiceLineId,
+        invoiceId,
+        input.service.serviceId,
+        groomingTicketId,
+        input.service.serviceName,
+        input.service.appliedPrice
+      ]
+    );
+
+    return {
+      groomingTicketId,
+      bookingCode: groomingTicketId,
+      invoiceId,
+      paymentOption: input.paymentOption,
+      ticketStatus,
+      invoiceStatus,
+      totalAmount: input.service.appliedPrice,
+      paymentUrl: null,
+      petName: input.pet.petName,
+      serviceName: input.service.serviceName,
+      scheduledAt: input.scheduledAt.toISOString()
+    };
+  });
 }

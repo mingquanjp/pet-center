@@ -1,11 +1,11 @@
 import { Droplets, Flower2, Scissors, Sparkles } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import type {
   OwnerSpaPet,
   OwnerSpaRequest,
   OwnerSpaTab,
   SpaBookingServiceOption,
   SpaBookingStatus,
-  SpaService,
 } from "../types/spa.types"
 
 export const ownerSpaTabs: Array<{ value: OwnerSpaTab; label: string }> = [
@@ -13,6 +13,19 @@ export const ownerSpaTabs: Array<{ value: OwnerSpaTab; label: string }> = [
   { value: "booked", label: "Dịch vụ đã đặt" },
   { value: "history", label: "Lịch sử" },
 ]
+
+export const spaServiceIconById: Partial<Record<string, LucideIcon>> = {
+  svc_groom_001_basic: Droplets,
+  svc_groom_002_trim: Scissors,
+  svc_groom_003_combo: Sparkles,
+  svc_groom_004_nail: Scissors,
+  svc_groom_005_massage: Flower2,
+  "basic-bath": Droplets,
+  "fur-trimming": Scissors,
+  "spa-combo": Sparkles,
+  "nail-care": Scissors,
+  "relaxing-massage": Flower2,
+}
 
 export const spaStatusLabel: Record<SpaBookingStatus, string> = {
   WAITING_ACCEPT: "Chờ tiếp nhận",
@@ -31,50 +44,6 @@ export const spaStatusClassName: Record<SpaBookingStatus, string> = {
   COMPLETED: "bg-petcenter-success-bg text-petcenter-success-text",
   CANCELLED: "bg-petcenter-danger-bg text-petcenter-danger-text",
 }
-
-export const ownerSpaServices: SpaService[] = [
-  {
-    id: "basic-bath",
-    title: "Tắm gội cơ bản",
-    description: "Làm sạch lông, khử mùi nhẹ và sấy khô cho thú cưng.",
-    priceText: "100.000 - 150.000 VNĐ",
-    durationText: "30 phút",
-    icon: Droplets,
-  },
-  {
-    id: "fur-trimming",
-    title: "Cắt tỉa lông",
-    description: "Cắt tỉa gọn gàng, tạo kiểu lông cơ bản theo nhu cầu chăm sóc.",
-    priceText: "100.000 - 150.000 VNĐ",
-    durationText: "30 phút",
-    icon: Scissors,
-  },
-  {
-    id: "spa-combo",
-    title: "Spa & Cắt tỉa",
-    description: "Gói chăm sóc kết hợp tắm gội, cắt tỉa và chăm sóc lông toàn diện.",
-    priceText: "100.000 - 150.000 VNĐ",
-    durationText: "60 phút",
-    icon: Sparkles,
-    featured: true,
-  },
-  {
-    id: "nail-care",
-    title: "Chăm sóc móng",
-    description: "Cắt, mài móng an toàn và vệ sinh vùng đệm chân.",
-    priceText: "100.000 - 150.000 VNĐ",
-    durationText: "30 phút",
-    icon: Scissors,
-  },
-  {
-    id: "relaxing-massage",
-    title: "Massage thư giãn",
-    description: "Massage nhẹ giúp thú cưng thư giãn và giảm căng thẳng.",
-    priceText: "100.000 - 150.000 VNĐ",
-    durationText: "30 phút",
-    icon: Flower2,
-  },
-]
 
 export const ownerBookedSpaRequests: OwnerSpaRequest[] = [
   {
