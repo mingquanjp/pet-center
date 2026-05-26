@@ -18,6 +18,7 @@ import {
   HeartPulse,
   History,
   Info,
+  LoaderCircle,
   Mars,
   Pill,
   PawPrint,
@@ -427,6 +428,16 @@ function BasicProfileTab({ GenderIcon, pet }: { GenderIcon: typeof Mars; pet: Pe
 }
 
 function MedicalHistoryTab({ petName }: { petName: string }) {
+  const [searchValue, setSearchValue] = React.useState("")
+  const debouncedSearchValue = useDebouncedValue(searchValue, 300)
+  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue)
+  const normalizedSearch = normalizeSearchText(debouncedSearchValue)
+  const filteredRecords = examinationRecords.filter((record) =>
+    [record.title, record.type, record.doctor, record.diagnosis, record.conclusion].some((value) =>
+      includesSearchText(value, normalizedSearch)
+    )
+  )
+
   return (
     <div className="flex w-full flex-col gap-6">
       <section className="rounded-card border border-petcenter-border-strong bg-white p-6 shadow-card">
@@ -444,11 +455,17 @@ function MedicalHistoryTab({ petName }: { petName: string }) {
           <label className="block">
             <span className="label-sm mb-1 block font-bold text-petcenter-text-secondary">Tìm kiếm</span>
             <span className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-muted" />
+              {isSearchSettling ? (
+                <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-petcenter-primary" />
+              ) : (
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-muted" />
+              )}
               <input
                 className="body-sm h-10 w-full rounded-control border-0 bg-petcenter-sidebar pl-10 pr-3 text-petcenter-text outline-none transition focus:bg-white focus:ring-2 focus:ring-petcenter-primary/20"
+                onChange={(event) => setSearchValue(event.target.value)}
                 placeholder="Tìm theo bác sĩ, chẩn đoán..."
                 type="search"
+                value={searchValue}
               />
             </span>
           </label>
@@ -456,11 +473,16 @@ function MedicalHistoryTab({ petName }: { petName: string }) {
           <FilterSelect label="Loại khám" options={["Tất cả", "Khám định kỳ", "Khám bệnh", "Tái khám"]} />
           <FilterSelect label="Thời gian" options={["Tất cả thời gian", "3 tháng gần đây", "6 tháng gần đây", "Năm nay"]} />
 
-          <button className="label-md inline-flex h-10 w-full items-center justify-center gap-2 rounded-control px-4 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5 md:w-auto">
+          <button
+            className="label-md inline-flex h-10 w-full items-center justify-center gap-2 rounded-control px-4 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5 md:w-auto"
+            onClick={() => setSearchValue("")}
+            type="button"
+          >
             <RotateCcw className="h-4 w-4" />
             Đặt lại bộ lọc
           </button>
         </div>
+        <SearchProgressBar isActive={isSearchSettling} />
       </section>
 
       <section className="w-full">
@@ -481,11 +503,18 @@ function MedicalHistoryTab({ petName }: { petName: string }) {
           </button>
         </div>
 
-        <div className="space-y-4">
-          {examinationRecords.map((record) => (
-            <ExaminationRecordCard key={`${record.title}-${record.date}`} record={record} />
-          ))}
-        </div>
+        {filteredRecords.length > 0 ? (
+          <div className={cn("space-y-4 transition-opacity duration-200", isSearchSettling && "opacity-80")}>
+            {filteredRecords.map((record) => (
+              <ExaminationRecordCard key={`${record.title}-${record.date}`} record={record} />
+            ))}
+          </div>
+        ) : (
+          <EmptyFilterState
+            description="Thử đổi từ khóa tìm kiếm lịch sử khám."
+            title="Không tìm thấy lịch sử khám"
+          />
+        )}
       </section>
     </div>
   )
@@ -496,6 +525,7 @@ function VaccinationTab({ petName }: { petName: string }) {
   const [activeFilter, setActiveFilter] = React.useState<VaccinationFilter>("all")
   const [selectedRecord, setSelectedRecord] = React.useState<(typeof vaccinationRecords)[number] | null>(null)
   const debouncedSearchValue = useDebouncedValue(searchValue, 300)
+  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue)
 
   const filteredRecords = vaccinationRecords.filter((record) => {
     const matchesFilter = activeFilter === "all" || record.status === activeFilter
@@ -540,7 +570,11 @@ function VaccinationTab({ petName }: { petName: string }) {
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center">
           <label className="relative block min-w-[220px] flex-1">
             <span className="sr-only">Tìm vaccine</span>
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-muted" />
+            {isSearchSettling ? (
+              <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-petcenter-primary" />
+            ) : (
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-muted" />
+            )}
             <input
               className="body-sm h-10 w-full rounded-control border-0 bg-petcenter-sidebar pl-10 pr-3 text-petcenter-text outline-none transition placeholder:text-petcenter-text-muted/70 focus:bg-white focus:ring-2 focus:ring-petcenter-primary/20"
               onChange={(event) => setSearchValue(event.target.value)}
@@ -568,19 +602,16 @@ function VaccinationTab({ petName }: { petName: string }) {
             ))}
           </div>
         </div>
+        <SearchProgressBar isActive={isSearchSettling} />
 
         {filteredRecords.length > 0 ? (
-          <div className="space-y-4">
+          <div className={cn("space-y-4 transition-opacity duration-200", isSearchSettling && "opacity-80")}>
             {filteredRecords.map((record) => (
               <VaccinationRecordCard key={record.id} onViewDetails={() => setSelectedRecord(record)} record={record} />
             ))}
           </div>
         ) : (
-          <div className="rounded-card border border-dashed border-petcenter-border-strong bg-petcenter-filter p-8 text-center">
-            <Info className="mx-auto mb-3 h-8 w-8 text-petcenter-text-muted" />
-            <h3 className="title-md text-petcenter-text">Không tìm thấy bản ghi</h3>
-            <p className="body-md mt-1 text-petcenter-text-secondary">Thử đổi từ khóa hoặc bộ lọc tiêm chủng.</p>
-          </div>
+          <EmptyFilterState description="Thử đổi từ khóa hoặc bộ lọc tiêm chủng." title="Không tìm thấy bản ghi" />
         )}
       </section>
 
@@ -594,6 +625,7 @@ function SpaHistoryTab({ petName }: { petName: string }) {
   const [serviceTypeFilter, setServiceTypeFilter] = React.useState<SpaServiceTypeFilter>("Tất cả")
   const [timeFilter, setTimeFilter] = React.useState<SpaTimeFilter>("Tất cả thời gian")
   const debouncedSearchValue = useDebouncedValue(searchValue, 300)
+  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue)
 
   const filteredRecords = spaRecords.filter((record) => {
     const normalizedSearch = normalizeSearchText(debouncedSearchValue)
@@ -630,7 +662,11 @@ function SpaHistoryTab({ petName }: { petName: string }) {
           <label className="block">
             <span className="label-sm mb-1 block font-bold text-petcenter-text-secondary">Tìm kiếm</span>
             <span className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-muted" />
+              {isSearchSettling ? (
+                <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-petcenter-primary" />
+              ) : (
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-muted" />
+              )}
               <input
                 className="body-sm h-10 w-full rounded-control border-0 bg-petcenter-sidebar pl-10 pr-3 text-petcenter-text outline-none transition focus:bg-white focus:ring-2 focus:ring-petcenter-primary/20"
                 onChange={(event) => setSearchValue(event.target.value)}
@@ -667,6 +703,7 @@ function SpaHistoryTab({ petName }: { petName: string }) {
         {timeFilter !== "Tất cả thời gian" ? (
           <p className="label-sm mt-3 text-petcenter-text-secondary">Bộ lọc thời gian đang được giữ cho dữ liệu API thật.</p>
         ) : null}
+        <SearchProgressBar isActive={isSearchSettling} />
       </section>
 
       <section className="w-full">
@@ -688,17 +725,13 @@ function SpaHistoryTab({ petName }: { petName: string }) {
         </div>
 
         {filteredRecords.length > 0 ? (
-          <div className="space-y-4">
+          <div className={cn("space-y-4 transition-opacity duration-200", isSearchSettling && "opacity-80")}>
             {filteredRecords.map((record) => (
               <SpaRecordCard key={record.id} record={record} />
             ))}
           </div>
         ) : (
-          <div className="rounded-card border border-dashed border-petcenter-border-strong bg-petcenter-filter p-8 text-center">
-            <Info className="mx-auto mb-3 h-8 w-8 text-petcenter-text-muted" />
-            <h3 className="title-md text-petcenter-text">Không tìm thấy lịch sử spa</h3>
-            <p className="body-md mt-1 text-petcenter-text-secondary">Thử đổi từ khóa hoặc bộ lọc dịch vụ.</p>
-          </div>
+          <EmptyFilterState description="Thử đổi từ khóa hoặc bộ lọc dịch vụ." title="Không tìm thấy lịch sử spa" />
         )}
       </section>
     </div>
@@ -760,6 +793,29 @@ function SpaRecordCard({ record }: { record: (typeof spaRecords)[number] }) {
         <RecordNote label="Dịch vụ bao gồm" value={record.includedServices} />
       </div>
     </article>
+  )
+}
+
+function SearchProgressBar({ isActive }: { isActive: boolean }) {
+  return (
+    <div
+      className={cn(
+        "mt-3 h-0.5 overflow-hidden rounded-full bg-petcenter-border transition-opacity duration-200",
+        isActive ? "opacity-100" : "opacity-0"
+      )}
+    >
+      <div className="h-full w-1/3 animate-[search-progress_1.1s_ease-in-out_infinite] rounded-full bg-petcenter-primary" />
+    </div>
+  )
+}
+
+function EmptyFilterState({ description, title }: { description: string; title: string }) {
+  return (
+    <div className="rounded-card border border-dashed border-petcenter-border-strong bg-petcenter-filter p-8 text-center">
+      <Info className="mx-auto mb-3 h-8 w-8 text-petcenter-text-muted" />
+      <h3 className="title-md text-petcenter-text">{title}</h3>
+      <p className="body-md mt-1 text-petcenter-text-secondary">{description}</p>
+    </div>
   )
 }
 

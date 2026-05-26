@@ -7,6 +7,7 @@ import {
   Cake,
   ChevronLeft,
   ChevronRight,
+  LoaderCircle,
   Mars,
   PawPrint,
   PlusCircle,
@@ -45,7 +46,9 @@ export function OwnerPetsPage() {
   const hasLoadedRef = React.useRef(false)
   const debouncedSearchInput = useDebouncedValue(searchInput, 450)
   const searchQuery = React.useMemo(() => normalizeSearchText(debouncedSearchInput), [debouncedSearchInput])
+  const isSearchSettling = normalizeSearchText(searchInput) !== searchQuery
   const shouldShowSkeleton = isLoading && !hasLoaded
+  const isRefreshingResults = hasLoaded && (isLoading || isSearchSettling)
   const displayedPets = pets
 
   React.useEffect(() => {
@@ -53,7 +56,7 @@ export function OwnerPetsPage() {
 
     async function loadPets() {
       try {
-        setIsLoading(!hasLoadedRef.current)
+        setIsLoading(true)
         setErrorMessage(null)
 
         const result = await petsApi.list({
@@ -147,7 +150,11 @@ export function OwnerPetsPage() {
       <section className="rounded-card border border-petcenter-border bg-petcenter-filter p-4 shadow-card">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+            {isRefreshingResults ? (
+              <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-petcenter-primary" />
+            ) : (
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+            )}
             <input
               className="body-md h-11 w-full rounded-pill border border-petcenter-border-strong bg-white pl-11 pr-4 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
               onChange={(event) => setSearchInput(event.target.value)}
@@ -168,8 +175,16 @@ export function OwnerPetsPage() {
 
           <div className="label-md flex min-w-[150px] items-center justify-start gap-2 text-petcenter-text-secondary xl:ml-auto xl:justify-end">
             <SlidersHorizontal className="h-4 w-4" />
-            {shouldShowSkeleton ? "Đang tải..." : `Hiển thị ${displayedPets.length}/${total} thú cưng`}
+            {shouldShowSkeleton ? "Đang tải..." : isRefreshingResults ? "Đang tìm..." : `Hiển thị ${displayedPets.length}/${total} thú cưng`}
           </div>
+        </div>
+        <div
+          className={cn(
+            "mt-3 h-0.5 overflow-hidden rounded-full bg-petcenter-border transition-opacity duration-200",
+            isRefreshingResults ? "opacity-100" : "opacity-0"
+          )}
+        >
+          <div className="h-full w-1/3 animate-[search-progress_1.1s_ease-in-out_infinite] rounded-full bg-petcenter-primary" />
         </div>
       </section>
 
@@ -185,7 +200,12 @@ export function OwnerPetsPage() {
 
       {!errorMessage && !shouldShowSkeleton && displayedPets.length > 0 ? (
         <>
-          <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <section
+            className={cn(
+              "grid grid-cols-1 gap-6 transition-opacity duration-200 md:grid-cols-2 xl:grid-cols-3",
+              isRefreshingResults && "opacity-80"
+            )}
+          >
             {displayedPets.map((pet) => (
               <PetCard key={pet.petId} pet={pet} />
             ))}
