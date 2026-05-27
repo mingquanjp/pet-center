@@ -13,8 +13,12 @@ import type {
   PetDisplayStatus,
   PetDto,
   PetListFilters,
+  PetMedicalExamDetailDto,
   PetMedicalExamDto,
+  PetMedicalExamFieldValueDto,
   PetMedicalExamFilters,
+  PetPrescriptionDto,
+  PetPrescriptionItemDto,
   PetSpecies
 } from "./pets.types.js";
 
@@ -86,6 +90,42 @@ type PetMedicalExamRow = QueryResultRow & {
   has_follow_up: boolean;
   follow_up_date: string | null;
   follow_up_reason: string | null;
+};
+
+type PetMedicalExamDetailRow = PetMedicalExamRow &
+  PetRow & {
+    follow_up_id: string | null;
+    follow_up_owner_note: string | null;
+  };
+
+type PetMedicalExamFieldValueRow = QueryResultRow & {
+  field_value_id: string;
+  field_definition_id: string;
+  field_name: string;
+  field_label: string;
+  field_type: PetMedicalExamFieldValueDto["fieldType"];
+  value_text: string | null;
+  value_number: string | number | null;
+  value_date: string | null;
+  file_url: string | null;
+  created_at: string;
+};
+
+type PrescriptionRow = QueryResultRow & {
+  prescription_id: string;
+  prescribed_at: string;
+  general_note: string | null;
+};
+
+type PrescriptionItemRow = QueryResultRow & {
+  prescription_item_id: string;
+  medicine_id: string;
+  medicine_name: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  usage_instruction: string | null;
+  note: string | null;
 };
 
 function toDateInput(value?: Date | null): string | null {
@@ -254,6 +294,34 @@ function mapPetMedicalExam(row: PetMedicalExamRow): PetMedicalExamDto {
     hasFollowUp: row.has_follow_up,
     followUpDate: row.follow_up_date,
     followUpReason: row.follow_up_reason
+  };
+}
+
+function mapPetMedicalExamFieldValue(row: PetMedicalExamFieldValueRow): PetMedicalExamFieldValueDto {
+  return {
+    fieldValueId: row.field_value_id,
+    fieldDefinitionId: row.field_definition_id,
+    fieldName: row.field_name,
+    fieldLabel: row.field_label,
+    fieldType: row.field_type,
+    valueText: row.value_text,
+    valueNumber: toNumber(row.value_number),
+    valueDate: row.value_date,
+    fileUrl: row.file_url,
+    createdAt: row.created_at
+  };
+}
+
+function mapPrescriptionItem(row: PrescriptionItemRow): PetPrescriptionItemDto {
+  return {
+    prescriptionItemId: row.prescription_item_id,
+    medicineId: row.medicine_id,
+    medicineName: row.medicine_name,
+    dosage: row.dosage,
+    frequency: row.frequency,
+    duration: row.duration,
+    usageInstruction: row.usage_instruction,
+    note: row.note
   };
 }
 
@@ -490,6 +558,135 @@ export async function findPetMedicalExams(
   return {
     exams: listResult.rows.map(mapPetMedicalExam),
     total: Number(countResult.rows[0]?.total ?? 0)
+  };
+}
+
+export async function findPetMedicalExamDetail(
+  ownerUserId: string,
+  petId: string,
+  examId: string
+): Promise<PetMedicalExamDetailDto | null> {
+  const examResult = await query<PetMedicalExamDetailRow>(
+    `select
+       me.exam_id,
+       me.appointment_id,
+       ma.pet_id,
+       me.exam_type_id,
+       et.type_code,
+       et.type_name,
+       ma.scheduled_at::text as scheduled_at,
+       me.exam_date::text as exam_date,
+       me.examined_by_veterinarian_id as veterinarian_user_id,
+       u.full_name as veterinarian_name,
+       me.diagnosis,
+       me.conclusion,
+       me.health_note,
+       me.exam_status,
+       ma.symptom_description,
+       exists (
+         select 1 from pet_center.prescriptions pr
+         where pr.exam_id = me.exam_id
+       ) as has_prescription,
+       exists (
+         select 1 from pet_center.follow_up_instructions fui_exists
+         where fui_exists.exam_id = me.exam_id
+       ) as has_follow_up,
+       fui.follow_up_id,
+       fui.follow_up_date::text as follow_up_date,
+       fui.reason as follow_up_reason,
+       fui.owner_note as follow_up_owner_note,
+       ${petSelectSql}
+     from pet_center.medical_exams me
+     inner join pet_center.medical_appointments ma on ma.appointment_id = me.appointment_id
+     inner join pet_center.exam_types et on et.exam_type_id = me.exam_type_id
+     inner join pet_center.users u on u.user_id = me.examined_by_veterinarian_id
+     inner join pet_center.pets p on p.pet_id = ma.pet_id
+     left join pet_center.follow_up_instructions fui on fui.exam_id = me.exam_id
+     where ma.owner_user_id = $1
+       and ma.pet_id = $2
+       and me.exam_id = $3
+     limit 1`,
+    [ownerUserId, petId, examId]
+  );
+
+  const examRow = examResult.rows[0];
+
+  if (!examRow) return null;
+
+  const [fieldValuesResult, prescriptionResult] = await Promise.all([
+    query<PetMedicalExamFieldValueRow>(
+      `select
+         efv.field_value_id,
+         efd.field_definition_id,
+         efd.field_name,
+         efd.field_label,
+         efd.field_type,
+         efv.value_text,
+         efv.value_number,
+         efv.value_date::text as value_date,
+         efv.file_url,
+         efv.created_at::text as created_at
+       from pet_center.medical_exam_field_values efv
+       inner join pet_center.exam_field_definitions efd on efd.field_definition_id = efv.field_definition_id
+       where efv.exam_id = $1
+       order by efd.display_order asc, efv.field_value_id asc`,
+      [examId]
+    ),
+    query<PrescriptionRow>(
+      `select
+         pr.prescription_id,
+         pr.prescribed_at::text as prescribed_at,
+         pr.general_note
+       from pet_center.prescriptions pr
+       where pr.exam_id = $1
+       order by pr.prescribed_at desc, pr.prescription_id desc
+       limit 1`,
+      [examId]
+    )
+  ]);
+
+  const prescriptionRow = prescriptionResult.rows[0];
+  let prescription: PetPrescriptionDto | null = null;
+
+  if (prescriptionRow) {
+    const itemsResult = await query<PrescriptionItemRow>(
+      `select
+         pi.prescription_item_id,
+         pi.medicine_id,
+         m.medicine_name,
+         pi.dosage,
+         pi.frequency,
+         pi.duration,
+         pi.usage_instruction,
+         pi.note
+       from pet_center.prescription_items pi
+       inner join pet_center.medicines m on m.medicine_id = pi.medicine_id
+       where pi.prescription_id = $1
+       order by pi.prescription_item_id asc`,
+      [prescriptionRow.prescription_id]
+    );
+
+    prescription = {
+      prescriptionId: prescriptionRow.prescription_id,
+      prescribedAt: prescriptionRow.prescribed_at,
+      generalNote: prescriptionRow.general_note,
+      items: itemsResult.rows.map(mapPrescriptionItem)
+    };
+  }
+
+  return {
+    ...mapPetMedicalExam(examRow),
+    pet: mapPet(examRow),
+    fieldValues: fieldValuesResult.rows.map(mapPetMedicalExamFieldValue),
+    prescription,
+    followUp: examRow.follow_up_id
+      ? {
+          followUpId: examRow.follow_up_id,
+          followUpDate: examRow.follow_up_date ?? "",
+          reason: examRow.follow_up_reason ?? "",
+          ownerNote: examRow.follow_up_owner_note
+        }
+      : null
   };
 }
 

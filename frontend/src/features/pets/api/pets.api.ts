@@ -1,5 +1,14 @@
 import { apiRequest } from "@/lib/api";
-import type { CreatePetInput, Pagination, Pet, PetDetail, PetMedicalExam, PetMedicalExamsParams, PetsListParams } from "../types/pet.types";
+import type {
+  CreatePetInput,
+  Pagination,
+  Pet,
+  PetDetail,
+  PetMedicalExam,
+  PetMedicalExamDetail,
+  PetMedicalExamsParams,
+  PetsListParams,
+} from "../types/pet.types";
 
 function buildQuery(params: PetsListParams): string {
   const searchParams = new URLSearchParams();
@@ -61,5 +70,14 @@ export const petsApi = {
         totalPages: response.data.length > 0 ? 1 : 0,
       },
     };
+  },
+
+  async getMedicalExam(petId: string, examId: string, init: RequestInit = {}): Promise<PetMedicalExamDetail> {
+    const response = await apiRequest<PetMedicalExamDetail>(
+      `/pets/${encodeURIComponent(petId)}/medical-exams/${encodeURIComponent(examId)}`,
+      init
+    );
+
+    return response.data;
   },
 };

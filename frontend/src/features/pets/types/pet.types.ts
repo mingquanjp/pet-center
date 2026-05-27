@@ -87,6 +87,51 @@ export type PetMedicalExam = {
   followUpReason: string | null;
 };
 
+export type PetMedicalExamFieldValue = {
+  fieldValueId: string;
+  fieldDefinitionId: string;
+  fieldName: string;
+  fieldLabel: string;
+  fieldType: "text" | "number" | "date" | "select" | "file";
+  valueText: string | null;
+  valueNumber: number | null;
+  valueDate: string | null;
+  fileUrl: string | null;
+  createdAt: string;
+};
+
+export type PetPrescriptionItem = {
+  prescriptionItemId: string;
+  medicineId: string;
+  medicineName: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  usageInstruction: string | null;
+  note: string | null;
+};
+
+export type PetPrescription = {
+  prescriptionId: string;
+  prescribedAt: string;
+  generalNote: string | null;
+  items: PetPrescriptionItem[];
+};
+
+export type PetFollowUpInstruction = {
+  followUpId: string;
+  followUpDate: string;
+  reason: string;
+  ownerNote: string | null;
+};
+
+export type PetMedicalExamDetail = PetMedicalExam & {
+  pet: Pet;
+  fieldValues: PetMedicalExamFieldValue[];
+  prescription: PetPrescription | null;
+  followUp: PetFollowUpInstruction | null;
+};
+
 export type PetMedicalExamsParams = {
   q?: string;
   examType?: "all" | PetMedicalExam["examTypeCode"];

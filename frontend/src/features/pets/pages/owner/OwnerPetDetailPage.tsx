@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Download,
   Edit3,
+  Eye,
   History,
   Info,
   LoaderCircle,
@@ -463,6 +464,32 @@ function MedicalHistoryTab({ petId, petName }: { petId: string; petName: string 
     setTimeFilter("all")
   }
 
+  function exportMedicalHistory() {
+    const generatedAt = new Date()
+    const rows = [
+      ["Thú cưng", petName],
+      ["Ngày xuất", formatDateTime(generatedAt.toISOString())],
+      ["Bộ lọc loại khám", medicalExamTypeOptions.find((option) => option.value === examTypeFilter)?.label ?? "Tất cả"],
+      ["Bộ lọc thời gian", medicalTimeOptions.find((option) => option.value === timeFilter)?.label ?? "Tất cả thời gian"],
+      ["Từ khóa", searchValue.trim() || "Không có"],
+      [],
+      ["Mã phiếu", "Ngày khám", "Loại khám", "Bác sĩ", "Trạng thái", "Chẩn đoán", "Kết luận", "Có toa thuốc", "Tái khám"],
+      ...records.map((record) => [
+        record.examId,
+        formatDate(record.examDate),
+        record.examTypeName,
+        record.veterinarianName,
+        getExamStatusLabel(record.examStatus),
+        record.diagnosis || "",
+        record.conclusion || record.healthNote || "",
+        record.hasPrescription ? "Có" : "Không",
+        record.hasFollowUp ? formatDate(record.followUpDate) : "",
+      ]),
+    ]
+
+    downloadTextFile(`lich-su-kham-${toSafeFilename(petName)}-${formatFileDate(generatedAt)}.csv`, toCsv(rows), "text/csv;charset=utf-8")
+  }
+
   return (
     <div className="flex w-full flex-col gap-6">
       <section className="rounded-card border border-petcenter-border-strong bg-white p-6 shadow-card">
@@ -532,7 +559,12 @@ function MedicalHistoryTab({ petId, petName }: { petId: string; petName: string 
             </div>
           </div>
 
-          <button className="label-md inline-flex w-fit items-center gap-2 font-semibold text-petcenter-primary transition hover:underline">
+          <button
+            className="label-md inline-flex w-fit items-center gap-2 font-semibold text-petcenter-primary transition hover:underline disabled:cursor-not-allowed disabled:text-petcenter-text-muted disabled:no-underline"
+            disabled={isLoading || records.length === 0}
+            onClick={exportMedicalHistory}
+            type="button"
+          >
             Xuất lịch sử
             <Download className="h-4 w-4" />
           </button>
@@ -1124,15 +1156,25 @@ function ExaminationRecordCard({ record }: { record: PetMedicalExam }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-t border-petcenter-border pt-4">
-        {record.hasPrescription ? (
-          <span className="label-sm rounded bg-petcenter-primary/10 px-2 py-1 font-semibold text-petcenter-primary">Có toa thuốc</span>
-        ) : null}
-        {record.hasFollowUp ? (
-          <span className="label-sm rounded bg-petcenter-warning-bg px-2 py-1 font-semibold text-petcenter-warning-text">
-            Tái khám: {formatDate(record.followUpDate)}
-          </span>
-        ) : null}
+      <div className="flex flex-col gap-3 border-t border-petcenter-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {record.hasPrescription ? (
+            <span className="label-sm rounded bg-petcenter-primary/10 px-2 py-1 font-semibold text-petcenter-primary">Có toa thuốc</span>
+          ) : null}
+          {record.hasFollowUp ? (
+            <span className="label-sm rounded bg-petcenter-warning-bg px-2 py-1 font-semibold text-petcenter-warning-text">
+              Tái khám: {formatDate(record.followUpDate)}
+            </span>
+          ) : null}
+        </div>
+
+        <Link
+          className="label-md inline-flex h-9 items-center justify-center gap-2 rounded-control border border-petcenter-primary px-4 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5"
+          href={`/owner/pets/${encodeURIComponent(record.petId)}/medical-exams/${encodeURIComponent(record.examId)}`}
+        >
+          <Eye className="h-4 w-4" />
+          Xem chi tiết
+        </Link>
       </div>
     </article>
   )
@@ -1393,4 +1435,39 @@ function formatDateTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(date)
+}
+
+function toCsv(rows: Array<Array<string | number | null | undefined>>) {
+  return `\uFEFF${rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n")}`
+}
+
+function escapeCsvCell(value: string | number | null | undefined) {
+  const normalizedValue = value === null || value === undefined ? "" : String(value)
+
+  return `"${normalizedValue.replaceAll('"', '""')}"`
+}
+
+function downloadTextFile(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+function toSafeFilename(value: string) {
+  return normalizeSearchText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "thu-cung"
+}
+
+function formatFileDate(value: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(value)
 }

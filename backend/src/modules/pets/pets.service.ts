@@ -67,6 +67,18 @@ export async function listOwnerPetMedicalExams(authUser: AuthUser, petId: string
   };
 }
 
+export async function getOwnerPetMedicalExam(authUser: AuthUser, petId: string, examId: string) {
+  assertOwner(authUser);
+
+  const exam = await petsRepository.findPetMedicalExamDetail(authUser.userId, petId, examId);
+
+  if (!exam) {
+    throw new AppError("Không tìm thấy phiếu khám của thú cưng", "PET_EXAM_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  return exam;
+}
+
 export async function createOwnerPet(authUser: AuthUser, payload: CreatePetPayload) {
   assertOwner(authUser);
 

@@ -21,6 +21,10 @@ export const petParamsSchema = z.object({
   petId: z.string().trim().min(1).max(30)
 });
 
+export const petMedicalExamParamsSchema = petParamsSchema.extend({
+  examId: z.string().trim().min(1).max(30)
+});
+
 export const petMedicalExamsQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
   examType: z
@@ -84,6 +88,7 @@ export const updatePetSchema = z
 
 export type ListPetsQuery = z.infer<typeof listPetsQuerySchema>;
 export type PetParams = z.infer<typeof petParamsSchema>;
+export type PetMedicalExamParams = z.infer<typeof petMedicalExamParamsSchema>;
 export type PetMedicalExamsQuery = z.infer<typeof petMedicalExamsQuerySchema>;
 export type CreatePetPayload = z.infer<typeof createPetSchema>;
 export type UpdatePetPayload = z.infer<typeof updatePetSchema>;

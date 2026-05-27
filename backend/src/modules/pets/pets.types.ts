@@ -99,6 +99,51 @@ export type PetMedicalExamDto = {
   followUpReason: string | null;
 };
 
+export type PetMedicalExamFieldValueDto = {
+  fieldValueId: string;
+  fieldDefinitionId: string;
+  fieldName: string;
+  fieldLabel: string;
+  fieldType: "text" | "number" | "date" | "select" | "file";
+  valueText: string | null;
+  valueNumber: number | null;
+  valueDate: string | null;
+  fileUrl: string | null;
+  createdAt: string;
+};
+
+export type PetPrescriptionItemDto = {
+  prescriptionItemId: string;
+  medicineId: string;
+  medicineName: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  usageInstruction: string | null;
+  note: string | null;
+};
+
+export type PetPrescriptionDto = {
+  prescriptionId: string;
+  prescribedAt: string;
+  generalNote: string | null;
+  items: PetPrescriptionItemDto[];
+};
+
+export type PetFollowUpInstructionDto = {
+  followUpId: string;
+  followUpDate: string;
+  reason: string;
+  ownerNote: string | null;
+};
+
+export type PetMedicalExamDetailDto = PetMedicalExamDto & {
+  pet: PetDto;
+  fieldValues: PetMedicalExamFieldValueDto[];
+  prescription: PetPrescriptionDto | null;
+  followUp: PetFollowUpInstructionDto | null;
+};
+
 export type PetMedicalExamFilters = {
   ownerUserId: string;
   petId: string;
