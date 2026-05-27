@@ -34,6 +34,134 @@ export type PetHealthProfile = {
 
 export type PetDetail = Pet & {
   healthProfile: PetHealthProfile;
+  recentActivities: PetActivityLog[];
+};
+
+export type PetActivityLog = {
+  activityLogId: string;
+  petId: string;
+  ownerUserId: string;
+  actorUserId: string | null;
+  actorName: string | null;
+  activityCategory: "medical" | "vaccination" | "grooming" | "boarding" | "invoice" | "payment" | "profile";
+  activityType: string;
+  activityStatus: "scheduled" | "pending" | "confirmed" | "completed" | "cancelled" | "rejected" | "failed";
+  occurredAt: string;
+  title: string;
+  summary: string | null;
+  sourceType:
+    | "medical_appointment"
+    | "medical_exam"
+    | "vaccination"
+    | "prescription"
+    | "follow_up_instruction"
+    | "grooming_ticket"
+    | "boarding_record"
+    | "boarding_update"
+    | "invoice"
+    | "payment"
+    | "pet";
+  sourceId: string;
+  metadata: Record<string, unknown>;
+};
+
+export type PetMedicalExam = {
+  examId: string;
+  appointmentId: string;
+  petId: string;
+  examTypeId: string;
+  examTypeCode: "general_checkup" | "vaccination" | "lab_test" | "recheck";
+  examTypeName: string;
+  scheduledAt: string;
+  examDate: string;
+  veterinarianUserId: string;
+  veterinarianName: string;
+  diagnosis: string | null;
+  conclusion: string | null;
+  healthNote: string | null;
+  examStatus: "result_recorded" | "prescribed" | "follow_up_required";
+  symptomDescription: string | null;
+  hasPrescription: boolean;
+  hasFollowUp: boolean;
+  followUpDate: string | null;
+  followUpReason: string | null;
+};
+
+export type PetMedicalExamFieldValue = {
+  fieldValueId: string;
+  fieldDefinitionId: string;
+  fieldName: string;
+  fieldLabel: string;
+  fieldType: "text" | "number" | "date" | "select" | "file";
+  valueText: string | null;
+  valueNumber: number | null;
+  valueDate: string | null;
+  fileUrl: string | null;
+  createdAt: string;
+};
+
+export type PetPrescriptionItem = {
+  prescriptionItemId: string;
+  medicineId: string;
+  medicineName: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  usageInstruction: string | null;
+  note: string | null;
+};
+
+export type PetPrescription = {
+  prescriptionId: string;
+  prescribedAt: string;
+  generalNote: string | null;
+  items: PetPrescriptionItem[];
+};
+
+export type PetFollowUpInstruction = {
+  followUpId: string;
+  followUpDate: string;
+  reason: string;
+  ownerNote: string | null;
+};
+
+export type PetMedicalExamDetail = PetMedicalExam & {
+  pet: Pet;
+  fieldValues: PetMedicalExamFieldValue[];
+  prescription: PetPrescription | null;
+  followUp: PetFollowUpInstruction | null;
+};
+
+export type PetVaccinationStatus = "completed" | "due-soon" | "overdue";
+
+export type PetVaccination = {
+  vaccinationId: string;
+  petId: string;
+  examId: string | null;
+  appointmentId: string | null;
+  vaccineName: string;
+  vaccinationDate: string;
+  nextReminderDate: string;
+  status: PetVaccinationStatus;
+  note: string | null;
+  veterinarianUserId: string | null;
+  veterinarianName: string | null;
+};
+
+export type PetMedicalExamsParams = {
+  q?: string;
+  examType?: "all" | PetMedicalExam["examTypeCode"];
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type PetVaccinationsParams = {
+  q?: string;
+  status?: "all" | PetVaccinationStatus;
+  page?: number;
+  limit?: number;
 };
 
 export type PetHealthProfileInput = {

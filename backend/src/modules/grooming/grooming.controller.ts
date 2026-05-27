@@ -6,6 +6,7 @@ import type {
   BookingOptionsQuery,
   CreateGroomingTicketPayload,
   GroomingTicketParams,
+  ListGroomingTicketHistoryQuery,
   ListGroomingTicketsQuery
 } from "./grooming.schema.js";
 import * as groomingService from "./grooming.service.js";
@@ -30,6 +31,12 @@ export async function getAvailability(req: Request, res: Response): Promise<void
 
 export async function listBookedTickets(req: Request, res: Response): Promise<void> {
   const result = await groomingService.listBookedTickets(req.user!, req.query as unknown as ListGroomingTicketsQuery);
+
+  sendPaginated(res, result.tickets, result.pagination);
+}
+
+export async function listTicketHistory(req: Request, res: Response): Promise<void> {
+  const result = await groomingService.listTicketHistory(req.user!, req.query as unknown as ListGroomingTicketHistoryQuery);
 
   sendPaginated(res, result.tickets, result.pagination);
 }

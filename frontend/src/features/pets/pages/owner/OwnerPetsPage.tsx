@@ -5,8 +5,6 @@ import Link from "next/link"
 import {
   AlertCircle,
   Cake,
-  ChevronLeft,
-  ChevronRight,
   LoaderCircle,
   Mars,
   PawPrint,
@@ -17,6 +15,7 @@ import {
   Venus,
 } from "lucide-react"
 
+import { AppPagination } from "@/components/ui/app-pagination"
 import { cn } from "@/lib/utils"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { normalizeSearchText } from "@/lib/search"
@@ -211,7 +210,8 @@ export function OwnerPetsPage() {
             ))}
           </section>
 
-          <PaginationControls
+          <AppPagination
+            ariaLabel="Phân trang thú cưng"
             currentPage={page}
             isLoading={isLoading || isPageChanging}
             onPageChange={handlePageChange}
@@ -302,110 +302,6 @@ function PetCard({ pet }: { pet: Pet }) {
       </Link>
     </article>
   )
-}
-
-function PaginationControls({
-  currentPage,
-  isLoading,
-  onPageChange,
-  totalPages,
-}: {
-  currentPage: number
-  isLoading: boolean
-  onPageChange: (page: number) => void
-  totalPages: number
-}) {
-  if (totalPages <= 1) return null
-
-  const pages = getPaginationItems(currentPage, totalPages)
-
-  return (
-    <nav className="flex items-center justify-center gap-2" aria-label="Phân trang thú cưng">
-      <button
-        aria-label="Trang trước"
-        className="flex h-9 w-9 items-center justify-center rounded-control border border-petcenter-border-strong bg-white text-petcenter-text-secondary transition hover:bg-petcenter-sidebar disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={currentPage === 1 || isLoading}
-        onClick={() => onPageChange(currentPage - 1)}
-        type="button"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </button>
-
-      <div className="flex items-center gap-1">
-        {pages.map((item, index) =>
-          item === "ellipsis" ? (
-            <span
-              key={`ellipsis-${index}`}
-              className="label-md flex h-9 min-w-9 items-center justify-center font-semibold text-petcenter-text-muted"
-            >
-              ...
-            </span>
-          ) : (
-            <button
-              key={item}
-              aria-current={item === currentPage ? "page" : undefined}
-              className={cn(
-                "label-md h-9 min-w-9 rounded-control px-3 font-semibold transition disabled:cursor-not-allowed",
-                item === currentPage
-                  ? "bg-petcenter-primary text-white"
-                  : "border border-petcenter-border-strong bg-white text-petcenter-text-secondary hover:bg-petcenter-sidebar"
-              )}
-              disabled={isLoading}
-              onClick={() => onPageChange(item)}
-              type="button"
-            >
-              {item}
-            </button>
-          )
-        )}
-      </div>
-
-      <button
-        aria-label="Trang sau"
-        className="flex h-9 w-9 items-center justify-center rounded-control border border-petcenter-border-strong bg-white text-petcenter-text-secondary transition hover:bg-petcenter-sidebar disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={currentPage === totalPages || isLoading}
-        onClick={() => onPageChange(currentPage + 1)}
-        type="button"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
-    </nav>
-  )
-}
-
-function getPaginationItems(currentPage: number, totalPages: number): Array<number | "ellipsis"> {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1)
-  }
-
-  const items = new Set<number>([1, totalPages, currentPage])
-
-  if (currentPage > 1) items.add(currentPage - 1)
-  if (currentPage < totalPages) items.add(currentPage + 1)
-  if (currentPage <= 3) {
-    items.add(2)
-    items.add(3)
-    items.add(4)
-  }
-  if (currentPage >= totalPages - 2) {
-    items.add(totalPages - 3)
-    items.add(totalPages - 2)
-    items.add(totalPages - 1)
-  }
-
-  const sortedItems = Array.from(items)
-    .filter((item) => item >= 1 && item <= totalPages)
-    .sort((a, b) => a - b)
-
-  return sortedItems.flatMap((item, index) => {
-    const previousItem = sortedItems[index - 1]
-
-    if (previousItem && item - previousItem > 1) {
-      return ["ellipsis", item] as Array<number | "ellipsis">
-    }
-
-    return [item]
-  })
 }
 
 function PetCardSkeleton() {

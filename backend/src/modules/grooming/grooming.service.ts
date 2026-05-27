@@ -1,7 +1,13 @@
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
-import type { AvailabilityQuery, BookingOptionsQuery, CreateGroomingTicketPayload, ListGroomingTicketsQuery } from "./grooming.schema.js";
+import type {
+  AvailabilityQuery,
+  BookingOptionsQuery,
+  CreateGroomingTicketPayload,
+  ListGroomingTicketHistoryQuery,
+  ListGroomingTicketsQuery
+} from "./grooming.schema.js";
 import type { GroomingBookingOptionsDto, GroomingBookingServiceDto, GroomingBookingServicePriceBaseDto } from "./grooming.types.js";
 import * as groomingRepository from "./grooming.repository.js";
 
@@ -166,6 +172,32 @@ export async function listBookedTickets(authUser: AuthUser, query: ListGroomingT
   const page = query.page;
   const limit = query.limit;
   const result = await groomingRepository.findBookedGroomingTickets({
+    ownerUserId: authUser.userId,
+    search: query.search,
+    petId: query.petId,
+    status: query.status,
+    timeRange: query.timeRange,
+    limit,
+    offset: (page - 1) * limit
+  });
+
+  return {
+    tickets: result.tickets,
+    pagination: {
+      page,
+      limit,
+      total: result.total,
+      totalPages: Math.ceil(result.total / limit)
+    }
+  };
+}
+
+export async function listTicketHistory(authUser: AuthUser, query: ListGroomingTicketHistoryQuery) {
+  assertOwner(authUser);
+
+  const page = query.page;
+  const limit = query.limit;
+  const result = await groomingRepository.findGroomingTicketHistory({
     ownerUserId: authUser.userId,
     search: query.search,
     petId: query.petId,

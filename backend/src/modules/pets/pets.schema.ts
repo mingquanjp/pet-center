@@ -21,6 +21,32 @@ export const petParamsSchema = z.object({
   petId: z.string().trim().min(1).max(30)
 });
 
+export const petMedicalExamParamsSchema = petParamsSchema.extend({
+  examId: z.string().trim().min(1).max(30)
+});
+
+export const petMedicalExamsQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  examType: z
+    .union([z.enum(["general_checkup", "vaccination", "lab_test", "recheck"]), z.literal("all")])
+    .optional()
+    .transform((value) => (value === "all" ? undefined : value)),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional()
+});
+
+export const petVaccinationsQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  status: z
+    .union([z.enum(["completed", "due-soon", "overdue"]), z.literal("all")])
+    .optional()
+    .transform((value) => (value === "all" ? undefined : value)),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional()
+});
+
 export const petHealthProfileSchema = z
   .object({
     medicalHistory: optionalText(2000),
@@ -72,5 +98,8 @@ export const updatePetSchema = z
 
 export type ListPetsQuery = z.infer<typeof listPetsQuerySchema>;
 export type PetParams = z.infer<typeof petParamsSchema>;
+export type PetMedicalExamParams = z.infer<typeof petMedicalExamParamsSchema>;
+export type PetMedicalExamsQuery = z.infer<typeof petMedicalExamsQuerySchema>;
+export type PetVaccinationsQuery = z.infer<typeof petVaccinationsQuerySchema>;
 export type CreatePetPayload = z.infer<typeof createPetSchema>;
 export type UpdatePetPayload = z.infer<typeof updatePetSchema>;
