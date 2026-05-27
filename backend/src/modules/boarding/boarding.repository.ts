@@ -1,5 +1,17 @@
+import { randomBytes } from "node:crypto";
+import type { PoolClient } from "pg";
 import { query } from "../../db/query.js";
-import type { BoardingRecordListFilters, BoardingRecordListRow, CountRow } from "./boarding.types.js";
+import { withTransaction } from "../../db/transactions.js";
+import { createId } from "../../shared/utils/id.js";
+import type {
+  BoardingBookingPetRow,
+  BoardingRecordCreatedDto,
+  BoardingRecordListFilters,
+  BoardingRecordListRow,
+  BoardingRoomTypeAvailabilityRow,
+  CountRow,
+  CreateBoardingRecordInput
+} from "./boarding.types.js";
 
 const activeBoardingStatuses = ["pending", "confirmed", "staying", "checked_out"] as const;
 
@@ -49,9 +61,11 @@ export async function findOwnerBoardingRecords(filters: BoardingRecordListFilter
       p.profile_image_url,
       rt.room_type_id,
       rt.room_type_name,
-      to_char(br.planned_check_in_at, 'YYYY-MM-DD') AS planned_check_in_date,
-      to_char(br.planned_check_out_at, 'YYYY-MM-DD') AS planned_check_out_date,
-      to_char(br.planned_check_in_at, 'DD/MM/YYYY') || ' - ' || to_char(br.planned_check_out_at, 'DD/MM/YYYY') AS planned_date_range_text,
+      br.planned_check_in_at,
+      br.planned_check_out_at,
+      to_char(br.planned_check_in_at::date, 'YYYY-MM-DD') AS planned_check_in_date,
+      to_char(br.planned_check_out_at::date, 'YYYY-MM-DD') AS planned_check_out_date,
+      to_char(br.planned_check_in_at::date, 'DD/MM/YYYY') || ' - ' || to_char(br.planned_check_out_at::date, 'DD/MM/YYYY') AS planned_date_range_text,
       (br.planned_check_out_at::date - br.planned_check_in_at::date)::int AS stay_days,
       br.boarding_status,
       br.estimated_total,
@@ -117,4 +131,166 @@ export async function countOwnerBoardingRecords(filters: BoardingRecordListFilte
   const result = await query<CountRow>(sql, params);
 
   return Number(result.rows[0]?.total ?? 0);
+}
+
+export async function findOwnerBookingPets(ownerUserId: string): Promise<BoardingBookingPetRow[]> {
+  const result = await query<BoardingBookingPetRow>(
+    `SELECT pet_id, pet_name, species, weight_kg, profile_image_url
+     FROM pet_center.pets
+     WHERE owner_user_id = $1
+       AND pet_status = 'active'
+     ORDER BY pet_name ASC, pet_id ASC`,
+    [ownerUserId]
+  );
+
+  return result.rows;
+}
+
+export async function findOwnerBookingPet(
+  ownerUserId: string,
+  petId: string
+): Promise<BoardingBookingPetRow | null> {
+  const result = await query<BoardingBookingPetRow>(
+    `SELECT pet_id, pet_name, species, weight_kg, profile_image_url
+     FROM pet_center.pets
+     WHERE owner_user_id = $1
+       AND pet_id = $2
+       AND pet_status = 'active'
+     LIMIT 1`,
+    [ownerUserId, petId]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function findActiveRoomTypesWithAvailability(
+  plannedCheckInAt?: Date,
+  plannedCheckOutAt?: Date,
+  client?: PoolClient
+): Promise<BoardingRoomTypeAvailabilityRow[]> {
+  const params: unknown[] = [];
+  const bookedUnitsSql =
+    plannedCheckInAt && plannedCheckOutAt
+      ? `
+        SELECT COUNT(*)::int
+        FROM pet_center.boarding_records br
+        WHERE br.room_type_id = rt.room_type_id
+          AND br.boarding_status IN ('pending', 'confirmed', 'staying')
+          AND br.planned_check_in_at < $1
+          AND br.planned_check_out_at > $2
+      `
+      : "SELECT 0::int";
+
+  if (plannedCheckInAt && plannedCheckOutAt) {
+    params.push(plannedCheckOutAt, plannedCheckInAt);
+  }
+
+  const sql = `SELECT
+     rt.room_type_id,
+     rt.room_type_name,
+     rt.capacity,
+     rt.boarding_unit_price,
+     rt.description,
+     (${bookedUnitsSql}) AS booked_units
+   FROM pet_center.room_types rt
+   WHERE rt.room_type_status = 'active'
+   ORDER BY rt.boarding_unit_price ASC, rt.room_type_name ASC`;
+  const result = client
+    ? await client.query<BoardingRoomTypeAvailabilityRow>(sql, params)
+    : await query<BoardingRoomTypeAvailabilityRow>(sql, params);
+
+  return result.rows;
+}
+
+function createBoardingCode(date: Date): string {
+  const datePart = date.toISOString().slice(0, 10).replaceAll("-", "");
+
+  return `BRD-${datePart}-${randomBytes(3).toString("hex").toUpperCase()}`;
+}
+
+export async function createBoardingRecord(input: CreateBoardingRecordInput): Promise<BoardingRecordCreatedDto> {
+  return withTransaction(async (client) => {
+    await client.query("lock table pet_center.boarding_records in share row exclusive mode");
+
+    const roomTypes = await findActiveRoomTypesWithAvailability(
+      input.plannedCheckInAt,
+      input.plannedCheckOutAt,
+      client
+    );
+    const roomType = roomTypes.find((room) => room.room_type_id === input.roomType.roomTypeId);
+
+    if (!roomType || Number(roomType.booked_units) >= Number(roomType.capacity)) {
+      throw new Error("BOARDING_ROOM_FULL");
+    }
+
+    const boardingRecordId = createBoardingCode(input.plannedCheckInAt);
+    const invoiceId = createId("inv");
+    const invoiceLineId = createId("inl");
+    const boardingStatus = input.paymentOption === "online" ? "pending_payment" : "pending";
+    const invoiceStatus = "pending_payment";
+    const unitPrice = input.roomType.unitPrice;
+    const totalAmount = input.stayDays * unitPrice;
+
+    await client.query(
+      `INSERT INTO pet_center.boarding_records (
+         boarding_record_id, pet_id, owner_user_id, room_type_id,
+         planned_check_in_at, planned_check_out_at, care_request,
+         estimated_total, boarding_status
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        boardingRecordId,
+        input.pet.petId,
+        input.ownerUserId,
+        input.roomType.roomTypeId,
+        input.plannedCheckInAt,
+        input.plannedCheckOutAt,
+        input.careRequest ?? null,
+        totalAmount,
+        boardingStatus
+      ]
+    );
+
+    await client.query(
+      `INSERT INTO pet_center.invoices (
+         invoice_id, owner_user_id, pet_id, subtotal_amount, discount_amount,
+         surcharge_amount, total_amount, payment_option, invoice_status
+       )
+       VALUES ($1, $2, $3, $4, 0, 0, $4, $5, $6)`,
+      [invoiceId, input.ownerUserId, input.pet.petId, totalAmount, input.paymentOption, invoiceStatus]
+    );
+
+    await client.query(
+      `INSERT INTO pet_center.invoice_lines (
+         invoice_line_id, invoice_id, source_type, source_id, description,
+         quantity, unit_price, line_discount_amount, line_amount
+       )
+       VALUES ($1, $2, 'boarding', $3, $4, $5, $6, 0, $7)`,
+      [
+        invoiceLineId,
+        invoiceId,
+        boardingRecordId,
+        input.roomType.roomTypeName,
+        input.stayDays,
+        unitPrice,
+        totalAmount
+      ]
+    );
+
+    return {
+      boardingRecordId,
+      boardingCode: boardingRecordId,
+      invoiceId,
+      paymentOption: input.paymentOption,
+      boardingStatus,
+      invoiceStatus,
+      totalAmount,
+      paymentUrl: null,
+      petName: input.pet.petName,
+      roomTypeName: input.roomType.roomTypeName,
+      plannedCheckInAt: input.plannedCheckInAt.toISOString(),
+      plannedCheckOutAt: input.plannedCheckOutAt.toISOString(),
+      stayDays: input.stayDays
+    };
+  });
 }

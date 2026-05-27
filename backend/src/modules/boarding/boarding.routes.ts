@@ -4,9 +4,21 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as boardingController from "./boarding.controller.js";
-import { listBoardingRecordsQuerySchema } from "./boarding.schema.js";
+import {
+  boardingBookingOptionsQuerySchema,
+  createBoardingRecordSchema,
+  listBoardingRecordsQuerySchema
+} from "./boarding.schema.js";
 
 export const boardingRouter = Router();
+
+boardingRouter.get(
+  "/boarding/booking-options",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ query: boardingBookingOptionsQuerySchema }),
+  asyncHandler(boardingController.getBoardingBookingOptions)
+);
 
 /**
  * @openapi
@@ -58,4 +70,12 @@ boardingRouter.get(
   requireRole("OWNER"),
   validateRequest({ query: listBoardingRecordsQuerySchema }),
   asyncHandler(boardingController.listOwnerBoardingRecords)
+);
+
+boardingRouter.post(
+  "/boarding/records",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ body: createBoardingRecordSchema }),
+  asyncHandler(boardingController.createBoardingRecord)
 );
