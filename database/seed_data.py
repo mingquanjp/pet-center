@@ -552,8 +552,10 @@ def build_seed() -> dict[str, list[tuple]]:
         nights = random.randint(1, 14)
         end = start + timedelta(days=nights)
         status = random.choices(["pending_payment", "pending", "confirmed", "staying", "checked_out", "rejected", "cancelled"], [10, 12, 25, 8, 35, 5, 5])[0]
-        actual_in = datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc).replace(hour=9) if status in ["staying", "checked_out"] else None
-        actual_out = datetime.combine(end, datetime.min.time(), tzinfo=timezone.utc).replace(hour=17) if status == "checked_out" else None
+        planned_in = datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc).replace(hour=random.randint(8, 11), minute=random.choice([0, 30]))
+        planned_out = datetime.combine(end, datetime.min.time(), tzinfo=timezone.utc).replace(hour=random.randint(15, 18), minute=random.choice([0, 30]))
+        actual_in = planned_in + timedelta(minutes=random.choice([-15, 0, 15, 30])) if status in ["staying", "checked_out"] else None
+        actual_out = planned_out + timedelta(minutes=random.choice([-30, -15, 0, 15, 30])) if status == "checked_out" else None
         record_id = f"bor{index:04d}"
         estimated_total = room_price[room_type_id] * nights
         boarding_records.append(
@@ -564,6 +566,8 @@ def build_seed() -> dict[str, list[tuple]]:
                 room_type_id,
                 start,
                 end,
+                planned_in,
+                planned_out,
                 actual_in,
                 actual_out,
                 random.choice(["Cho ăn theo lịch cố định", "Cho uống thuốc buổi tối", "Tăng thời gian chơi vận động", "Ưu tiên phòng yên tĩnh"]),
@@ -873,7 +877,7 @@ def seed() -> None:
         ("grooming_tickets", ["grooming_ticket_id", "pet_id", "owner_user_id", "created_by_user_id", "source_type", "scheduled_at", "received_at", "special_request", "estimated_total", "ticket_status"]),
         ("grooming_ticket_items", ["grooming_ticket_item_id", "grooming_ticket_id", "service_id", "quantity", "applied_unit_price", "line_amount"]),
         ("room_types", ["room_type_id", "room_type_name", "capacity", "boarding_unit_price", "description", "room_type_status"]),
-        ("boarding_records", ["boarding_record_id", "pet_id", "owner_user_id", "room_type_id", "planned_check_in_date", "planned_check_out_date", "actual_check_in_at", "actual_check_out_at", "care_request", "estimated_total", "boarding_status", "rejection_reason", "handled_by_staff_id"]),
+        ("boarding_records", ["boarding_record_id", "pet_id", "owner_user_id", "room_type_id", "planned_check_in_date", "planned_check_out_date", "planned_check_in_at", "planned_check_out_at", "actual_check_in_at", "actual_check_out_at", "care_request", "estimated_total", "boarding_status", "rejection_reason", "handled_by_staff_id"]),
         ("boarding_updates", ["boarding_update_id", "boarding_record_id", "created_by_user_id", "updated_at", "update_note", "attachment_url", "alert_level", "visibility_status"]),
         ("invoices", ["invoice_id", "owner_user_id", "pet_id", "issued_at", "subtotal_amount", "discount_amount", "surcharge_amount", "total_amount", "payment_option", "payment_due_at", "invoice_status"]),
         ("invoice_lines", ["invoice_line_id", "invoice_id", "service_id", "source_type", "source_id", "description", "quantity", "unit_price", "line_discount_amount", "line_amount"]),

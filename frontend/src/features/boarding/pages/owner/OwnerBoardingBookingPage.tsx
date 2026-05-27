@@ -115,7 +115,7 @@ export function OwnerBoardingBookingPage() {
         </div>
       </section>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,598px)_322px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className="rounded-xl border border-[rgba(189,201,197,0.3)] bg-white px-[25px] pb-[41px] pt-[25px] shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.03)]">
           <h2 className="border-b border-[rgba(189,201,197,0.3)] pb-[17px] text-lg font-semibold leading-[26px] text-[#1B1C15]">
             Thông tin đặt phòng
