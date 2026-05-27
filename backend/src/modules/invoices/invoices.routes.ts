@@ -4,9 +4,30 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as invoicesController from "./invoices.controller.js";
-import { listStaffInvoicesQuerySchema, invoiceParamsSchema, confirmPaymentSchema } from "./invoices.schema.js";
+import {
+  confirmPaymentSchema,
+  invoiceParamsSchema,
+  listOwnerInvoicesQuerySchema,
+  listStaffInvoicesQuerySchema,
+} from "./invoices.schema.js";
 
 export const invoicesRouter = Router();
+
+invoicesRouter.get(
+  "/owner/invoices",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ query: listOwnerInvoicesQuerySchema }),
+  asyncHandler(invoicesController.listOwnerInvoices)
+);
+
+invoicesRouter.get(
+  "/owner/invoices/:invoiceId",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: invoiceParamsSchema }),
+  asyncHandler(invoicesController.getOwnerInvoiceDetail)
+);
 
 invoicesRouter.get(
   "/staff/invoices",

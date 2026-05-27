@@ -42,3 +42,23 @@ export interface StaffInvoiceListItemRow {
   first_line_source: string | null;
   service_time: Date | null;
 }
+
+export interface OwnerInvoiceListItemRow {
+  id: string;
+  invoice_code: string;
+  pet_id: string;
+  pet_name: string;
+  issued_at: Date;
+  payment_option: string;
+  invoice_status: string;
+  payment_due_at: Date | null;
+  paid_at: Date | null;
+  total_amount: number;
+  first_line_desc: string | null;
+  first_line_source: string | null;
+}
+
+export interface OwnerInvoicesListResult {
+  rows: OwnerInvoiceListItemRow[];
+  total: number;
+}

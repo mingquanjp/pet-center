@@ -2,8 +2,22 @@ import * as repo from "./invoices.repository.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 
-function mapInvoiceStatus(status: string, dueDate: Date | null, paymentOption?: string): string {
+function mapInvoiceStatus(
+  status: string,
+  dueDate: Date | null,
+  paymentOption?: string
+): string {
   if (paymentOption === "online") {
+    return "PAID";
+  }
+  if (status === "pending_payment" && dueDate && new Date(dueDate).getTime() < Date.now()) {
+    return "OVERDUE";
+  }
+  return status.toUpperCase();
+}
+
+function mapOwnerInvoiceStatus(status: string, dueDate: Date | null, paidAt?: Date | null): string {
+  if (status === "paid" || paidAt) {
     return "PAID";
   }
   if (status === "pending_payment" && dueDate && new Date(dueDate).getTime() < Date.now()) {
@@ -73,6 +87,95 @@ export async function listStaffInvoices(filters: any) {
       limit,
     },
   };
+}
+
+export async function listOwnerInvoices(ownerUserId: string, filters: any) {
+  const page = filters.page ? Number(filters.page) : 1;
+  const limit = filters.limit ? Number(filters.limit) : 4;
+
+  const { rows, total } = await repo.getOwnerInvoicesList(ownerUserId, {
+    ...filters,
+    page,
+    limit,
+  });
+
+  const data = rows.map((row) => {
+    const status = mapOwnerInvoiceStatus(
+      row.invoice_status,
+      row.payment_due_at,
+      row.paid_at
+    );
+
+    return {
+      id: row.id,
+      invoiceCode: row.invoice_code,
+      title: row.first_line_desc || "Hóa đơn dịch vụ",
+      pet: {
+        id: row.pet_id,
+        name: row.pet_name,
+      },
+      serviceType: mapServiceType(row.first_line_source),
+      serviceName: mapServiceName(row.first_line_source),
+      issuedAt: new Date(row.issued_at).toISOString().split("T")[0],
+      paymentOption: mapPaymentOption(row.payment_option),
+      paymentStatus: status,
+      invoiceStatus: status,
+      totalAmount: Number(row.total_amount),
+      currency: "VND",
+    };
+  });
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
+export async function getOwnerInvoiceDetail(invoiceId: string, ownerUserId: string) {
+  const row = await repo.getOwnerInvoiceDetail(invoiceId, ownerUserId);
+  if (!row) {
+    throw new AppError("Không tìm thấy hóa đơn", "NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  const lines = await repo.getInvoiceLines(invoiceId);
+  const firstLine = lines[0];
+  const status = mapOwnerInvoiceStatus(row.invoice_status, row.payment_due_at, row.paid_at);
+
+  return {
+    id: row.id,
+    invoiceCode: row.invoice_code,
+    title: firstLine?.description || "Hóa đơn dịch vụ",
+    serviceType: mapServiceType(firstLine?.service_type ?? null),
+    serviceName: firstLine?.description || mapServiceName(firstLine?.service_type ?? null),
+    pet: {
+      id: row.pet_id,
+      name: row.pet_name,
+    },
+    issuedAt: new Date(row.issued_at).toISOString().split("T")[0],
+    paymentOption: mapPaymentOption(row.payment_option),
+    paymentStatus: status,
+    invoiceStatus: status,
+    subtotalAmount: Number(row.subtotal_amount),
+    discountAmount: Number(row.discount_amount),
+    surchargeAmount: Number(row.surcharge_amount),
+    totalAmount: Number(row.total_amount),
+    currency: "VND",
+    note: getOwnerInvoiceNote(status),
+  };
+}
+
+function getOwnerInvoiceNote(status: string) {
+  if (status === "PAID") return "Hóa đơn đã được thanh toán thành công.";
+  if (status === "PENDING_PAYMENT") return "Vui lòng thanh toán tại trung tâm.";
+  if (status === "OVERDUE") return "Hóa đơn đã quá hạn thanh toán.";
+  if (status === "CANCELLED") return "Hóa đơn đã được hủy.";
+  if (status === "REFUNDED") return "Hóa đơn đã được hoàn tiền.";
+  return "Hóa đơn đang ở trạng thái nháp.";
 }
 
 export async function getStaffInvoiceDetail(invoiceId: string) {
