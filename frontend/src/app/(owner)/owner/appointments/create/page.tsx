@@ -12,21 +12,14 @@ import { ChevronRight, Calendar, AlertCircle, CheckCircle, Plus, Check } from "l
 import Link from "next/link"
 import { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { getMedicalAppointmentStatusLabel, getMedicalAppointmentStatusTone, medicalAppointmentExamTypes } from "@/features/appointments/constants/medical-appointments"
 
 export default function CreateAppointmentPage() {
   const [selectedPet, setSelectedPet] = useState("lucky")
-  const [appointmentType, setAppointmentType] = useState("KhamTongQuat")
+  const [appointmentType, setAppointmentType] = useState("general_checkup")
   const [date, setDate] = useState("2024-05-15")
   const [time, setTime] = useState("10:30")
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
-  
-  const appointmentTypes = [
-    { id: "KhamTongQuat", label: "Khám tổng quát" },
-    { id: "TiemPhong", label: "Tiêm phòng" },
-    { id: "XetNghiem", label: "Xét nghiệm" },
-    { id: "TaiKham", label: "Tái khám" },
-    { id: "CapCuu", label: "Cấp cứu" },
-  ]
 
   const timeSlots = ["08:00", "09:00", "10:30", "14:00", "15:30", "16:30"]
 
@@ -64,23 +57,35 @@ export default function CreateAppointmentPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1200px] mx-auto">
-      {/* Breadcrumb */}
+    <div className="mx-auto flex max-w-[1200px] flex-col gap-6">
       <div className="flex items-center text-sm text-petcenter-text-muted">
         <Link href="/owner/appointments" className="hover:text-petcenter-primary transition-colors">Lịch hẹn</Link>
         <ChevronRight className="w-4 h-4 mx-1" />
         <span className="text-petcenter-text font-medium">Tạo lịch hẹn</span>
       </div>
 
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-petcenter-text mb-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
-          Tạo lịch hẹn khám
-        </h1>
-        <p className="text-petcenter-text-secondary animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
-          Chọn thú cưng, loại hình khám và thời gian phù hợp.
-        </p>
-      </div>
+      <Card className="border-petcenter-border bg-gradient-to-r from-[#fcfbf5] via-white to-[#f8fbf8] shadow-sm">
+        <CardContent className="flex flex-col gap-4 p-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold text-petcenter-text animate-in fade-in slide-in-from-bottom-2 duration-500">
+              Tạo lịch hẹn khám
+            </h1>
+            <p className="text-petcenter-text-secondary animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100">
+              Chọn thú cưng, loại khám và thời gian phù hợp với lịch `medical_appointments`.
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" className="h-11 border-petcenter-border-strong text-petcenter-text" asChild>
+              <Link href="/owner/appointments">Quay lại danh sách</Link>
+            </Button>
+            <Button className="h-11 bg-petcenter-cta text-white hover:bg-petcenter-cta-hover" onClick={handleCreateAppointment}>
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Xác nhận tạo lịch
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
         
@@ -179,22 +184,22 @@ export default function CreateAppointmentPage() {
             {/* 2. Loại hình khám */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg flex items-center gap-2">
-                2. Loại hình khám
+                2. Loại khám
               </h3>
               <RadioGroup value={appointmentType} onValueChange={setAppointmentType} className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {appointmentTypes.map(type => (
-                  <div key={type.id}>
+                {medicalAppointmentExamTypes.map(type => (
+                  <div key={type.value}>
                     <RadioGroupItem
-                      value={type.id}
-                      id={type.id}
+                      value={type.value}
+                      id={type.value}
                       className="peer sr-only"
                     />
                     <Label
-                      htmlFor={type.id}
+                      htmlFor={type.value}
                       className="flex items-center gap-2 p-3 bg-white border rounded-md cursor-pointer transition-all peer-data-[state=checked]:border-petcenter-primary peer-data-[state=checked]:bg-petcenter-primary/5 hover:bg-gray-50"
                     >
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${appointmentType === type.id ? 'border-petcenter-primary' : 'border-gray-300'}`}>
-                        {appointmentType === type.id && <div className="w-2 h-2 rounded-full bg-petcenter-primary" />}
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${appointmentType === type.value ? 'border-petcenter-primary' : 'border-gray-300'}`}>
+                        {appointmentType === type.value && <div className="w-2 h-2 rounded-full bg-petcenter-primary" />}
                       </div>
                       <span className="font-normal">{type.label}</span>
                     </Label>
@@ -204,7 +209,7 @@ export default function CreateAppointmentPage() {
               
               <div className="bg-petcenter-warning-bg rounded-md p-3 flex text-sm text-petcenter-warning-text gap-2 items-start mt-2">
                 <AlertCircle className="w-5 h-5 shrink-0" />
-                <p>Vui lòng mang theo sổ sức khỏe hoặc hồ sơ bệnh án cũ khi đến tái khám.</p>
+                <p>Vui lòng mang theo sổ sức khỏe, hồ sơ tiêm chủng hoặc kết quả xét nghiệm cũ khi đến khám.</p>
               </div>
             </div>
 
@@ -246,9 +251,9 @@ export default function CreateAppointmentPage() {
             {/* 5. Triệu chứng */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg flex items-center gap-2">
-                5. Triệu chứng (nếu có)
+                5. Triệu chứng
               </h3>
-              <Textarea placeholder="Mô tả các dấu hiệu bất thường của thú cưng..." className="min-h-[100px] resize-none bg-white" />
+              <Textarea placeholder="Mô tả triệu chứng, dấu hiệu bất thường hoặc tình trạng hiện tại của thú cưng..." className="min-h-[100px] resize-none bg-white" />
             </div>
 
             {/* 6. Ghi chú thêm */}
@@ -256,7 +261,7 @@ export default function CreateAppointmentPage() {
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 6. Ghi chú thêm
               </h3>
-              <Textarea placeholder="Các yêu cầu đặc biệt khác..." className="min-h-[80px] resize-none bg-white" />
+              <Textarea placeholder="Ghi chú nội bộ cho phòng khám hoặc yêu cầu đặc biệt..." className="min-h-[80px] resize-none bg-white" />
             </div>
 
           </CardContent>
@@ -281,30 +286,26 @@ export default function CreateAppointmentPage() {
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-petcenter-text-secondary">Loại hình:</span>
-                  <span className="font-medium">{appointmentTypes.find(t => t.id === appointmentType)?.label || '—'}</span>
+                  <span className="text-petcenter-text-secondary">Loại khám:</span>
+                  <span className="font-medium">{medicalAppointmentExamTypes.find(t => t.value === appointmentType)?.label || '—'}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-petcenter-text-secondary">Ngày hẹn:</span>
-                  <span className="font-medium">{formatAppointmentDate(date)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-petcenter-text-secondary">Giờ hẹn:</span>
-                  <span className="font-bold text-petcenter-primary text-base">{formatTime(time)}</span>
+                  <span className="text-petcenter-text-secondary">Ngày giờ khám:</span>
+                  <span className="font-medium">{`${formatAppointmentDate(date)} • ${formatTime(time)}`}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm pt-4 border-t border-petcenter-border">
                   <span className="text-petcenter-text-secondary">Trạng thái:</span>
-                  <span className="px-2.5 py-1 rounded-full text-[13px] font-medium bg-petcenter-warning-bg text-petcenter-warning-text flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-petcenter-warning-text" />
-                    Chờ xác nhận
+                  <span className={`px-2.5 py-1 rounded-full text-[13px] font-medium flex items-center gap-1.5 ${getMedicalAppointmentStatusTone("pending")}`}>
+                    <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                    {getMedicalAppointmentStatusLabel("pending")}
                   </span>
                 </div>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3 pt-2">
               <Button 
-                className="w-full bg-petcenter-cta hover:bg-petcenter-cta-hover text-white h-11"
-                onClick={handleCreateAppointment}
+                  className="w-full bg-petcenter-cta hover:bg-petcenter-cta-hover text-white h-11"
+                  onClick={handleCreateAppointment}
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Xác nhận tạo lịch
@@ -343,8 +344,8 @@ export default function CreateAppointmentPage() {
 
             <div className="w-full bg-[#fbfaf2] border border-petcenter-border rounded-lg p-5 mt-2 space-y-3 text-sm">
               <div className="flex justify-between items-center">
-                <span className="text-petcenter-text-secondary font-medium">Mã lịch hẹn:</span>
-                <span className="font-semibold text-petcenter-text">LH-001245</span>
+                  <span className="text-petcenter-text-secondary font-medium">ID lịch hẹn:</span>
+                  <span className="font-semibold text-petcenter-text">{`appt_${selectedPet}_${date}`}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-petcenter-text-secondary font-medium">Thú cưng:</span>
@@ -357,8 +358,8 @@ export default function CreateAppointmentPage() {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-petcenter-text-secondary font-medium">Loại hình khám:</span>
-                <span className="font-medium text-petcenter-text">{appointmentTypes.find(t => t.id === appointmentType)?.label || '—'}</span>
+                  <span className="text-petcenter-text-secondary font-medium">Loại khám:</span>
+                  <span className="font-medium text-petcenter-text">{medicalAppointmentExamTypes.find(t => t.value === appointmentType)?.label || '—'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-petcenter-text-secondary font-medium">Ngày hẹn:</span>
@@ -370,9 +371,9 @@ export default function CreateAppointmentPage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-petcenter-text-secondary font-medium">Trạng thái:</span>
-                <span className="px-2 py-0.5 rounded-full text-[12px] font-medium bg-petcenter-warning-bg text-petcenter-warning-text flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-petcenter-warning-text" />
-                  Chờ xác nhận
+                  <span className={`px-2 py-0.5 rounded-full text-[12px] font-medium flex items-center gap-1.5 ${getMedicalAppointmentStatusTone("pending")}`}>
+                    <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                    {getMedicalAppointmentStatusLabel("pending")}
                 </span>
               </div>
             </div>
@@ -388,14 +389,14 @@ export default function CreateAppointmentPage() {
                 asChild
               >
                 <Link href="/owner/appointments">
-                  Về tổng quan
+                  Về danh sách
                 </Link>
               </Button>
               <Button 
                 className="w-full sm:w-1/2 h-11 bg-petcenter-primary hover:bg-petcenter-primary-hover text-white sm:ml-0"
                 asChild
               >
-                <Link href={`/owner/appointments/LH-001245`}>
+                <Link href={`/owner/appointments/${`appt_${selectedPet}_${date}`}`}>
                   Xem lịch hẹn
                 </Link>
               </Button>

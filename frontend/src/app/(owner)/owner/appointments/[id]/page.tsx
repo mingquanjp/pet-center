@@ -1,20 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, Calendar, Clock, Phone, User, Activity, FileText, Check } from "lucide-react"
+import { ChevronLeft, Calendar, Clock, Phone, User, Activity, FileText, Check, Printer, Ban, BadgeAlert } from "lucide-react"
 import Link from "next/link"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { getMedicalAppointmentStatusLabel, getMedicalAppointmentStatusTone } from "@/features/appointments/constants/medical-appointments"
 
 type Params = { params: { id: string } }
 
 const buildMock = (id: string) => ({
   id,
-  status: "Chờ xác nhận",
+  status: "pending",
   appointmentInfo: {
-    service: "Tiêm phòng định kỳ",
-    date: "20/10/2026",
-    time: "14:00",
-    location: "Phòng khám ABC",
-    doctor: "Phân công sau",
+    examType: "Tiêm phòng",
+    scheduledDate: "20/10/2026",
+    scheduledTime: "14:00",
+    veterinarian: "Phân công sau",
+    handledByStaff: "Hệ thống tiếp nhận",
   },
   petInfo: {
     name: "Milo",
@@ -28,7 +29,9 @@ const buildMock = (id: string) => ({
     phone: "0901234567",
   },
   bookingContent: {
-    note: "Bé hơi nhát người lạ",
+    symptomDescription: "Bé hơi mệt và ăn ít hơn bình thường.",
+    internalNote: "", 
+    rejectionReason: "",
   },
 })
 
@@ -36,28 +39,44 @@ export default function AppointmentDetailPage({ params }: Params) {
   const mockDetail = buildMock(params?.id ?? "APP-1025")
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1200px] mx-auto animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto flex max-w-[1200px] flex-col gap-6 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="shrink-0" asChild>
             <Link href="/owner/appointments">
-              <ChevronLeft className="w-5 h-5 text-petcenter-text-secondary" />
+              <ChevronLeft className="h-5 w-5 text-petcenter-text-secondary" />
             </Link>
           </Button>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-petcenter-text">Chi tiết lịch hẹn #{mockDetail.id}</h1>
-            <span className="px-3 py-1 rounded-full text-sm font-medium bg-petcenter-warning-bg text-petcenter-warning-text flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-petcenter-warning-text" />
-              {mockDetail.status}
-            </span>
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 rounded-full bg-petcenter-primary/10 px-3 py-1 text-sm font-medium text-petcenter-primary">
+              <FileText className="h-4 w-4" />
+              Chi tiết lịch hẹn
+            </div>
+            <h1 className="text-2xl font-bold text-petcenter-text">Lịch hẹn #{mockDetail.id}</h1>
           </div>
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" className="h-11 border-petcenter-border-strong bg-white text-petcenter-text">
+            <Printer className="mr-2 h-4 w-4" />
+            In lịch hẹn
+          </Button>
+            <Button variant="destructive" className="h-11">
+            <Ban className="mr-2 h-4 w-4" />
+            Hủy lịch hẹn
+          </Button>
+        </div>
+      </div>
+
+      <div className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-sm font-medium ${getMedicalAppointmentStatusTone(mockDetail.status)}`}>
+        <span className="h-2 w-2 rounded-full bg-current" />
+        {getMedicalAppointmentStatusLabel(mockDetail.status)}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="bg-white">
-            <CardHeader className="pb-4 border-b">
+          <Card className="overflow-hidden border-petcenter-border bg-white shadow-sm">
+            <CardHeader className="border-b bg-gray-50/60 pb-4">
               <CardTitle className="text-lg text-petcenter-text">Thông tin lịch hẹn</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 grid sm:grid-cols-2 gap-y-6 gap-x-8">
@@ -66,8 +85,8 @@ export default function AppointmentDetailPage({ params }: Params) {
                   <Activity className="w-5 h-5 text-petcenter-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-petcenter-text-secondary mb-1">Dịch vụ</p>
-                  <p className="font-medium text-petcenter-text">{mockDetail.appointmentInfo.service}</p>
+                  <p className="text-sm text-petcenter-text-secondary mb-1">Loại khám</p>
+                  <p className="font-medium text-petcenter-text">{mockDetail.appointmentInfo.examType}</p>
                 </div>
               </div>
 
@@ -77,7 +96,7 @@ export default function AppointmentDetailPage({ params }: Params) {
                 </div>
                 <div>
                   <p className="text-sm text-petcenter-text-secondary mb-1">Ngày khám</p>
-                  <p className="font-medium text-petcenter-text">{mockDetail.appointmentInfo.date}</p>
+                  <p className="font-medium text-petcenter-text">{mockDetail.appointmentInfo.scheduledDate}</p>
                 </div>
               </div>
 
@@ -87,7 +106,7 @@ export default function AppointmentDetailPage({ params }: Params) {
                 </div>
                 <div>
                   <p className="text-sm text-petcenter-text-secondary mb-1">Giờ khám</p>
-                  <p className="font-medium text-petcenter-text">{mockDetail.appointmentInfo.time}</p>
+                  <p className="font-medium text-petcenter-text">{mockDetail.appointmentInfo.scheduledTime}</p>
                 </div>
               </div>
 
@@ -97,14 +116,24 @@ export default function AppointmentDetailPage({ params }: Params) {
                 </div>
                 <div>
                   <p className="text-sm text-petcenter-text-secondary mb-1">Bác sĩ phụ trách</p>
-                  <p className="font-medium text-petcenter-text italic text-petcenter-text-muted">{mockDetail.appointmentInfo.doctor}</p>
+                  <p className="font-medium text-petcenter-text italic text-petcenter-text-muted">{mockDetail.appointmentInfo.veterinarian}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-petcenter-primary/10 flex items-center justify-center shrink-0">
+                  <BadgeAlert className="w-5 h-5 text-petcenter-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-petcenter-text-secondary mb-1">Nhân viên tiếp nhận</p>
+                  <p className="font-medium text-petcenter-text">{mockDetail.appointmentInfo.handledByStaff}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
-            <CardHeader className="pb-4 border-b">
+          <Card className="overflow-hidden border-petcenter-border bg-white shadow-sm">
+            <CardHeader className="border-b bg-gray-50/60 pb-4">
               <CardTitle className="text-lg text-petcenter-text">Thông tin thú cưng</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 flex flex-col sm:flex-row gap-6">
@@ -132,8 +161,8 @@ export default function AppointmentDetailPage({ params }: Params) {
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
-            <CardHeader className="pb-4 border-b">
+          <Card className="overflow-hidden border-petcenter-border bg-white shadow-sm">
+            <CardHeader className="border-b bg-gray-50/60 pb-4">
               <CardTitle className="text-lg text-petcenter-text">Thông tin liên hệ</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 grid sm:grid-cols-2 gap-6">
@@ -160,22 +189,33 @@ export default function AppointmentDetailPage({ params }: Params) {
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-white">
-            <CardHeader className="pb-4 border-b">
+          <Card className="overflow-hidden border-petcenter-border bg-white shadow-sm">
+            <CardHeader className="border-b bg-gray-50/60 pb-4">
               <CardTitle className="text-lg text-petcenter-text flex items-center gap-2">
                 <FileText className="w-5 h-5 text-petcenter-primary" />
-                Ghi chú
+                Triệu chứng & ghi chú
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
-              <p className="text-petcenter-text-secondary text-sm leading-relaxed p-4 bg-gray-50 rounded-lg">
-                {mockDetail.bookingContent.note}
-              </p>
+              <div className="space-y-3">
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-petcenter-text-muted">symptom_description</p>
+                  <p className="mt-2 text-sm leading-relaxed text-petcenter-text-secondary">{mockDetail.bookingContent.symptomDescription}</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-petcenter-text-muted">internal_note</p>
+                  <p className="mt-2 text-sm leading-relaxed text-petcenter-text-secondary">{mockDetail.bookingContent.internalNote || "Chưa có"}</p>
+                </div>
+                <div className="rounded-lg bg-red-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-red-500">rejection_reason</p>
+                  <p className="mt-2 text-sm leading-relaxed text-red-700">{mockDetail.bookingContent.rejectionReason || "Không áp dụng"}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white">
-            <CardHeader className="pb-4 border-b">
+          <Card className="overflow-hidden border-petcenter-border bg-white shadow-sm">
+            <CardHeader className="border-b bg-gray-50/60 pb-4">
               <CardTitle className="text-lg text-petcenter-text">Trạng thái xử lý</CardTitle>
             </CardHeader>
             <CardContent className="pt-6 px-6 pb-8">
@@ -202,17 +242,17 @@ export default function AppointmentDetailPage({ params }: Params) {
 
                 <div className="relative pl-6">
                   <div className="absolute w-4 h-4 bg-gray-200 rounded-full -left-[9px] top-1 ring-4 ring-white"></div>
-                  <h4 className="font-medium text-petcenter-text-muted">Hoàn tất khám</h4>
+                  <h4 className="font-medium text-petcenter-text-muted">Đã từ chối / Đã hủy</h4>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <div className="flex flex-col gap-3 mt-6">
-            <Button variant="outline" className="w-full bg-white border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 h-11">
+            <Button variant="destructive" className="w-full h-11">
               Hủy lịch hẹn
             </Button>
-            <Button variant="ghost" className="w-full h-11 text-petcenter-text-secondary" asChild>
+            <Button variant="outline" className="w-full h-11 border-petcenter-border-strong bg-white text-petcenter-text-secondary" asChild>
               <Link href="/owner/appointments">Quay lại danh sách</Link>
             </Button>
           </div>
