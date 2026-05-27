@@ -20,6 +20,8 @@ import type {
   PetPrescriptionDto,
   PetPrescriptionItemDto,
   PetSpecies,
+  PetSpaHistoryDto,
+  PetSpaHistoryFilters,
   PetVaccinationDto,
   PetVaccinationFilters,
   PetVaccinationStatus
@@ -143,6 +145,20 @@ type PetVaccinationRow = QueryResultRow & {
   note: string | null;
   veterinarian_user_id: string | null;
   veterinarian_name: string | null;
+};
+
+type PetSpaHistoryRow = QueryResultRow & {
+  grooming_ticket_id: string;
+  pet_id: string;
+  service_name: string;
+  service_type_name: string;
+  scheduled_at: string;
+  scheduled_date: string;
+  scheduled_time: string;
+  ticket_status: PetSpaHistoryDto["ticketStatus"];
+  special_request: string | null;
+  total_amount: string | number;
+  included_services: string;
 };
 
 function toDateInput(value?: Date | null): string | null {
@@ -355,6 +371,32 @@ function mapPetVaccination(row: PetVaccinationRow): PetVaccinationDto {
     note: row.note,
     veterinarianUserId: row.veterinarian_user_id,
     veterinarianName: row.veterinarian_name
+  };
+}
+
+function getSpaTicketStatusLabel(status: PetSpaHistoryDto["ticketStatus"]): string {
+  const labels = {
+    completed: "Hoàn thành",
+    cancelled: "Đã hủy"
+  } as const;
+
+  return labels[status];
+}
+
+function mapPetSpaHistory(row: PetSpaHistoryRow): PetSpaHistoryDto {
+  return {
+    groomingTicketId: row.grooming_ticket_id,
+    petId: row.pet_id,
+    serviceName: row.service_name,
+    serviceTypeName: row.service_type_name,
+    scheduledAt: row.scheduled_at,
+    scheduledDate: row.scheduled_date,
+    scheduledTime: row.scheduled_time,
+    ticketStatus: row.ticket_status,
+    ticketStatusLabel: getSpaTicketStatusLabel(row.ticket_status),
+    specialRequest: row.special_request,
+    totalAmount: Number(row.total_amount),
+    includedServices: row.included_services
   };
 }
 
@@ -799,6 +841,113 @@ export async function findPetVaccinations(
 
   return {
     vaccinations: listResult.rows.map(mapPetVaccination),
+    total: Number(countResult.rows[0]?.total ?? 0)
+  };
+}
+
+function buildSpaHistoryWhere(filters: PetSpaHistoryFilters): { whereSql: string; params: unknown[] } {
+  const params: unknown[] = [filters.ownerUserId, filters.petId];
+  const conditions = [
+    "gt.owner_user_id = $1",
+    "gt.pet_id = $2",
+    "gt.ticket_status in ('completed', 'cancelled')"
+  ];
+
+  if (filters.from) {
+    params.push(toDateInput(filters.from));
+    conditions.push(`(gt.scheduled_at at time zone 'Asia/Ho_Chi_Minh')::date >= $${params.length}::date`);
+  }
+
+  if (filters.to) {
+    params.push(toDateInput(filters.to));
+    conditions.push(`(gt.scheduled_at at time zone 'Asia/Ho_Chi_Minh')::date <= $${params.length}::date`);
+  }
+
+  if (filters.serviceType) {
+    params.push(`%${normalizeSearchText(filters.serviceType)}%`);
+    const paramIndex = params.length;
+    conditions.push(`exists (
+      select 1
+      from pet_center.grooming_ticket_items service_filter_gti
+      join pet_center.services service_filter_s on service_filter_s.service_id = service_filter_gti.service_id
+      where service_filter_gti.grooming_ticket_id = gt.grooming_ticket_id
+        and (
+          ${normalizedSql("service_filter_s.service_name")} like $${paramIndex}
+          or ${normalizedSql("service_filter_s.description")} like $${paramIndex}
+        )
+    )`);
+  }
+
+  if (filters.q) {
+    params.push(`%${normalizeSearchText(filters.q)}%`);
+    const paramIndex = params.length;
+    conditions.push(`(
+      ${normalizedSql("gt.grooming_ticket_id")} like $${paramIndex}
+      or ${normalizedSql("gt.special_request")} like $${paramIndex}
+      or exists (
+        select 1
+        from pet_center.grooming_ticket_items search_gti
+        join pet_center.services search_s on search_s.service_id = search_gti.service_id
+        where search_gti.grooming_ticket_id = gt.grooming_ticket_id
+          and (
+            ${normalizedSql("search_s.service_name")} like $${paramIndex}
+            or ${normalizedSql("search_s.description")} like $${paramIndex}
+          )
+      )
+    )`);
+  }
+
+  return {
+    whereSql: conditions.join(" and "),
+    params
+  };
+}
+
+export async function findPetSpaHistory(
+  filters: PetSpaHistoryFilters
+): Promise<{ records: PetSpaHistoryDto[]; total: number }> {
+  const { whereSql, params } = buildSpaHistoryWhere(filters);
+  const listParams = [...params, filters.limit, filters.offset];
+
+  const [listResult, countResult] = await Promise.all([
+    query<PetSpaHistoryRow>(
+      `select
+         gt.grooming_ticket_id,
+         gt.pet_id,
+         coalesce(string_agg(s.service_name, ', ' order by s.service_name), 'Dịch vụ spa') as service_name,
+         coalesce((array_agg(s.service_name order by s.service_name))[1], 'Dịch vụ spa') as service_type_name,
+         gt.scheduled_at::text as scheduled_at,
+         to_char(gt.scheduled_at at time zone 'Asia/Ho_Chi_Minh', 'DD/MM/YYYY') as scheduled_date,
+         to_char(gt.scheduled_at at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') as scheduled_time,
+         gt.ticket_status,
+         gt.special_request,
+         gt.estimated_total as total_amount,
+         coalesce(string_agg(coalesce(s.description, s.service_name), ', ' order by s.service_name), 'Dịch vụ spa') as included_services
+       from pet_center.grooming_tickets gt
+       join pet_center.grooming_ticket_items gti on gti.grooming_ticket_id = gt.grooming_ticket_id
+       join pet_center.services s on s.service_id = gti.service_id
+       where ${whereSql}
+       group by
+         gt.grooming_ticket_id,
+         gt.pet_id,
+         gt.scheduled_at,
+         gt.ticket_status,
+         gt.special_request,
+         gt.estimated_total
+       order by gt.scheduled_at desc, gt.grooming_ticket_id desc
+       limit $${params.length + 1} offset $${params.length + 2}`,
+      listParams
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.grooming_tickets gt
+       where ${whereSql}`,
+      params
+    )
+  ]);
+
+  return {
+    records: listResult.rows.map(mapPetSpaHistory),
     total: Number(countResult.rows[0]?.total ?? 0)
   };
 }

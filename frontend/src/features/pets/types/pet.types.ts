@@ -148,6 +148,21 @@ export type PetVaccination = {
   veterinarianName: string | null;
 };
 
+export type PetSpaHistory = {
+  groomingTicketId: string;
+  petId: string;
+  serviceName: string;
+  serviceTypeName: string;
+  scheduledAt: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  ticketStatus: "completed" | "cancelled";
+  ticketStatusLabel: string;
+  specialRequest: string | null;
+  totalAmount: number;
+  includedServices: string;
+};
+
 export type PetMedicalExamsParams = {
   q?: string;
   examType?: "all" | PetMedicalExam["examTypeCode"];
@@ -160,6 +175,15 @@ export type PetMedicalExamsParams = {
 export type PetVaccinationsParams = {
   q?: string;
   status?: "all" | PetVaccinationStatus;
+  page?: number;
+  limit?: number;
+};
+
+export type PetSpaHistoryParams = {
+  q?: string;
+  serviceType?: string;
+  from?: string;
+  to?: string;
   page?: number;
   limit?: number;
 };
@@ -185,6 +209,10 @@ export type CreatePetInput = {
   profileImageUrl?: string | null;
   identifyingMarks?: string | null;
   healthProfile?: PetHealthProfileInput;
+};
+
+export type UpdatePetInput = Partial<CreatePetInput> & {
+  petStatus?: "active" | "inactive" | "deceased";
 };
 
 export type PetsListParams = {
