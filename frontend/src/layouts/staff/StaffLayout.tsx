@@ -1,15 +1,16 @@
 import * as React from "react"
-
 import { StaffHeader } from "./StaffHeader"
 import { StaffSidebar } from "./StaffSidebar"
 
 export function StaffLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen w-full bg-[#fbfaee] font-sans text-[#1b1c15] antialiased">
+    <div className="flex h-screen w-full font-body-md antialiased overflow-hidden bg-petcenter-background text-petcenter-text">
       <StaffSidebar />
-      <main className="flex min-h-screen flex-col md:ml-[256px]">
+      <main className="md:ml-[280px] flex-1 flex flex-col h-screen overflow-hidden w-[calc(100%-280px)]">
         <StaffHeader />
-        <div className="flex-1 p-6">{children}</div>
+        <div className="flex-1 overflow-y-scroll p-8 [scrollbar-gutter:stable]">
+          {children}
+        </div>
       </main>
     </div>
   )

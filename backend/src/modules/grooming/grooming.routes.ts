@@ -4,7 +4,15 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as groomingController from "./grooming.controller.js";
-import { availabilityQuerySchema, bookingOptionsQuerySchema, createGroomingTicketSchema } from "./grooming.schema.js";
+import {
+  availabilityQuerySchema,
+  bookingOptionsQuerySchema,
+  createStaffCounterGroomingTicketSchema,
+  createGroomingTicketSchema,
+  groomingTicketParamsSchema,
+  staffCounterOptionsQuerySchema,
+  staffGroomingTicketQuerySchema
+} from "./grooming.schema.js";
 
 export const groomingRouter = Router();
 
@@ -120,6 +128,13 @@ groomingRouter.get(
   asyncHandler(groomingController.listAvailableServices)
 );
 
+groomingRouter.get(
+  "/grooming/staff/services",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  asyncHandler(groomingController.listStaffAvailableServices)
+);
+
 /**
  * @openapi
  * /api/v1/grooming/booking-options:
@@ -185,6 +200,30 @@ groomingRouter.get(
   asyncHandler(groomingController.getAvailability)
 );
 
+groomingRouter.get(
+  "/grooming/counter/options",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ query: staffCounterOptionsQuerySchema }),
+  asyncHandler(groomingController.getStaffCounterOptions)
+);
+
+groomingRouter.get(
+  "/grooming/counter/availability",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ query: availabilityQuerySchema }),
+  asyncHandler(groomingController.getStaffCounterAvailability)
+);
+
+groomingRouter.post(
+  "/grooming/counter/tickets",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ body: createStaffCounterGroomingTicketSchema }),
+  asyncHandler(groomingController.createStaffCounterTicket)
+);
+
 /**
  * @openapi
  * /api/v1/grooming/tickets:
@@ -230,4 +269,36 @@ groomingRouter.post(
   requireRole("OWNER"),
   validateRequest({ body: createGroomingTicketSchema }),
   asyncHandler(groomingController.createTicket)
+);
+
+groomingRouter.get(
+  "/grooming/tickets",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ query: staffGroomingTicketQuerySchema }),
+  asyncHandler(groomingController.listStaffTickets)
+);
+
+groomingRouter.patch(
+  "/grooming/tickets/:ticketId/accept",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: groomingTicketParamsSchema }),
+  asyncHandler(groomingController.acceptStaffTicket)
+);
+
+groomingRouter.patch(
+  "/grooming/tickets/:ticketId/complete",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: groomingTicketParamsSchema }),
+  asyncHandler(groomingController.completeStaffTicket)
+);
+
+groomingRouter.patch(
+  "/grooming/tickets/:ticketId/cancel",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: groomingTicketParamsSchema }),
+  asyncHandler(groomingController.cancelStaffTicket)
 );

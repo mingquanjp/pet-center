@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import {
   BedDouble,
   CalendarClock,
@@ -45,6 +46,27 @@ const statCards = [
   },
 ] as const
 
+type StaffDashboardPageCache = {
+  overview: StaffDashboardOverview
+}
+
+const staffDashboardPageCacheTtlMs = 30 * 1000
+let staffDashboardPageCache: StaffDashboardPageCache | null = null
+let staffDashboardPageCacheTimer: ReturnType<typeof setTimeout> | null = null
+
+function saveStaffDashboardPageCache(cache: StaffDashboardPageCache): void {
+  staffDashboardPageCache = cache
+
+  if (staffDashboardPageCacheTimer) {
+    clearTimeout(staffDashboardPageCacheTimer)
+  }
+
+  staffDashboardPageCacheTimer = setTimeout(() => {
+    staffDashboardPageCache = null
+    staffDashboardPageCacheTimer = null
+  }, staffDashboardPageCacheTtlMs)
+}
+
 function formatStatValue(
   key: (typeof statCards)[number]["key"],
   stats: StaffDashboardOverview["stats"] | undefined
@@ -62,6 +84,10 @@ function formatStatValue(
 
 function getTaskIcon(sourceType: StaffDashboardTaskSource) {
   return sourceType === "grooming" ? Cat : Rabbit;
+}
+
+function getTaskHref(sourceType: StaffDashboardTaskSource): string {
+  return sourceType === "grooming" ? "/staff/spa" : "/staff/appointments";
 }
 
 function formatSchedule(value: string): [string, string] {
@@ -92,8 +118,10 @@ function formatSchedule(value: string): [string, string] {
 }
 
 export function StaffDashboardPage() {
-  const [overview, setOverview] = React.useState<StaffDashboardOverview | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [overview, setOverview] = React.useState<StaffDashboardOverview | null>(
+    () => staffDashboardPageCache?.overview ?? null
+  );
+  const [isLoading, setIsLoading] = React.useState(() => !staffDashboardPageCache);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -106,6 +134,9 @@ export function StaffDashboardPage() {
         if (!isMounted) return;
 
         setOverview(data);
+        saveStaffDashboardPageCache({
+          overview: data,
+        });
         setErrorMessage(null);
       } catch (error) {
         if (!isMounted) return;
@@ -129,6 +160,7 @@ export function StaffDashboardPage() {
     ? `Xin chào, ${overview.staff.fullName}. Đây là các công việc cần xử lý hôm nay.`
     : "Đây là các công việc cần xử lý hôm nay.";
   const appointmentTasks = overview?.appointmentTasks ?? [];
+  const showLoadingRows = isLoading && appointmentTasks.length === 0;
 
   return (
     <div className="flex w-full flex-col gap-8">
@@ -165,7 +197,7 @@ export function StaffDashboardPage() {
                   {item.label}
                 </p>
                 <p className="whitespace-nowrap text-2xl font-bold leading-8 text-[#1b1c15]">
-                  {formatStatValue(item.key, overview?.stats)}
+                  {isLoading ? "..." : formatStatValue(item.key, overview?.stats)}
                 </p>
               </div>
             </article>
@@ -179,11 +211,12 @@ export function StaffDashboardPage() {
             Lịch hẹn cần xử lý
           </h2>
           <Button
+            asChild
             variant="ghost"
             size="sm"
             className="h-auto rounded-[12px] px-0 py-0 text-xs font-medium leading-4 text-[#005e53] hover:bg-transparent hover:text-[#005e53]"
           >
-            Xem tất cả
+            <Link href="/staff/appointments">Xem tất cả</Link>
           </Button>
         </div>
 
@@ -201,8 +234,47 @@ export function StaffDashboardPage() {
               </tr>
             </thead>
             <tbody>
+              {showLoadingRows ? (
+                <>
+                  {[0, 1].map((rowIndex) => (
+                    <tr
+                      key={rowIndex}
+                      className="h-[81px] border-b border-[rgba(189,201,197,0.2)] bg-white"
+                    >
+                      <td className="px-6 py-[29.5px]">
+                        <div className="h-4 w-16 animate-pulse rounded-full bg-[#e4e3d7]" />
+                      </td>
+                      <td className="px-6 py-0">
+                        <div className="flex items-center gap-3">
+                          <div className="size-8 animate-pulse rounded-full bg-[#e4e3d7]" />
+                          <div className="flex flex-col gap-2">
+                            <div className="h-4 w-16 animate-pulse rounded-full bg-[#e4e3d7]" />
+                            <div className="h-3 w-24 animate-pulse rounded-full bg-[#e4e3d7]" />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-[29.5px]">
+                        <div className="h-4 w-20 animate-pulse rounded-full bg-[#e4e3d7]" />
+                      </td>
+                      <td className="px-6 py-[19.5px]">
+                        <div className="h-4 w-16 animate-pulse rounded-full bg-[#e4e3d7]" />
+                      </td>
+                      <td className="px-6 py-[29.5px]">
+                        <div className="h-4 w-20 animate-pulse rounded-full bg-[#e4e3d7]" />
+                      </td>
+                      <td className="px-6 py-[26px]">
+                        <div className="h-7 w-28 animate-pulse rounded-full bg-[#fff3d8]" />
+                      </td>
+                      <td className="px-6 py-[23px]">
+                        <div className="ml-auto h-[34px] w-14 animate-pulse rounded-[12px] bg-[#e4e3d7]" />
+                      </td>
+                    </tr>
+                  ))}
+                </>
+              ) : null}
               {appointmentTasks.map((appointment) => {
                 const Icon = getTaskIcon(appointment.sourceType)
+                const href = getTaskHref(appointment.sourceType)
                 const schedule = formatSchedule(appointment.scheduledAt)
 
                 return (
@@ -219,16 +291,16 @@ export function StaffDashboardPage() {
                           <Icon className="size-[15px]" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="whitespace-nowrap text-sm font-semibold leading-5 text-[#1b1c15]">
+                          <span className="max-w-[120px] truncate whitespace-nowrap text-sm font-semibold leading-5 text-[#1b1c15]">
                             {appointment.petName}
                           </span>
-                          <span className="whitespace-nowrap text-xs font-normal leading-4 text-[#3e4946]">
+                          <span className="max-w-[120px] truncate whitespace-nowrap text-xs font-normal leading-4 text-[#3e4946]">
                             {appointment.petDescription}
                           </span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-[29.5px] text-sm font-normal leading-5 text-[#1b1c15]">
+                    <td className="max-w-[150px] truncate px-6 py-[29.5px] text-sm font-normal leading-5 text-[#1b1c15]">
                       {appointment.ownerName}
                     </td>
                     <td className="px-6 py-[19.5px] text-sm font-normal leading-5 text-[#1b1c15]">
@@ -239,7 +311,7 @@ export function StaffDashboardPage() {
                         </React.Fragment>
                       ))}
                     </td>
-                    <td className="px-6 py-[29.5px] text-sm font-normal leading-5 text-[#3e4946]">
+                    <td className="max-w-[150px] truncate px-6 py-[29.5px] text-sm font-normal leading-5 text-[#3e4946]">
                       {appointment.typeLabel}
                     </td>
                     <td className="px-6 py-[26px]">
@@ -248,8 +320,11 @@ export function StaffDashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-[23px] text-right">
-                      <Button className="h-[34px] rounded-[12px] bg-[#00796b] px-4 pb-[9.5px] pt-[8.5px] text-center text-xs font-medium leading-4 text-white hover:bg-[#00695c]">
-                        Xử lý
+                      <Button
+                        asChild
+                        className="h-[34px] rounded-[12px] bg-[#00796b] px-4 pb-[9.5px] pt-[8.5px] text-center text-xs font-medium leading-4 text-white hover:bg-[#00695c]"
+                      >
+                        <Link href={href}>Xử lý</Link>
                       </Button>
                     </td>
                   </tr>

@@ -23,6 +23,18 @@ type ApiEnvelope<T> = {
   };
 };
 
+type ApiRequestOptions = RequestInit & {
+  cacheKey?: string;
+  cacheTtlMs?: number;
+};
+
+type CachedApiEnvelope = {
+  expiresAt: number;
+  payload: ApiEnvelope<unknown>;
+};
+
+const apiCache = new Map<string, CachedApiEnvelope>();
+
 export class ApiError extends Error {
   readonly code?: string;
   readonly details?: ApiErrorDetails;
@@ -43,12 +55,43 @@ function getAccessToken(): string | null {
   return localStorage.getItem("accessToken");
 }
 
-export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {
-  const headers = new Headers(init.headers);
-  const token = getAccessToken();
-  const isFormDataBody = typeof FormData !== "undefined" && init.body instanceof FormData;
+function buildCacheKey(path: string, method: string, token: string | null, cacheKey?: string): string {
+  return `${token ?? "anonymous"}:${method}:${cacheKey ?? path}`;
+}
 
-  if (!headers.has("Content-Type") && init.body && !isFormDataBody) {
+export function clearApiCache(pathPrefix?: string): void {
+  if (!pathPrefix) {
+    apiCache.clear();
+    return;
+  }
+
+  for (const key of apiCache.keys()) {
+    if (key.includes(`:${pathPrefix}`)) {
+      apiCache.delete(key);
+    }
+  }
+}
+
+export async function apiRequest<T>(path: string, init: ApiRequestOptions = {}): Promise<ApiEnvelope<T>> {
+  const { cacheKey, cacheTtlMs = 0, ...requestInit } = init;
+  const headers = new Headers(requestInit.headers);
+  const token = getAccessToken();
+  const method = (requestInit.method ?? "GET").toUpperCase();
+  const isFormDataBody = typeof FormData !== "undefined" && requestInit.body instanceof FormData;
+  const shouldUseCache = method === "GET" && cacheTtlMs > 0;
+  const resolvedCacheKey = shouldUseCache ? buildCacheKey(path, method, token, cacheKey) : null;
+
+  if (resolvedCacheKey) {
+    const cached = apiCache.get(resolvedCacheKey);
+
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.payload as ApiEnvelope<T>;
+    }
+
+    apiCache.delete(resolvedCacheKey);
+  }
+
+  if (!headers.has("Content-Type") && requestInit.body && !isFormDataBody) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -57,7 +100,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   }
 
   const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
+    ...requestInit,
     headers,
   });
   const payload = (await response.json()) as ApiEnvelope<T>;
@@ -65,6 +108,13 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   if (!response.ok) {
     const message = payload.error?.details?.[0]?.message ?? payload.error?.message ?? "Không thể kết nối đến máy chủ";
     throw new ApiError(message, payload.error?.code, payload.error?.details);
+  }
+
+  if (resolvedCacheKey) {
+    apiCache.set(resolvedCacheKey, {
+      expiresAt: Date.now() + cacheTtlMs,
+      payload: payload as ApiEnvelope<unknown>,
+    });
   }
 
   return payload;

@@ -28,6 +28,13 @@ export type GroomingBookingPetDto = {
   profileImageUrl: string | null;
 };
 
+export type StaffCounterGroomingPetDto = GroomingBookingPetDto & {
+  breed: string | null;
+  ownerUserId: string;
+  ownerName: string;
+  ownerPhoneNumber: string | null;
+};
+
 export type GroomingBookingServiceDto = {
   serviceId: string;
   serviceName: string;
@@ -43,6 +50,12 @@ export type GroomingBookingServiceDto = {
 export type GroomingBookingOptionsDto = {
   pets: GroomingBookingPetDto[];
   selectedPet: GroomingBookingPetDto | null;
+  services: GroomingBookingServiceDto[];
+};
+
+export type StaffCounterGroomingOptionsDto = {
+  pets: StaffCounterGroomingPetDto[];
+  selectedPet: StaffCounterGroomingPetDto | null;
   services: GroomingBookingServiceDto[];
 };
 
@@ -62,6 +75,8 @@ export type GroomingAvailabilityDto = {
 export type GroomingTicketStatus = "pending_payment" | "pending" | "waiting" | "in_progress" | "completed" | "cancelled";
 export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled" | "refunded";
 export type GroomingPaymentOption = "counter" | "online";
+export type StaffGroomingTicketStatusFilter = GroomingTicketStatus | "all";
+export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" | "completed" | "cancelled";
 
 export type GroomingTicketCreatedDto = {
   groomingTicketId: string;
@@ -75,4 +90,42 @@ export type GroomingTicketCreatedDto = {
   petName: string;
   serviceName: string;
   scheduledAt: string;
+};
+
+export type StaffGroomingTicketDto = {
+  groomingTicketId: string;
+  bookingCode: string;
+  petName: string;
+  petDescription: string;
+  ownerName: string;
+  serviceName: string;
+  serviceCount: number;
+  scheduledAt: string;
+  sourceType: "online" | "counter";
+  sourceLabel: string;
+  paymentMethodLabel: string;
+  paymentStatusLabel: string;
+  paymentStatusTone: "pending" | "paid";
+  specialRequest: string | null;
+  totalAmount: number;
+  totalAmountText: string;
+  status: GroomingTicketStatus;
+  statusLabel: string;
+  statusTone: StaffGroomingTicketStatusTone;
+  canAccept: boolean;
+  canComplete: boolean;
+  canCancel: boolean;
+};
+
+export type StaffGroomingTicketSummaryDto = {
+  total: number;
+  waitingAccept: number;
+  accepted: number;
+  completed: number;
+  cancelled: number;
+};
+
+export type StaffGroomingTicketListDto = {
+  summary: StaffGroomingTicketSummaryDto;
+  tickets: StaffGroomingTicketDto[];
 };

@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api";
+import { apiRequest, clearApiCache } from "@/lib/api";
 import type { CreatePetInput, Pagination, Pet, PetsListParams } from "../types/pet.types";
 
 function buildQuery(params: PetsListParams): string {
@@ -17,7 +17,9 @@ function buildQuery(params: PetsListParams): string {
 
 export const petsApi = {
   async list(params: PetsListParams = {}): Promise<{ pets: Pet[]; pagination: Pagination }> {
-    const response = await apiRequest<Pet[]>(`/pets${buildQuery(params)}`);
+    const response = await apiRequest<Pet[]>(`/pets${buildQuery(params)}`, {
+      cacheTtlMs: 60 * 1000,
+    });
 
     return {
       pets: response.data,
@@ -35,6 +37,8 @@ export const petsApi = {
       method: "POST",
       body: JSON.stringify(payload),
     });
+
+    clearApiCache("/pets");
 
     return response.data;
   },
