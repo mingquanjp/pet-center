@@ -34,6 +34,7 @@ export function useStaffAppointments(filters: StaffAppointmentFilters) {
     limit: 10,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
   const fetchAppointments = useCallback(async (currentFilters: StaffAppointmentFilters) => {
@@ -59,6 +60,7 @@ export function useStaffAppointments(filters: StaffAppointmentFilters) {
       setIsError(true);
     } finally {
       setIsLoading(false);
+      setIsInitialLoading(false);
     }
   }, []);
 
@@ -81,6 +83,7 @@ export function useStaffAppointments(filters: StaffAppointmentFilters) {
     stats,
     pagination,
     isLoading,
+    isInitialLoading,
     isError,
     refetch,
   };

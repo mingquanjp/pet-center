@@ -11,8 +11,8 @@ export function useConfirmStaffInvoicePayment() {
       setError(null);
       const res = await staffInvoicesApi.confirmPayment(invoiceId, { paymentMethod });
       return res.data;
-    } catch (err: any) {
-      setError(err);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err : new Error(String(err)));
       throw err;
     } finally {
       setIsMutating(false);

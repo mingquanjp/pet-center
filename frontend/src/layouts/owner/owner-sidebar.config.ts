@@ -1,4 +1,4 @@
-import { LayoutDashboard, PawPrint, Calendar, Activity, Sparkles, Home, Receipt } from "lucide-react";
+import { LayoutDashboard, PawPrint, Calendar, Sparkles, Home, Receipt } from "lucide-react";
 
 export const ownerSidebarConfig = [
   {

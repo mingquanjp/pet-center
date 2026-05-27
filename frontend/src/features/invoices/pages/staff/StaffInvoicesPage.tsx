@@ -19,19 +19,19 @@ const DEFAULT_FILTERS: StaffInvoiceFilters = {
 
 export function StaffInvoicesPage() {
   const [filters, setFilters] = useState<StaffInvoiceFilters>(DEFAULT_FILTERS)
-  
-  const { 
-    data: invoices, 
-    isLoading, 
-    hasMore, 
-    isFetchingNextPage, 
+
+  const {
+    data: invoices,
+    isLoading,
+    hasMore,
+    isFetchingNextPage,
     loadMore,
     refetch,
     updateInvoice,
     isInitialLoading,
     isError
   } = useStaffInvoices(filters)
-  
+
   const [selectedInvoice, setSelectedInvoice] = useState<StaffInvoice | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
@@ -76,15 +76,15 @@ export function StaffInvoicesPage() {
         </div>
       </div>
 
-      <StaffInvoiceFilterBar 
+      <StaffInvoiceFilterBar
         filters={filters}
         onFiltersChange={handleFiltersChange}
         onReset={handleResetFilters}
       />
 
       {isInitialLoading ? (
-        <LoadingState 
-          title="Đang tải dữ liệu..." 
+        <LoadingState
+          title="Đang tải dữ liệu..."
           description="Vui lòng đợi giây lát trong khi chúng tôi tải dữ liệu từ hệ thống."
         />
       ) : isError && invoices.length === 0 ? (
@@ -93,7 +93,7 @@ export function StaffInvoicesPage() {
           <p className="body-md text-petcenter-text-secondary text-center max-w-sm mb-4">
             Không thể tải dữ liệu hóa đơn. Vui lòng kiểm tra lại kết nối mạng hoặc quyền truy cập của bạn (Yêu cầu tài khoản Staff/Admin).
           </p>
-          <button 
+          <button
             onClick={refetch}
             className="px-4 py-2 bg-petcenter-danger-text text-white rounded-[12px] body-sm font-medium hover:bg-opacity-90 transition-colors"
           >
@@ -102,8 +102,8 @@ export function StaffInvoicesPage() {
         </div>
       ) : (
         <div className={`transition-opacity duration-200 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-          <StaffInvoiceList 
-            invoices={invoices} 
+          <StaffInvoiceList
+            invoices={invoices}
             hasMore={hasMore}
             isFetchingNextPage={isFetchingNextPage}
             onLoadMore={loadMore}
@@ -117,14 +117,14 @@ export function StaffInvoicesPage() {
       {/* Spacer for bottom padding */}
       <div className="h-8"></div>
 
-      <ConfirmPaymentModal 
+      <ConfirmPaymentModal
         invoice={selectedInvoice}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={handlePaymentSuccess}
       />
 
-      <CancelInvoiceModal 
+      <CancelInvoiceModal
         invoice={selectedInvoice}
         isOpen={isCancelModalOpen}
         onClose={() => setIsCancelModalOpen(false)}
