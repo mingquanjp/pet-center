@@ -4,6 +4,24 @@ export type BoardingPaymentOption = "online" | "counter"
 export type BoardingPaymentStatus = "paid" | "unpaid" | "refunded" | "cancelled"
 export type BoardingHealthStatus = "normal" | "attention" | "urgent" | "unknown"
 export type BoardingTimeRange = "all" | "upcoming" | "current" | "past"
+export type BoardingCareLogType = "booking_created" | "check_in" | "daily_update" | "check_out"
+export type BoardingCareLogAlertLevel = BoardingHealthStatus | "info"
+
+export interface BoardingCareLogAttachment {
+  url: string
+  type: "image" | "video" | "file"
+}
+
+export interface BoardingCareLog {
+  logId: string
+  logType: BoardingCareLogType
+  title: string
+  occurredAt: string
+  note: string
+  alertLevel: BoardingCareLogAlertLevel
+  alertLabel: string
+  attachments: BoardingCareLogAttachment[]
+}
 
 export interface BoardingRecordListItem {
   boardingRecordId: string
@@ -37,6 +55,44 @@ export interface BoardingRecordListItem {
     healthStatusLabel: string
     lastUpdatedAt: string | null
   }
+}
+
+export interface BoardingRecordDetail {
+  boardingRecordId: string
+  boardingCode: string
+  status: BoardingRecordStatus
+  statusLabel: string
+  pet: {
+    petId: string
+    petName: string
+    speciesLabel: string
+    weightKg: number | null
+    profileImageUrl: string | null
+  }
+  room: {
+    roomTypeId: string
+    roomTypeName: string
+    description: string | null
+  }
+  stay: {
+    plannedCheckInAt: string
+    plannedCheckOutAt: string
+    actualCheckInAt: string | null
+    actualCheckOutAt: string | null
+    stayDays: number
+  }
+  payment: {
+    invoiceId: string | null
+    paymentOption: BoardingPaymentOption | null
+    paymentMethodLabel: string
+    paymentStatus: BoardingPaymentStatus
+    paymentStatusLabel: string
+    receiptCode: string | null
+    receiptUrl: string | null
+  }
+  estimatedTotal: number
+  careRequest: string | null
+  careLogs: BoardingCareLog[]
 }
 
 export interface BoardingRecordListParams {

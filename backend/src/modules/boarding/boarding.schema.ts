@@ -24,6 +24,11 @@ export const createBoardingRecordSchema = z.object({
   paymentOption: z.enum(["counter", "online"])
 });
 
+export const boardingRecordParamsSchema = z.object({
+  boardingRecordId: z.string().trim().min(1).max(30)
+});
+
 export type ListBoardingRecordsQuery = z.infer<typeof listBoardingRecordsQuerySchema>;
 export type BoardingBookingOptionsQuery = z.infer<typeof boardingBookingOptionsQuerySchema>;
 export type CreateBoardingRecordPayload = z.infer<typeof createBoardingRecordSchema>;
+export type BoardingRecordParams = z.infer<typeof boardingRecordParamsSchema>;

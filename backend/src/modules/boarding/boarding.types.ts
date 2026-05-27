@@ -6,6 +6,7 @@ export type BoardingPaymentOption = "online" | "counter";
 export type BoardingInvoiceStatus = "pending_payment" | "paid" | "cancelled" | "refunded";
 export type BoardingAlertLevel = "normal" | "attention" | "urgent";
 export type BoardingPetSpecies = "Dog" | "Cat" | "Other";
+export type BoardingCareLogType = "booking_created" | "check_in" | "daily_update" | "check_out";
 
 export type BoardingRecordListFilters = {
   ownerUserId: string;
@@ -38,6 +39,25 @@ export type BoardingRecordListRow = QueryResultRow & {
   has_success_payment: boolean;
   last_update_at: string | null;
   alert_level: BoardingAlertLevel | null;
+};
+
+export type BoardingRecordDetailRow = BoardingRecordListRow & {
+  species: BoardingPetSpecies;
+  weight_kg: string | number | null;
+  room_description: string | null;
+  actual_check_in_at: string | Date | null;
+  actual_check_out_at: string | Date | null;
+  care_request: string | null;
+  receipt_code: string | null;
+  receipt_url: string | null;
+};
+
+export type BoardingUpdateRow = QueryResultRow & {
+  boarding_update_id: string;
+  updated_at: string | Date;
+  update_note: string;
+  attachment_url: string | null;
+  alert_level: BoardingAlertLevel;
 };
 
 export type CountRow = QueryResultRow & {
@@ -104,6 +124,58 @@ export type BoardingRecordListItemDto = {
     healthStatusLabel: string;
     lastUpdatedAt: string | null;
   };
+};
+
+export type BoardingRecordDetailDto = {
+  boardingRecordId: string;
+  boardingCode: string;
+  status: BoardingRecordStatus;
+  statusLabel: string;
+  pet: {
+    petId: string;
+    petName: string;
+    speciesLabel: string;
+    weightKg: number | null;
+    profileImageUrl: string | null;
+  };
+  room: {
+    roomTypeId: string;
+    roomTypeName: string;
+    description: string | null;
+  };
+  stay: {
+    plannedCheckInAt: string;
+    plannedCheckOutAt: string;
+    actualCheckInAt: string | null;
+    actualCheckOutAt: string | null;
+    stayDays: number;
+  };
+  payment: {
+    invoiceId: string | null;
+    paymentOption: BoardingPaymentOption | null;
+    paymentMethodLabel: string;
+    paymentStatus: "paid" | "unpaid" | "refunded" | "cancelled";
+    paymentStatusLabel: string;
+    receiptCode: string | null;
+    receiptUrl: string | null;
+  };
+  estimatedTotal: number;
+  careRequest: string | null;
+  careLogs: BoardingCareLogDto[];
+};
+
+export type BoardingCareLogDto = {
+  logId: string;
+  logType: BoardingCareLogType;
+  title: string;
+  occurredAt: string;
+  note: string;
+  alertLevel: BoardingAlertLevel | "info";
+  alertLabel: string;
+  attachments: Array<{
+    url: string;
+    type: "image" | "video" | "file";
+  }>;
 };
 
 export type BoardingBookingPetDto = {

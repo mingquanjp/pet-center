@@ -3,6 +3,7 @@ import type {
   BoardingBookingOptions,
   BoardingBookingOptionsParams,
   BoardingRecordCreated,
+  BoardingRecordDetail,
   BoardingRecordListItem,
   BoardingRecordListParams,
   CreateBoardingRecordPayload,
@@ -75,5 +76,17 @@ export const boardingApi = {
         totalPages: response.data.length > 0 ? 1 : 0,
       },
     }
+  },
+
+  async getOwnerRecordById(
+    boardingRecordId: string,
+    init: RequestInit = {}
+  ): Promise<BoardingRecordDetail> {
+    const response = await apiRequest<BoardingRecordDetail>(
+      `/boarding/records/${encodeURIComponent(boardingRecordId)}`,
+      init
+    )
+
+    return response.data
   },
 }

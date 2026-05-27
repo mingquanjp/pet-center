@@ -2,14 +2,24 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { AlertCircle, Plus, Search, Sparkles } from "lucide-react"
+import { AlertCircle, AlertTriangle, Info, Plus, Search, Sparkles, X } from "lucide-react"
+import { AppPagination } from "@/components/ui/app-pagination"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "sonner"
 import { spaApi } from "../../api/spa.api"
 import {
   ownerSpaTabs,
   spaServiceIconById,
+  spaStatusLabel,
 } from "../../constants/spa.constants"
+import { cn } from "@/lib/utils"
 import type {
   BookedGroomingTicketStatus,
   GroomingBookingPet,
@@ -18,11 +28,20 @@ import type {
   GroomingTicketStatus,
   OwnerSpaRequest,
   OwnerSpaTab,
+  Pagination,
   SpaBookingStatus,
   SpaService,
 } from "../../types/spa.types"
 import { OwnerSpaRequestCard } from "../../components/owner/OwnerSpaRequestCard"
 import { OwnerSpaServiceCard } from "../../components/owner/OwnerSpaServiceCard"
+
+const SPA_REQUEST_PAGE_SIZE = 5
+const defaultPagination: Pagination = {
+  page: 1,
+  limit: SPA_REQUEST_PAGE_SIZE,
+  total: 0,
+  totalPages: 1,
+}
 
 export function OwnerSpaListPage() {
   const [activeTab, setActiveTab] = React.useState<OwnerSpaTab>("available")
@@ -37,6 +56,14 @@ export function OwnerSpaListPage() {
     timeRange: "all",
   })
   const [bookedSearchQuery, setBookedSearchQuery] = React.useState("")
+  const [bookedPage, setBookedPage] = React.useState(1)
+  const [historyPage, setHistoryPage] = React.useState(1)
+  const [bookedPagination, setBookedPagination] = React.useState<Pagination>(defaultPagination)
+  const [historyPagination, setHistoryPagination] = React.useState<Pagination>(defaultPagination)
+  const [cancelRequest, setCancelRequest] = React.useState<OwnerSpaRequest | null>(null)
+  const [cancelErrorMessage, setCancelErrorMessage] = React.useState<string | null>(null)
+  const [isCancellingRequest, setIsCancellingRequest] = React.useState(false)
+  const [bookedRefreshKey, setBookedRefreshKey] = React.useState(0)
   const [isLoadingServices, setIsLoadingServices] = React.useState(true)
   const [hasLoadedServices, setHasLoadedServices] = React.useState(false)
   const [servicesError, setServicesError] = React.useState<string | null>(null)
@@ -54,6 +81,7 @@ export function OwnerSpaListPage() {
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
       setBookedSearchQuery(bookedFilters.search.trim())
+      setBookedPage(1)
     }, 350)
 
     return () => window.clearTimeout(timer)
@@ -112,8 +140,8 @@ export function OwnerSpaListPage() {
               petId: bookedFilters.pet === "all" ? undefined : bookedFilters.pet,
               status: bookedFilters.status,
               timeRange: bookedFilters.timeRange,
-              page: 1,
-              limit: 100,
+              page: bookedPage,
+              limit: SPA_REQUEST_PAGE_SIZE,
             },
             { signal: abortController.signal }
           ),
@@ -124,6 +152,7 @@ export function OwnerSpaListPage() {
 
         if (!abortController.signal.aborted) {
           setBookedRequests(ticketsResult.tickets.map(mapGroomingTicketToRequest))
+          setBookedPagination(ticketsResult.pagination)
           setHasLoadedBookedRequests(true)
 
           if (bookingOptions) {
@@ -133,6 +162,7 @@ export function OwnerSpaListPage() {
       } catch (error) {
         if (!abortController.signal.aborted) {
           setBookedRequests([])
+          setBookedPagination(defaultPagination)
           setHasLoadedBookedRequests(true)
           setBookedRequestsError(error instanceof Error ? error.message : "Không thể tải dịch vụ đã đặt")
         }
@@ -148,7 +178,48 @@ export function OwnerSpaListPage() {
     return () => {
       abortController.abort()
     }
-  }, [activeTab, bookedFilters.pet, bookedFilters.status, bookedFilters.timeRange, bookedPets.length, bookedSearchQuery])
+  }, [
+    activeTab,
+    bookedFilters.pet,
+    bookedFilters.status,
+    bookedFilters.timeRange,
+    bookedPage,
+    bookedPets.length,
+    bookedRefreshKey,
+    bookedSearchQuery,
+  ])
+
+  async function handleConfirmCancelRequest() {
+    if (!cancelRequest || isCancellingRequest) return
+
+    try {
+      setIsCancellingRequest(true)
+      setCancelErrorMessage(null)
+
+      await spaApi.cancelTicket(cancelRequest.id)
+
+      setCancelRequest(null)
+      setBookedRefreshKey((current) => current + 1)
+      setHistoryPage(1)
+      toast.success("Hủy yêu cầu dịch vụ thành công")
+    } catch (error) {
+      setCancelErrorMessage(error instanceof Error ? error.message : "Không thể hủy yêu cầu dịch vụ spa")
+    } finally {
+      setIsCancellingRequest(false)
+    }
+  }
+
+  function handleOpenCancelRequest(request: OwnerSpaRequest) {
+    setCancelErrorMessage(null)
+    setCancelRequest(request)
+  }
+
+  function handleCloseCancelDialog() {
+    if (isCancellingRequest) return
+
+    setCancelErrorMessage(null)
+    setCancelRequest(null)
+  }
 
   React.useEffect(() => {
     if (activeTab !== "history") return
@@ -162,19 +233,21 @@ export function OwnerSpaListPage() {
 
         const result = await spaApi.listTicketHistory(
           {
-            page: 1,
-            limit: 100,
+            page: historyPage,
+            limit: SPA_REQUEST_PAGE_SIZE,
           },
           { signal: abortController.signal }
         )
 
         if (!abortController.signal.aborted) {
           setHistoryRequests(result.tickets.map(mapGroomingTicketToRequest))
+          setHistoryPagination(result.pagination)
           setHasLoadedHistoryRequests(true)
         }
       } catch (error) {
         if (!abortController.signal.aborted) {
           setHistoryRequests([])
+          setHistoryPagination(defaultPagination)
           setHasLoadedHistoryRequests(true)
           setHistoryRequestsError(error instanceof Error ? error.message : "Không thể tải lịch sử dịch vụ spa")
         }
@@ -190,7 +263,7 @@ export function OwnerSpaListPage() {
     return () => {
       abortController.abort()
     }
-  }, [activeTab])
+  }, [activeTab, historyPage])
 
   return (
     <div className="space-y-6">
@@ -238,11 +311,16 @@ export function OwnerSpaListPage() {
           <BookedServiceFilters
             filters={bookedFilters}
             onFiltersChange={setBookedFilters}
+            onPageReset={() => setBookedPage(1)}
             petOptions={bookedPetOptions}
           />
           <BookedServicesTab
             errorMessage={bookedRequestsError}
             isLoading={shouldShowBookedSkeleton}
+            onCancelRequest={handleOpenCancelRequest}
+            onPageChange={setBookedPage}
+            pagination={bookedPagination}
+            requestsLoading={isLoadingBookedRequests}
             requests={bookedRequests}
           />
         </TabsContent>
@@ -251,10 +329,21 @@ export function OwnerSpaListPage() {
           <HistoryServicesTab
             errorMessage={historyRequestsError}
             isLoading={shouldShowHistorySkeleton}
+            onPageChange={setHistoryPage}
+            pagination={historyPagination}
+            requestsLoading={isLoadingHistoryRequests}
             requests={historyRequests}
           />
         </TabsContent>
       </Tabs>
+
+      <CancelGroomingRequestDialog
+        errorMessage={cancelErrorMessage}
+        isSubmitting={isCancellingRequest}
+        onClose={handleCloseCancelDialog}
+        onConfirm={handleConfirmCancelRequest}
+        request={cancelRequest}
+      />
     </div>
   )
 }
@@ -402,11 +491,19 @@ function AvailableServicesError({ message }: { message: string }) {
 function BookedServicesTab({
   errorMessage,
   isLoading,
+  onCancelRequest,
+  onPageChange,
+  pagination,
   requests,
+  requestsLoading,
 }: {
   errorMessage: string | null
   isLoading: boolean
+  onCancelRequest: (request: OwnerSpaRequest) => void
+  onPageChange: (page: number) => void
+  pagination: Pagination
   requests: OwnerSpaRequest[]
+  requestsLoading: boolean
 }) {
   if (errorMessage) {
     return <AvailableServicesError message={errorMessage} />
@@ -436,8 +533,16 @@ function BookedServicesTab({
   return (
     <>
       {requests.map((request) => (
-        <OwnerSpaRequestCard key={request.id} request={request} />
+        <OwnerSpaRequestCard key={request.id} onCancelRequest={onCancelRequest} request={request} />
       ))}
+      <AppPagination
+        ariaLabel="Phân trang dịch vụ đã đặt"
+        className="pb-8 pt-2"
+        currentPage={pagination.page}
+        isLoading={requestsLoading}
+        onPageChange={onPageChange}
+        totalPages={pagination.totalPages}
+      />
     </>
   )
 }
@@ -445,11 +550,17 @@ function BookedServicesTab({
 function HistoryServicesTab({
   errorMessage,
   isLoading,
+  onPageChange,
+  pagination,
   requests,
+  requestsLoading,
 }: {
   errorMessage: string | null
   isLoading: boolean
+  onPageChange: (page: number) => void
+  pagination: Pagination
   requests: OwnerSpaRequest[]
+  requestsLoading: boolean
 }) {
   if (errorMessage) {
     return <AvailableServicesError message={errorMessage} />
@@ -481,6 +592,14 @@ function HistoryServicesTab({
       {requests.map((request) => (
         <OwnerSpaRequestCard key={request.id} request={request} />
       ))}
+      <AppPagination
+        ariaLabel="Phân trang lịch sử dịch vụ"
+        className="pb-8 pt-2"
+        currentPage={pagination.page}
+        isLoading={requestsLoading}
+        onPageChange={onPageChange}
+        totalPages={pagination.totalPages}
+      />
     </>
   )
 }
@@ -513,13 +632,139 @@ function BookedRequestSkeleton() {
   )
 }
 
+function CancelGroomingRequestDialog({
+  errorMessage,
+  isSubmitting,
+  onClose,
+  onConfirm,
+  request,
+}: {
+  errorMessage: string | null
+  isSubmitting: boolean
+  onClose: () => void
+  onConfirm: () => void
+  request: OwnerSpaRequest | null
+}) {
+  function handleClose() {
+    if (!isSubmitting) {
+      onClose()
+    }
+  }
+
+  return (
+    <Dialog
+      open={Boolean(request)}
+      onOpenChange={(open) => {
+        if (!open) {
+          handleClose()
+        }
+      }}
+    >
+      <DialogContent
+        className="max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-[420px] overflow-y-auto rounded-xl border border-[#E4E3D7] bg-white px-5 py-8 shadow-[0_18px_50px_rgba(0,0,0,0.18)] sm:p-8"
+        showCloseButton={false}
+      >
+        {request ? (
+          <div className="flex flex-col items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-4 top-4 size-10 rounded-full text-[#3E4946] hover:bg-[#F5F4E8] hover:text-[#1B1C15]"
+              disabled={isSubmitting}
+              onClick={handleClose}
+              type="button"
+            >
+              <X className="size-6" aria-hidden="true" />
+              <span className="sr-only">Đóng</span>
+            </Button>
+
+            <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#FFF3C4] text-[#B45309] sm:size-[72px]">
+              <AlertTriangle className="size-8 sm:size-10" aria-hidden="true" />
+            </span>
+            
+            <DialogTitle className="mt-5 text-center text-2xl font-bold leading-8 tracking-[0] text-[#1B1C15] sm:text-[28px] sm:leading-9">
+              Hủy yêu cầu dịch vụ?
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-center text-sm leading-6 text-[#3E4946] sm:text-base">
+              Bạn có chắc muốn hủy yêu cầu này không?
+            </DialogDescription>
+
+            <div className="mt-6 w-full rounded-xl bg-[#F5F4E8] px-5 py-4">
+              <CancelSummaryRow label="Mã yêu cầu:" value={request.bookingCode} emphasized />
+              <CancelSummaryRow label="Dịch vụ:" value={request.serviceName} />
+              <CancelSummaryRow label="Thú cưng:" value={request.petName} />
+              <CancelSummaryRow label="Thời gian:" value={request.scheduledAt} />
+              <CancelSummaryRow label="Trạng thái:" value={spaStatusLabel[request.status]} />
+            </div>
+
+            <div className="mt-6 w-full flex gap-3 rounded-xl border border-[#FBC97C] bg-[#FFF9E8] px-4 py-3 text-[#A34700]">
+              <Info className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+              <p className="text-[13px] leading-5 sm:text-sm sm:leading-5">
+                Sau khi hủy, yêu cầu sẽ không còn được trung tâm tiếp nhận. Bạn có thể đặt lại dịch vụ nếu cần.
+              </p>
+            </div>
+
+            {errorMessage ? (
+              <div className="mt-4 flex w-full items-start gap-2 rounded-lg border border-[#F8C7C7] bg-[#FFF5F5] px-4 py-3 text-sm leading-5 text-[#8A1F1F]">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <p>{errorMessage}</p>
+              </div>
+            ) : null}
+
+            <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                className="h-12 w-full rounded-lg border-[#6E7A76] bg-white px-5 text-base font-semibold text-[#1B1C15] hover:bg-[#F5F4E8] sm:w-auto"
+                disabled={isSubmitting}
+                onClick={handleClose}
+                type="button"
+              >
+                Không hủy
+              </Button>
+              <Button
+                className="h-12 w-full rounded-lg bg-[#C81E1E] px-5 text-base font-semibold text-white hover:bg-[#A91B1B] sm:w-auto"
+                disabled={isSubmitting}
+                onClick={onConfirm}
+                type="button"
+              >
+                {isSubmitting ? "Đang hủy" : "Xác nhận hủy"}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function CancelSummaryRow({
+  emphasized = false,
+  label,
+  value,
+}: {
+  emphasized?: boolean
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex justify-between gap-4 py-1.5 text-sm sm:text-base">
+      <span className="shrink-0 text-[#3E4946]">{label}</span>
+      <span className={cn("min-w-0 break-words text-right text-[#1B1C15]", emphasized ? "font-bold" : "font-medium")}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
 function BookedServiceFilters({
   filters,
   onFiltersChange,
+  onPageReset,
   petOptions,
 }: {
   filters: BookedServiceFilterState
   onFiltersChange: React.Dispatch<React.SetStateAction<BookedServiceFilterState>>
+  onPageReset: () => void
   petOptions: Array<{ label: string; value: string }>
 }) {
   const hasActiveFilter =
@@ -529,6 +774,7 @@ function BookedServiceFilters({
     filters.timeRange !== "all"
 
   function resetFilters() {
+    onPageReset()
     onFiltersChange({
       search: "",
       pet: "all",
@@ -538,6 +784,7 @@ function BookedServiceFilters({
   }
 
   function updateFilter(key: keyof BookedServiceFilterState, value: string) {
+    onPageReset()
     onFiltersChange((currentFilters) => ({
       ...currentFilters,
       [key]: value,
