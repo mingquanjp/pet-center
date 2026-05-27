@@ -7,6 +7,8 @@ import type {
   PetMedicalExam,
   PetMedicalExamDetail,
   PetMedicalExamsParams,
+  PetVaccination,
+  PetVaccinationsParams,
   PetsListParams,
 } from "../types/pet.types";
 
@@ -79,5 +81,23 @@ export const petsApi = {
     );
 
     return response.data;
+  },
+
+  async listVaccinations(
+    petId: string,
+    params: PetVaccinationsParams = {},
+    init: RequestInit = {}
+  ): Promise<{ vaccinations: PetVaccination[]; pagination: Pagination }> {
+    const response = await apiRequest<PetVaccination[]>(`/pets/${encodeURIComponent(petId)}/vaccinations${buildQuery(params)}`, init);
+
+    return {
+      vaccinations: response.data,
+      pagination: response.pagination ?? {
+        page: params.page ?? 1,
+        limit: params.limit ?? response.data.length,
+        total: response.data.length,
+        totalPages: response.data.length > 0 ? 1 : 0,
+      },
+    };
   },
 };

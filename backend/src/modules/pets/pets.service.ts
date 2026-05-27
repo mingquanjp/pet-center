@@ -2,7 +2,7 @@ import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
 import { createPagination, normalizePagination } from "../../shared/utils/pagination.js";
-import type { CreatePetPayload, ListPetsQuery, PetMedicalExamsQuery, UpdatePetPayload } from "./pets.schema.js";
+import type { CreatePetPayload, ListPetsQuery, PetMedicalExamsQuery, PetVaccinationsQuery, UpdatePetPayload } from "./pets.schema.js";
 import * as petsRepository from "./pets.repository.js";
 
 function assertOwner(authUser: AuthUser): void {
@@ -77,6 +77,30 @@ export async function getOwnerPetMedicalExam(authUser: AuthUser, petId: string, 
   }
 
   return exam;
+}
+
+export async function listOwnerPetVaccinations(authUser: AuthUser, petId: string, query: PetVaccinationsQuery) {
+  assertOwner(authUser);
+
+  const pet = await petsRepository.findPetById(authUser.userId, petId);
+
+  if (!pet) {
+    throw new AppError("KhÃ´ng tÃ¬m tháº¥y há»“ sÆ¡ thÃº cÆ°ng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  const paginationInput = normalizePagination(query.page, query.limit);
+  const result = await petsRepository.findPetVaccinations({
+    ownerUserId: authUser.userId,
+    petId,
+    q: query.q,
+    status: query.status,
+    ...paginationInput
+  });
+
+  return {
+    data: result.vaccinations,
+    pagination: createPagination(paginationInput.page, paginationInput.limit, result.total)
+  };
 }
 
 export async function createOwnerPet(authUser: AuthUser, payload: CreatePetPayload) {

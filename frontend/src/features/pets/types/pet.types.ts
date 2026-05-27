@@ -132,11 +132,34 @@ export type PetMedicalExamDetail = PetMedicalExam & {
   followUp: PetFollowUpInstruction | null;
 };
 
+export type PetVaccinationStatus = "completed" | "due-soon" | "overdue";
+
+export type PetVaccination = {
+  vaccinationId: string;
+  petId: string;
+  examId: string | null;
+  appointmentId: string | null;
+  vaccineName: string;
+  vaccinationDate: string;
+  nextReminderDate: string;
+  status: PetVaccinationStatus;
+  note: string | null;
+  veterinarianUserId: string | null;
+  veterinarianName: string | null;
+};
+
 export type PetMedicalExamsParams = {
   q?: string;
   examType?: "all" | PetMedicalExam["examTypeCode"];
   from?: string;
   to?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type PetVaccinationsParams = {
+  q?: string;
+  status?: "all" | PetVaccinationStatus;
   page?: number;
   limit?: number;
 };

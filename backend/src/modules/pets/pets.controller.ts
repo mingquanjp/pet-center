@@ -7,6 +7,7 @@ import type {
   PetMedicalExamParams,
   PetMedicalExamsQuery,
   PetParams,
+  PetVaccinationsQuery,
   UpdatePetPayload
 } from "./pets.schema.js";
 import * as petsService from "./pets.service.js";
@@ -36,6 +37,13 @@ export async function getPetMedicalExam(req: Request, res: Response): Promise<vo
   const exam = await petsService.getOwnerPetMedicalExam(req.user!, petId, examId);
 
   sendSuccess(res, exam);
+}
+
+export async function listPetVaccinations(req: Request, res: Response): Promise<void> {
+  const { petId } = req.params as PetParams;
+  const result = await petsService.listOwnerPetVaccinations(req.user!, petId, req.query as unknown as PetVaccinationsQuery);
+
+  sendPaginated(res, result.data, result.pagination);
 }
 
 export async function createPet(req: Request, res: Response): Promise<void> {

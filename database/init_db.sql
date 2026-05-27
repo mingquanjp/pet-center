@@ -258,10 +258,8 @@ CREATE TABLE boarding_records (
     pet_id VARCHAR(30) NOT NULL REFERENCES pets(pet_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     owner_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     room_type_id VARCHAR(30) NOT NULL REFERENCES room_types(room_type_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    planned_check_in_date DATE NOT NULL,
-    planned_check_out_date DATE NOT NULL,
-    planned_check_in_at TIMESTAMPTZ,
-    planned_check_out_at TIMESTAMPTZ,
+    planned_check_in_at TIMESTAMPTZ NOT NULL,
+    planned_check_out_at TIMESTAMPTZ NOT NULL,
     actual_check_in_at TIMESTAMPTZ,
     actual_check_out_at TIMESTAMPTZ,
     care_request TEXT,
@@ -269,8 +267,7 @@ CREATE TABLE boarding_records (
     boarding_status VARCHAR(30) NOT NULL DEFAULT 'pending',
     rejection_reason TEXT,
     handled_by_staff_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
-    CONSTRAINT chk_boarding_planned_dates CHECK (planned_check_out_date > planned_check_in_date),
-    CONSTRAINT chk_boarding_planned_times CHECK (planned_check_out_at IS NULL OR planned_check_in_at IS NULL OR planned_check_out_at > planned_check_in_at),
+    CONSTRAINT chk_boarding_planned_times CHECK (planned_check_out_at > planned_check_in_at),
     CONSTRAINT chk_boarding_actual_dates CHECK (actual_check_out_at IS NULL OR actual_check_in_at IS NULL OR actual_check_out_at > actual_check_in_at),
     CONSTRAINT chk_boarding_total CHECK (estimated_total >= 0),
     CONSTRAINT chk_boarding_status CHECK (boarding_status IN ('pending_payment', 'pending', 'confirmed', 'staying', 'checked_out', 'rejected', 'cancelled')),
@@ -442,8 +439,8 @@ CREATE INDEX idx_grooming_tickets_owner_status ON grooming_tickets(owner_user_id
 CREATE INDEX idx_grooming_tickets_schedule_status ON grooming_tickets(scheduled_at, ticket_status);
 CREATE INDEX idx_grooming_ticket_items_ticket ON grooming_ticket_items(grooming_ticket_id);
 CREATE INDEX idx_grooming_ticket_items_service ON grooming_ticket_items(service_id);
-CREATE INDEX idx_boarding_records_pet_dates ON boarding_records(pet_id, planned_check_in_date, planned_check_out_date);
-CREATE INDEX idx_boarding_records_room_dates ON boarding_records(room_type_id, planned_check_in_date, planned_check_out_date);
+CREATE INDEX idx_boarding_records_pet_dates ON boarding_records(pet_id, planned_check_in_at, planned_check_out_at);
+CREATE INDEX idx_boarding_records_room_dates ON boarding_records(room_type_id, planned_check_in_at, planned_check_out_at);
 CREATE INDEX idx_boarding_records_owner_status ON boarding_records(owner_user_id, boarding_status);
 CREATE INDEX idx_boarding_records_staff ON boarding_records(handled_by_staff_id);
 CREATE INDEX idx_boarding_updates_record_time ON boarding_updates(boarding_record_id, updated_at DESC);
