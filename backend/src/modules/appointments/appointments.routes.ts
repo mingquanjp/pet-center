@@ -4,7 +4,12 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as appointmentsController from "./appointments.controller.js";
-import { listStaffAppointmentsQuerySchema } from "./appointments.schema.js";
+import { 
+  listStaffAppointmentsQuerySchema,
+  staffAppointmentIdParamsSchema,
+  confirmStaffAppointmentSchema,
+  rejectStaffAppointmentSchema
+} from "./appointments.schema.js";
 
 export const appointmentsRouter = Router();
 
@@ -68,4 +73,34 @@ appointmentsRouter.get(
   requireRole("STAFF", "ADMIN"),
   validateRequest({ query: listStaffAppointmentsQuerySchema }),
   asyncHandler(appointmentsController.listStaffAppointments)
+);
+
+appointmentsRouter.get(
+  "/staff/appointments/:appointmentId",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffAppointmentIdParamsSchema }),
+  asyncHandler(appointmentsController.getStaffAppointmentDetail)
+);
+
+appointmentsRouter.patch(
+  "/staff/appointments/:appointmentId/confirm",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({
+    params: staffAppointmentIdParamsSchema,
+    body: confirmStaffAppointmentSchema
+  }),
+  asyncHandler(appointmentsController.confirmStaffAppointment)
+);
+
+appointmentsRouter.patch(
+  "/staff/appointments/:appointmentId/reject",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({
+    params: staffAppointmentIdParamsSchema,
+    body: rejectStaffAppointmentSchema
+  }),
+  asyncHandler(appointmentsController.rejectStaffAppointment)
 );
