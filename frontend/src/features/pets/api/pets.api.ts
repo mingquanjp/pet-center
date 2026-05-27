@@ -7,15 +7,18 @@ import type {
   PetMedicalExam,
   PetMedicalExamDetail,
   PetMedicalExamsParams,
+  PetSpaHistory,
+  PetSpaHistoryParams,
   PetVaccination,
   PetVaccinationsParams,
   PetsListParams,
+  UpdatePetInput,
 } from "../types/pet.types";
 
-function buildQuery(params: PetsListParams): string {
+function buildQuery(params: object): string {
   const searchParams = new URLSearchParams();
 
-  Object.entries(params).forEach(([key, value]) => {
+  Object.entries(params as Record<string, string | number | undefined>).forEach(([key, value]) => {
     if (value !== undefined) {
       searchParams.set(key, String(value));
     }
@@ -56,6 +59,15 @@ export const petsApi = {
     return response.data;
   },
 
+  async update(petId: string, payload: UpdatePetInput): Promise<PetDetail> {
+    const response = await apiRequest<PetDetail>(`/pets/${encodeURIComponent(petId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+
+    return response.data;
+  },
+
   async listMedicalExams(
     petId: string,
     params: PetMedicalExamsParams = {},
@@ -92,6 +104,24 @@ export const petsApi = {
 
     return {
       vaccinations: response.data,
+      pagination: response.pagination ?? {
+        page: params.page ?? 1,
+        limit: params.limit ?? response.data.length,
+        total: response.data.length,
+        totalPages: response.data.length > 0 ? 1 : 0,
+      },
+    };
+  },
+
+  async listSpaHistory(
+    petId: string,
+    params: PetSpaHistoryParams = {},
+    init: RequestInit = {}
+  ): Promise<{ records: PetSpaHistory[]; pagination: Pagination }> {
+    const response = await apiRequest<PetSpaHistory[]>(`/pets/${encodeURIComponent(petId)}/spa-history${buildQuery(params)}`, init);
+
+    return {
+      records: response.data,
       pagination: response.pagination ?? {
         page: params.page ?? 1,
         limit: params.limit ?? response.data.length,
