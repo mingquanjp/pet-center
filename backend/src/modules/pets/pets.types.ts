@@ -160,6 +160,21 @@ export type PetVaccinationDto = {
   veterinarianName: string | null;
 };
 
+export type PetSpaHistoryDto = {
+  groomingTicketId: string;
+  petId: string;
+  serviceName: string;
+  serviceTypeName: string;
+  scheduledAt: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  ticketStatus: "completed" | "cancelled";
+  ticketStatusLabel: string;
+  specialRequest: string | null;
+  totalAmount: number;
+  includedServices: string;
+};
+
 export type PetMedicalExamFilters = {
   ownerUserId: string;
   petId: string;
@@ -177,6 +192,18 @@ export type PetVaccinationFilters = {
   petId: string;
   q?: string;
   status?: PetVaccinationStatus;
+  page: number;
+  limit: number;
+  offset: number;
+};
+
+export type PetSpaHistoryFilters = {
+  ownerUserId: string;
+  petId: string;
+  q?: string;
+  serviceType?: string;
+  from?: Date;
+  to?: Date;
   page: number;
   limit: number;
   offset: number;
