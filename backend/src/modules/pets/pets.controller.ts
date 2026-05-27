@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import { sendPaginated, sendSuccess } from "../../shared/responses/api-response.js";
-import type { CreatePetPayload, ListPetsQuery, PetParams, UpdatePetPayload } from "./pets.schema.js";
+import type { CreatePetPayload, ListPetsQuery, PetMedicalExamsQuery, PetParams, UpdatePetPayload } from "./pets.schema.js";
 import * as petsService from "./pets.service.js";
 
 export async function listPets(req: Request, res: Response): Promise<void> {
@@ -15,6 +15,13 @@ export async function getPet(req: Request, res: Response): Promise<void> {
   const pet = await petsService.getOwnerPet(req.user!, petId);
 
   sendSuccess(res, pet);
+}
+
+export async function listPetMedicalExams(req: Request, res: Response): Promise<void> {
+  const { petId } = req.params as PetParams;
+  const result = await petsService.listOwnerPetMedicalExams(req.user!, petId, req.query as unknown as PetMedicalExamsQuery);
+
+  sendPaginated(res, result.data, result.pagination);
 }
 
 export async function createPet(req: Request, res: Response): Promise<void> {

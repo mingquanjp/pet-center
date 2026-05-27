@@ -14,8 +14,6 @@ import {
   ClipboardList,
   Download,
   Edit3,
-  FileText,
-  HeartPulse,
   History,
   Info,
   LoaderCircle,
@@ -36,7 +34,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { includesSearchText, normalizeSearchText } from "@/lib/search"
 import { cn } from "@/lib/utils"
 import { petsApi } from "../../api/pets.api"
-import type { PetDetail } from "../../types/pet.types"
+import type { PetActivityLog, PetDetail } from "../../types/pet.types"
 
 const tabs = [
   { id: "basic", label: "Hồ sơ cơ bản" },
@@ -46,39 +44,6 @@ const tabs = [
 ] as const
 
 type PetDetailTab = (typeof tabs)[number]["id"]
-
-const recentActivities = [
-  {
-    title: "Khám sức khỏe định kỳ",
-    meta: "Bác sĩ: Bs. Trần Văn B",
-    date: "12/10/2023 - 09:30",
-    description:
-      "Thú cưng phát triển bình thường, cân nặng ổn định. Đã tẩy giun định kỳ. Khuyến nghị duy trì chế độ ăn hiện tại.",
-    icon: HeartPulse,
-    tone: "primary",
-    tag: "Toa thuốc",
-    tagIcon: FileText,
-  },
-  {
-    title: "Dịch vụ spa và cắt tỉa",
-    meta: "Nhân viên: Nguyễn Thị C",
-    date: "25/09/2023 - 14:00",
-    description: "Gội tắm thảo dược và tỉa lông. Thú cưng hợp tác tốt trong quá trình chăm sóc.",
-    icon: Scissors,
-    tone: "warning",
-  },
-  {
-    title: "Tiêm vaccine Rabies",
-    meta: "Bác sĩ: Bs. Trần Văn B",
-    date: "10/06/2023 - 10:15",
-    description: "Tiêm phòng dại mũi nhắc lại hằng năm. Cần theo dõi phản ứng trong 24 giờ sau tiêm.",
-    icon: Syringe,
-    tone: "muted",
-    tag: "Đã hoàn thành",
-    tagIcon: CheckCircle2,
-  },
-]
-const recentActivitiesPreview = recentActivities.slice(0, 3)
 
 const examinationRecords = [
   {
@@ -126,14 +91,10 @@ const vaccinationRecords = [
     name: "Vaccine Rabies (Dại)",
     shortName: "Vaccine Rabies",
     type: "Tiêm phòng dại",
-    status: "due-soon",
-    statusLabel: "Sắp đến hạn",
     performedDate: "10/06/2023",
-    reminderDate: "10/06/2024",
     doctor: "Bs. Trần Văn B",
     note: "Cần theo dõi 24h sau tiêm.",
     reaction: "Không ghi nhận bất thường.",
-    reminderNote: "Vui lòng đặt lịch trước 3-5 ngày",
     icon: Syringe,
   },
   {
@@ -141,14 +102,10 @@ const vaccinationRecords = [
     name: "Vaccine Care (5 trong 1)",
     shortName: "Vaccine Care",
     type: "Vaccine tổng hợp",
-    status: "completed",
-    statusLabel: "Đã hoàn thành",
     performedDate: "15/04/2023",
-    reminderDate: "15/04/2024",
     doctor: "Bs. Nguyễn Thị A",
     note: "Không có dấu hiệu bất thường.",
     reaction: "Không ghi nhận bất thường.",
-    reminderNote: "Nhắc lại theo chỉ định bác sĩ",
     icon: Syringe,
   },
   {
@@ -156,14 +113,10 @@ const vaccinationRecords = [
     name: "Tẩy giun định kỳ",
     shortName: "Tẩy giun định kỳ",
     type: "Phòng ký sinh trùng",
-    status: "completed",
-    statusLabel: "Đã hoàn thành",
     performedDate: "12/10/2023",
-    reminderDate: "12/01/2024",
     doctor: "Bs. Lê Văn C",
     note: "Uống thuốc Nexgard.",
     reaction: "Không ghi nhận bất thường.",
-    reminderNote: "Duy trì tẩy giun định kỳ mỗi 3 tháng",
     icon: Pill,
   },
   {
@@ -171,14 +124,10 @@ const vaccinationRecords = [
     name: "Vaccine Parvo",
     shortName: "Vaccine Parvo",
     type: "Tiêm phòng Parvo",
-    status: "completed",
-    statusLabel: "Đã hoàn thành",
     performedDate: "10/02/2023",
-    reminderDate: "10/02/2024",
     doctor: "Bs. Trần Văn B",
     note: "Thú cưng khỏe mạnh.",
     reaction: "Không ghi nhận bất thường.",
-    reminderNote: "Theo dõi lịch nhắc lại hàng năm",
     icon: Syringe,
   },
 ] satisfies Array<{
@@ -186,16 +135,56 @@ const vaccinationRecords = [
   name: string
   shortName: string
   type: string
-  status: VaccinationFilter
-  statusLabel: string
   performedDate: string
-  reminderDate: string
   doctor: string
   note: string
   reaction: string
-  reminderNote: string
   icon: typeof Syringe
 }>
+
+function parseDisplayDate(value: string) {
+  const [day, month, year] = value.split("/").map(Number)
+
+  return new Date(year, month - 1, day)
+}
+
+function formatDisplayDate(value: Date) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(value)
+}
+
+function getVaccinationReminderDate(performedDate: string) {
+  const reminderDate = parseDisplayDate(performedDate)
+  reminderDate.setFullYear(reminderDate.getFullYear() + 1)
+
+  return reminderDate
+}
+
+function getVaccinationStatus(performedDate: string): Exclude<VaccinationFilter, "all"> {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const dueSoonThreshold = new Date(today)
+  dueSoonThreshold.setDate(dueSoonThreshold.getDate() + 30)
+
+  const reminderDate = getVaccinationReminderDate(performedDate)
+
+  if (reminderDate < today) return "overdue"
+  if (reminderDate <= dueSoonThreshold) return "due-soon"
+
+  return "completed"
+}
+
+function getVaccinationStatusLabel(status: Exclude<VaccinationFilter, "all">) {
+  return {
+    completed: "Đã hoàn thành",
+    "due-soon": "Sắp đến hạn",
+    overdue: "Quá hạn",
+  }[status]
+}
 
 const spaServiceTypeOptions = ["Tất cả", "Cắt tỉa tạo kiểu", "Tắm gội", "Chăm sóc móng"] as const
 const spaTimeOptions = ["Tất cả thời gian", "3 tháng gần đây", "6 tháng gần đây", "Năm nay"] as const
@@ -212,7 +201,6 @@ const spaRecords = [
     serviceType: "Cắt tỉa tạo kiểu",
     packageName: "Gói tạo kiểu Golden",
     includedServices: "Tắm sấy, cắt tỉa lông, vệ sinh tai, xịt dưỡng khử mùi.",
-    staff: "Nguyễn Thị C",
   },
   {
     id: "spa-2023-08-10",
@@ -222,7 +210,6 @@ const spaRecords = [
     serviceType: "Tắm gội",
     packageName: "Tắm thảo mộc",
     includedServices: "Tắm sấy khử mùi, chải lông, vệ sinh tuyến hôi.",
-    staff: "Trần Văn D",
   },
   {
     id: "spa-2023-07-15",
@@ -232,7 +219,6 @@ const spaRecords = [
     serviceType: "Chăm sóc móng",
     packageName: "Cắt mài móng",
     includedServices: "Cắt móng, mài dũa an toàn, dưỡng viền móng.",
-    staff: "Nguyễn Thị C",
   },
 ] satisfies Array<{
   id: string
@@ -242,7 +228,6 @@ const spaRecords = [
   serviceType: Exclude<SpaServiceTypeFilter, "Tất cả">
   packageName: string
   includedServices: string
-  staff: string
 }>
 
 export function OwnerPetDetailPage({ petId }: { petId: string }) {
@@ -408,19 +393,19 @@ function BasicProfileTab({ GenderIcon, pet }: { GenderIcon: typeof Mars; pet: Pe
             <History className="h-6 w-6 text-petcenter-primary" />
             <h2 className="heading-sm text-petcenter-text">Hoạt động gần đây</h2>
           </div>
-          <button className="label-md inline-flex items-center gap-1 font-semibold text-petcenter-primary hover:underline">
-            Xem tất cả
-            <ChevronRight className="h-4 w-4" />
-          </button>
         </div>
 
         <div className="relative ml-1.5">
           <div className="absolute bottom-0 left-[5.5px] top-0 w-px bg-petcenter-border-strong" />
-          <div className="space-y-10">
-            {recentActivitiesPreview.map((item) => (
-              <ActivityItem key={item.title} activity={item} />
-            ))}
-          </div>
+          {pet.recentActivities.length > 0 ? (
+            <div className="space-y-10">
+              {pet.recentActivities.map((item) => (
+                <ActivityItem key={item.activityLogId} activity={item} />
+              ))}
+            </div>
+          ) : (
+            <EmptyFilterState description="Chưa có hoạt động nào được ghi nhận cho thú cưng này." title="Chưa có hoạt động gần đây" />
+          )}
         </div>
       </section>
     </div>
@@ -528,7 +513,8 @@ function VaccinationTab({ petName }: { petName: string }) {
   const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue)
 
   const filteredRecords = vaccinationRecords.filter((record) => {
-    const matchesFilter = activeFilter === "all" || record.status === activeFilter
+    const recordStatus = getVaccinationStatus(record.performedDate)
+    const matchesFilter = activeFilter === "all" || recordStatus === activeFilter
     const normalizedSearch = normalizeSearchText(debouncedSearchValue)
     const matchesSearch =
       normalizedSearch.length === 0 ||
@@ -538,6 +524,7 @@ function VaccinationTab({ petName }: { petName: string }) {
   })
 
   const latestRecord = vaccinationRecords[0]
+  const latestReminderDate = latestRecord ? formatDisplayDate(getVaccinationReminderDate(latestRecord.performedDate)) : "Chưa có dữ liệu"
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -547,9 +534,10 @@ function VaccinationTab({ petName }: { petName: string }) {
             <Activity className="h-5 w-5 text-petcenter-primary" />
             <h2 className="label-md font-bold text-petcenter-primary">Tóm tắt tiêm chủng</h2>
           </div>
-          <div className="grid flex-1 gap-4 sm:grid-cols-2 lg:max-w-3xl lg:divide-x lg:divide-petcenter-border-strong">
+          <div className="grid flex-1 gap-4 sm:grid-cols-3 lg:max-w-4xl lg:divide-x lg:divide-petcenter-border-strong">
             <SummaryInline label="Tổng số liều" value={`${vaccinationRecords.length} liều`} />
             <SummaryInline label="Mũi gần nhất" value={`${latestRecord.shortName} - ${latestRecord.performedDate}`} />
+            <SummaryInline label="Nhắc lại tự động" value={latestReminderDate} />
           </div>
         </div>
       </section>
@@ -631,7 +619,7 @@ function SpaHistoryTab({ petName }: { petName: string }) {
     const normalizedSearch = normalizeSearchText(debouncedSearchValue)
     const matchesSearch =
       normalizedSearch.length === 0 ||
-      [record.title, record.packageName, record.includedServices, record.staff].some((value) =>
+      [record.title, record.packageName, record.includedServices].some((value) =>
         includesSearchText(value, normalizedSearch)
       )
     const matchesType = serviceTypeFilter === "Tất cả" || record.serviceType === serviceTypeFilter
@@ -653,7 +641,7 @@ function SpaHistoryTab({ petName }: { petName: string }) {
         <div className="grid gap-6 md:grid-cols-3 md:divide-x md:divide-petcenter-border-strong">
           <SummaryMetric label="Tổng số lần sử dụng" value={String(spaRecords.length)} />
           <SummaryMetric label="Lần gần nhất" value={latestRecord?.date ?? "Chưa có dữ liệu"} />
-          <SummaryMetric label="Nhân viên" value={latestRecord?.staff ?? "Chưa có dữ liệu"} />
+          <SummaryMetric label="Dịch vụ gần nhất" value={latestRecord?.serviceType ?? "Chưa có dữ liệu"} />
         </div>
       </section>
 
@@ -670,7 +658,7 @@ function SpaHistoryTab({ petName }: { petName: string }) {
               <input
                 className="body-sm h-10 w-full rounded-control border-0 bg-petcenter-sidebar pl-10 pr-3 text-petcenter-text outline-none transition focus:bg-white focus:ring-2 focus:ring-petcenter-primary/20"
                 onChange={(event) => setSearchValue(event.target.value)}
-                placeholder="Tìm theo dịch vụ, nhân viên..."
+                placeholder="Tìm theo dịch vụ, gói chăm sóc..."
                 type="search"
                 value={searchValue}
               />
@@ -782,10 +770,6 @@ function SpaRecordCard({ record }: { record: (typeof spaRecords)[number] }) {
           </p>
         </div>
 
-        <div className="md:text-right">
-          <p className="label-sm uppercase text-petcenter-text-secondary">Nhân viên thực hiện</p>
-          <p className="body-md font-bold text-petcenter-text">{record.staff}</p>
-        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -836,6 +820,9 @@ function VaccinationRecordCard({
   record: (typeof vaccinationRecords)[number]
 }) {
   const Icon = record.icon
+  const status = getVaccinationStatus(record.performedDate)
+  const statusLabel = getVaccinationStatusLabel(status)
+  const reminderDate = formatDisplayDate(getVaccinationReminderDate(record.performedDate))
 
   return (
     <article className="flex flex-col gap-6 rounded-card border border-petcenter-border bg-white p-5 shadow-card lg:p-6">
@@ -844,9 +831,9 @@ function VaccinationRecordCard({
           <div
             className={cn(
               "flex h-11 w-11 shrink-0 items-center justify-center rounded-control",
-              record.status === "due-soon"
-                ? "bg-petcenter-warning-bg text-petcenter-warning-text"
-                : "bg-petcenter-success-bg text-petcenter-success-text"
+              status === "due-soon" && "bg-petcenter-warning-bg text-petcenter-warning-text",
+              status === "completed" && "bg-petcenter-success-bg text-petcenter-success-text",
+              status === "overdue" && "bg-petcenter-danger-bg text-petcenter-danger-text"
             )}
           >
             <Icon className="h-5 w-5" />
@@ -854,7 +841,7 @@ function VaccinationRecordCard({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="body-lg font-semibold text-petcenter-text">{record.name}</h3>
-              <VaccinationStatusBadge status={record.status} label={record.statusLabel} />
+              <VaccinationStatusBadge status={status} label={statusLabel} />
             </div>
           </div>
         </div>
@@ -870,7 +857,7 @@ function VaccinationRecordCard({
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <VaccinationField label="Ngày thực hiện" value={record.performedDate} />
-        <VaccinationField emphasis label="Ngày nhắc lại" value={record.reminderDate} />
+        <VaccinationField emphasis label="Ngày nhắc lại" value={reminderDate} />
         <VaccinationField label="Bác sĩ" value={record.doctor} />
         <VaccinationField italic label="Ghi chú" value={record.note} />
       </div>
@@ -887,7 +874,7 @@ function VaccinationField({ emphasis = false, italic = false, label, value }: { 
   )
 }
 
-function VaccinationStatusBadge({ label, status }: { label: string; status: VaccinationFilter }) {
+function VaccinationStatusBadge({ label, status }: { label: string; status: Exclude<VaccinationFilter, "all"> }) {
   return (
     <span
       className={cn(
@@ -911,6 +898,10 @@ function VaccinationDetailDialog({
   petName: string
   record: (typeof vaccinationRecords)[number] | null
 }) {
+  const status = record ? getVaccinationStatus(record.performedDate) : null
+  const statusLabel = status ? getVaccinationStatusLabel(status) : ""
+  const reminderDate = record ? formatDisplayDate(getVaccinationReminderDate(record.performedDate)) : ""
+
   return (
     <Dialog open={Boolean(record)} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-card border-petcenter-border bg-white p-0 shadow-modal" showCloseButton={false}>
@@ -925,7 +916,7 @@ function VaccinationDetailDialog({
                   </DialogDescription>
                 </div>
                 <div className="flex items-center gap-3">
-                  <VaccinationStatusBadge status={record.status} label={record.statusLabel} />
+                  {status ? <VaccinationStatusBadge status={status} label={statusLabel} /> : null}
                   <DialogClose className="rounded-full p-2 text-petcenter-text-secondary transition hover:bg-petcenter-sidebar" aria-label="Đóng">
                     <span className="text-lg leading-none">×</span>
                   </DialogClose>
@@ -939,9 +930,9 @@ function VaccinationDetailDialog({
                   <DialogInfo label="Tên vaccine" value={record.shortName} />
                   <DialogInfo label="Loại" value={record.type} />
                   <DialogInfo label="Thú cưng" value={petName} />
-                  <DialogInfo label="Trạng thái" value={record.statusLabel} valueClassName={record.status === "due-soon" ? "text-petcenter-warning-text" : "text-petcenter-success-text"} />
+                  <DialogInfo label="Trạng thái" value={statusLabel} valueClassName={status === "due-soon" ? "text-petcenter-warning-text" : status === "overdue" ? "text-petcenter-danger-text" : "text-petcenter-success-text"} />
                   <DialogInfo label="Ngày thực hiện" value={record.performedDate} />
-                  <DialogInfo label="Ngày nhắc lại" value={record.reminderDate} valueClassName="text-petcenter-cta-active" />
+                  <DialogInfo label="Ngày nhắc lại" value={reminderDate} valueClassName="text-petcenter-cta-active" />
                   <DialogInfo className="sm:col-span-2" label="Bác sĩ thực hiện" value={record.doctor} />
                 </div>
               </DetailSection>
@@ -961,10 +952,10 @@ function VaccinationDetailDialog({
 
               <DetailSection title="Kế hoạch nhắc lại">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                  <div className="heading-sm font-bold text-petcenter-cta-active">{record.reminderDate}</div>
+                  <div className="heading-sm font-bold text-petcenter-cta-active">{reminderDate}</div>
                   <div className="flex flex-col gap-1">
-                    <VaccinationStatusBadge status={record.status} label={record.statusLabel} />
-                    <p className="label-sm text-petcenter-text-secondary">{record.reminderNote}</p>
+                    {status ? <VaccinationStatusBadge status={status} label={statusLabel} /> : null}
+                    <p className="label-sm text-petcenter-text-secondary">Hệ thống tự nhắc lại sau 1 năm từ ngày thực hiện.</p>
                   </div>
                 </div>
               </DetailSection>
@@ -1119,38 +1110,41 @@ function StatsCard({ GenderIcon, pet }: { GenderIcon: typeof Mars; pet: PetDetai
   )
 }
 
-function ActivityItem({ activity }: { activity: (typeof recentActivities)[number] }) {
-  const Icon = activity.icon
-  const TagIcon = activity.tagIcon
+function ActivityItem({ activity }: { activity: PetActivityLog }) {
+  const activityDate = formatDateTime(activity.occurredAt)
 
   return (
     <article className="relative pl-8">
       <span
         className={cn(
           "absolute left-0 top-1.5 z-10 h-3 w-3 rounded-full",
-          activity.tone === "primary" && "bg-petcenter-primary",
-          activity.tone === "warning" && "bg-petcenter-cta",
-          activity.tone === "muted" && "bg-petcenter-border-strong"
+          activity.activityCategory === "medical" && "bg-petcenter-primary",
+          activity.activityCategory === "vaccination" && "bg-petcenter-success-text",
+          activity.activityCategory === "grooming" && "bg-petcenter-cta",
+          activity.activityCategory === "boarding" && "bg-petcenter-info-text",
+          activity.activityCategory === "invoice" && "bg-petcenter-border-strong",
+          activity.activityCategory === "payment" && "bg-petcenter-success-text",
+          activity.activityCategory === "profile" && "bg-petcenter-text-muted"
         )}
       />
       <div className="flex flex-col gap-2">
         <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
           <h3 className="title-md flex items-center gap-2 text-petcenter-text">
-            <Icon className="h-5 w-5 text-petcenter-primary" />
+            {renderActivityIcon(activity.activityCategory)}
             {activity.title}
           </h3>
           <span className="label-md w-fit rounded-pill bg-petcenter-filter px-3 py-1 text-petcenter-text-secondary">
-            {activity.date}
+            {activityDate}
           </span>
         </div>
-        <p className="body-md text-petcenter-text-secondary">{activity.meta}</p>
+        {activity.actorName ? <p className="body-md text-petcenter-text-secondary">Người thực hiện: {activity.actorName}</p> : null}
         <div className="rounded-control border border-petcenter-border bg-petcenter-filter p-4">
-          <p className="body-md text-petcenter-text">{activity.description}</p>
-          {activity.tag ? (
+          <p className="body-md text-petcenter-text">{activity.summary || "Hoạt động đã được ghi nhận trong hệ thống."}</p>
+          {activity.activityStatus ? (
             <div className="mt-3">
               <span className="label-sm inline-flex items-center gap-1 rounded bg-petcenter-primary/10 px-2 py-1 font-semibold text-petcenter-primary">
-                {TagIcon ? <TagIcon className="h-3.5 w-3.5" /> : null}
-                {activity.tag}
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {getActivityStatusLabel(activity.activityStatus)}
               </span>
             </div>
           ) : null}
@@ -1158,6 +1152,39 @@ function ActivityItem({ activity }: { activity: (typeof recentActivities)[number
       </div>
     </article>
   )
+}
+
+function renderActivityIcon(category: PetActivityLog["activityCategory"]) {
+  const className = "h-5 w-5 text-petcenter-primary"
+
+  switch (category) {
+    case "medical":
+      return <Stethoscope className={className} />
+    case "vaccination":
+      return <Syringe className={className} />
+    case "grooming":
+      return <Scissors className={className} />
+    case "boarding":
+      return <CalendarDays className={className} />
+    case "invoice":
+      return <ClipboardList className={className} />
+    case "payment":
+      return <CheckCircle2 className={className} />
+    case "profile":
+      return <PawPrint className={className} />
+  }
+}
+
+function getActivityStatusLabel(status: PetActivityLog["activityStatus"]) {
+  return {
+    scheduled: "Đã lên lịch",
+    pending: "Đang chờ",
+    confirmed: "Đã xác nhận",
+    completed: "Đã hoàn thành",
+    cancelled: "Đã hủy",
+    rejected: "Đã từ chối",
+    failed: "Thất bại",
+  }[status]
 }
 
 function SectionTitle({ icon: Icon, title }: { icon: typeof ClipboardList; title: string }) {
@@ -1223,5 +1250,21 @@ function formatDate(value: string | null) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+  }).format(date)
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date)
 }

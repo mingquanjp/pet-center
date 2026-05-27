@@ -34,6 +34,66 @@ export type PetHealthProfile = {
 
 export type PetDetail = Pet & {
   healthProfile: PetHealthProfile;
+  recentActivities: PetActivityLog[];
+};
+
+export type PetActivityLog = {
+  activityLogId: string;
+  petId: string;
+  ownerUserId: string;
+  actorUserId: string | null;
+  actorName: string | null;
+  activityCategory: "medical" | "vaccination" | "grooming" | "boarding" | "invoice" | "payment" | "profile";
+  activityType: string;
+  activityStatus: "scheduled" | "pending" | "confirmed" | "completed" | "cancelled" | "rejected" | "failed";
+  occurredAt: string;
+  title: string;
+  summary: string | null;
+  sourceType:
+    | "medical_appointment"
+    | "medical_exam"
+    | "vaccination"
+    | "prescription"
+    | "follow_up_instruction"
+    | "grooming_ticket"
+    | "boarding_record"
+    | "boarding_update"
+    | "invoice"
+    | "payment"
+    | "pet";
+  sourceId: string;
+  metadata: Record<string, unknown>;
+};
+
+export type PetMedicalExam = {
+  examId: string;
+  appointmentId: string;
+  petId: string;
+  examTypeId: string;
+  examTypeCode: "general_checkup" | "vaccination" | "lab_test" | "recheck";
+  examTypeName: string;
+  scheduledAt: string;
+  examDate: string;
+  veterinarianUserId: string;
+  veterinarianName: string;
+  diagnosis: string | null;
+  conclusion: string | null;
+  healthNote: string | null;
+  examStatus: "result_recorded" | "prescribed" | "follow_up_required";
+  symptomDescription: string | null;
+  hasPrescription: boolean;
+  hasFollowUp: boolean;
+  followUpDate: string | null;
+  followUpReason: string | null;
+};
+
+export type PetMedicalExamsParams = {
+  q?: string;
+  examType?: "all" | PetMedicalExam["examTypeCode"];
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
 };
 
 export type PetHealthProfileInput = {

@@ -4,7 +4,19 @@ import { withTransaction } from "../../db/transactions.js";
 import { createId } from "../../shared/utils/id.js";
 import { normalizeSearchText } from "../../shared/utils/search.js";
 import type { CreatePetPayload, UpdatePetPayload } from "./pets.schema.js";
-import type { PetDetailDto, PetDisplayStatus, PetDto, PetListFilters, PetSpecies } from "./pets.types.js";
+import type {
+  PetActivityCategory,
+  PetActivityLogDto,
+  PetActivitySourceType,
+  PetActivityStatus,
+  PetDetailDto,
+  PetDisplayStatus,
+  PetDto,
+  PetListFilters,
+  PetMedicalExamDto,
+  PetMedicalExamFilters,
+  PetSpecies
+} from "./pets.types.js";
 
 type PetRow = QueryResultRow & {
   pet_id: string;
@@ -33,8 +45,47 @@ type PetDetailRow = PetRow & {
   health_profile_updated_at: string | null;
 };
 
+type PetActivityLogRow = QueryResultRow & {
+  activity_log_id: string;
+  pet_id: string;
+  owner_user_id: string;
+  actor_user_id: string | null;
+  actor_name: string | null;
+  activity_category: PetActivityCategory;
+  activity_type: string;
+  activity_status: PetActivityStatus;
+  occurred_at: string;
+  title: string;
+  summary: string | null;
+  source_type: PetActivitySourceType;
+  source_id: string;
+  metadata: Record<string, unknown> | string | null;
+};
+
 type CountRow = QueryResultRow & {
   total: string;
+};
+
+type PetMedicalExamRow = QueryResultRow & {
+  exam_id: string;
+  appointment_id: string;
+  pet_id: string;
+  exam_type_id: string;
+  type_code: PetMedicalExamDto["examTypeCode"];
+  type_name: string;
+  scheduled_at: string;
+  exam_date: string;
+  veterinarian_user_id: string;
+  veterinarian_name: string;
+  diagnosis: string | null;
+  conclusion: string | null;
+  health_note: string | null;
+  exam_status: PetMedicalExamDto["examStatus"];
+  symptom_description: string | null;
+  has_prescription: boolean;
+  has_follow_up: boolean;
+  follow_up_date: string | null;
+  follow_up_reason: string | null;
 };
 
 function toDateInput(value?: Date | null): string | null {
@@ -133,7 +184,7 @@ function mapPet(row: PetRow): PetDto {
   };
 }
 
-function mapPetDetail(row: PetDetailRow): PetDetailDto {
+function mapPetDetail(row: PetDetailRow, recentActivities: PetActivityLogDto[] = []): PetDetailDto {
   return {
     ...mapPet(row),
     healthProfile: {
@@ -144,7 +195,65 @@ function mapPetDetail(row: PetDetailRow): PetDetailDto {
       feedingPortion: row.feeding_portion,
       specialCareNotes: row.special_care_notes,
       updatedAt: row.health_profile_updated_at
+    },
+    recentActivities
+  };
+}
+
+function normalizeMetadata(value: PetActivityLogRow["metadata"]): Record<string, unknown> {
+  if (!value) return {};
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      return {};
     }
+  }
+
+  return value;
+}
+
+function mapPetActivityLog(row: PetActivityLogRow): PetActivityLogDto {
+  return {
+    activityLogId: row.activity_log_id,
+    petId: row.pet_id,
+    ownerUserId: row.owner_user_id,
+    actorUserId: row.actor_user_id,
+    actorName: row.actor_name,
+    activityCategory: row.activity_category,
+    activityType: row.activity_type,
+    activityStatus: row.activity_status,
+    occurredAt: row.occurred_at,
+    title: row.title,
+    summary: row.summary,
+    sourceType: row.source_type,
+    sourceId: row.source_id,
+    metadata: normalizeMetadata(row.metadata)
+  };
+}
+
+function mapPetMedicalExam(row: PetMedicalExamRow): PetMedicalExamDto {
+  return {
+    examId: row.exam_id,
+    appointmentId: row.appointment_id,
+    petId: row.pet_id,
+    examTypeId: row.exam_type_id,
+    examTypeCode: row.type_code,
+    examTypeName: row.type_name,
+    scheduledAt: row.scheduled_at,
+    examDate: row.exam_date,
+    veterinarianUserId: row.veterinarian_user_id,
+    veterinarianName: row.veterinarian_name,
+    diagnosis: row.diagnosis,
+    conclusion: row.conclusion,
+    healthNote: row.health_note,
+    examStatus: row.exam_status,
+    symptomDescription: row.symptom_description,
+    hasPrescription: row.has_prescription,
+    hasFollowUp: row.has_follow_up,
+    followUpDate: row.follow_up_date,
+    followUpReason: row.follow_up_reason
   };
 }
 
@@ -233,23 +342,155 @@ export async function findPets(filters: PetListFilters): Promise<{ pets: PetDto[
 }
 
 export async function findPetById(ownerUserId: string, petId: string): Promise<PetDetailDto | null> {
-  const result = await query<PetDetailRow>(
-    `select ${petSelectSql},
-       php.medical_history,
-       php.allergy_notes,
-       php.chronic_condition_notes,
-       php.food_type,
-       php.feeding_portion,
-       php.special_care_notes,
-       php.updated_at::text as health_profile_updated_at
-     from pet_center.pets p
-     left join pet_center.pet_health_profiles php on php.pet_id = p.pet_id
-     where p.owner_user_id = $1 and p.pet_id = $2
-     limit 1`,
-    [ownerUserId, petId]
+  const [petResult, activities] = await Promise.all([
+    query<PetDetailRow>(
+      `select ${petSelectSql},
+         php.medical_history,
+         php.allergy_notes,
+         php.chronic_condition_notes,
+         php.food_type,
+         php.feeding_portion,
+         php.special_care_notes,
+         php.updated_at::text as health_profile_updated_at
+       from pet_center.pets p
+       left join pet_center.pet_health_profiles php on php.pet_id = p.pet_id
+       where p.owner_user_id = $1 and p.pet_id = $2
+       limit 1`,
+      [ownerUserId, petId]
+    ),
+    findRecentPetActivities(ownerUserId, petId, 3)
+  ]);
+
+  return petResult.rows[0] ? mapPetDetail(petResult.rows[0], activities) : null;
+}
+
+export async function findRecentPetActivities(ownerUserId: string, petId: string, limit = 3): Promise<PetActivityLogDto[]> {
+  const result = await query<PetActivityLogRow>(
+    `select
+       pal.activity_log_id,
+       pal.pet_id,
+       pal.owner_user_id,
+       pal.actor_user_id,
+       actor.full_name as actor_name,
+       pal.activity_category,
+       pal.activity_type,
+       pal.activity_status,
+       pal.occurred_at::text as occurred_at,
+       pal.title,
+       pal.summary,
+       pal.source_type,
+       pal.source_id,
+       pal.metadata
+     from pet_center.pet_activity_logs pal
+     left join pet_center.users actor on actor.user_id = pal.actor_user_id
+     where pal.owner_user_id = $1
+       and pal.pet_id = $2
+       and pal.visibility_status = 'visible'
+     order by pal.occurred_at desc, pal.activity_log_id desc
+     limit $3`,
+    [ownerUserId, petId, limit]
   );
 
-  return result.rows[0] ? mapPetDetail(result.rows[0]) : null;
+  return result.rows.map(mapPetActivityLog);
+}
+
+function buildMedicalExamsWhere(filters: PetMedicalExamFilters): { whereSql: string; params: unknown[] } {
+  const params: unknown[] = [filters.ownerUserId, filters.petId];
+  const conditions = ["ma.owner_user_id = $1", "ma.pet_id = $2"];
+
+  if (filters.examType) {
+    params.push(filters.examType);
+    conditions.push(`et.type_code = $${params.length}`);
+  }
+
+  if (filters.from) {
+    params.push(toDateInput(filters.from));
+    conditions.push(`me.exam_date >= $${params.length}`);
+  }
+
+  if (filters.to) {
+    params.push(toDateInput(filters.to));
+    conditions.push(`me.exam_date <= $${params.length}`);
+  }
+
+  if (filters.q) {
+    params.push(`%${normalizeSearchText(filters.q)}%`);
+    const paramIndex = params.length;
+    conditions.push(`(
+      ${normalizedSql("et.type_name")} like $${paramIndex}
+      or ${normalizedSql("u.full_name")} like $${paramIndex}
+      or ${normalizedSql("me.diagnosis")} like $${paramIndex}
+      or ${normalizedSql("me.conclusion")} like $${paramIndex}
+      or ${normalizedSql("me.health_note")} like $${paramIndex}
+      or ${normalizedSql("ma.symptom_description")} like $${paramIndex}
+    )`);
+  }
+
+  return {
+    whereSql: conditions.join(" and "),
+    params
+  };
+}
+
+export async function findPetMedicalExams(
+  filters: PetMedicalExamFilters
+): Promise<{ exams: PetMedicalExamDto[]; total: number }> {
+  const { whereSql, params } = buildMedicalExamsWhere(filters);
+  const listParams = [...params, filters.limit, filters.offset];
+
+  const [listResult, countResult] = await Promise.all([
+    query<PetMedicalExamRow>(
+      `select
+         me.exam_id,
+         me.appointment_id,
+         ma.pet_id,
+         me.exam_type_id,
+         et.type_code,
+         et.type_name,
+         ma.scheduled_at::text as scheduled_at,
+         me.exam_date::text as exam_date,
+         me.examined_by_veterinarian_id as veterinarian_user_id,
+         u.full_name as veterinarian_name,
+         me.diagnosis,
+         me.conclusion,
+         me.health_note,
+         me.exam_status,
+         ma.symptom_description,
+         exists (
+           select 1 from pet_center.prescriptions pr
+           where pr.exam_id = me.exam_id
+         ) as has_prescription,
+         exists (
+           select 1 from pet_center.follow_up_instructions fui
+           where fui.exam_id = me.exam_id
+         ) as has_follow_up,
+         fui.follow_up_date::text as follow_up_date,
+         fui.reason as follow_up_reason
+       from pet_center.medical_exams me
+       inner join pet_center.medical_appointments ma on ma.appointment_id = me.appointment_id
+       inner join pet_center.exam_types et on et.exam_type_id = me.exam_type_id
+       inner join pet_center.users u on u.user_id = me.examined_by_veterinarian_id
+       left join pet_center.follow_up_instructions fui on fui.exam_id = me.exam_id
+       where ${whereSql}
+       order by me.exam_date desc, ma.scheduled_at desc, me.exam_id desc
+       limit $${params.length + 1} offset $${params.length + 2}`,
+      listParams
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.medical_exams me
+       inner join pet_center.medical_appointments ma on ma.appointment_id = me.appointment_id
+       inner join pet_center.exam_types et on et.exam_type_id = me.exam_type_id
+       inner join pet_center.users u on u.user_id = me.examined_by_veterinarian_id
+       where ${whereSql}`,
+      params
+    )
+  ]);
+
+  return {
+    exams: listResult.rows.map(mapPetMedicalExam),
+    total: Number(countResult.rows[0]?.total ?? 0)
+  };
 }
 
 export async function createPet(ownerUserId: string, payload: CreatePetPayload): Promise<PetDetailDto> {
