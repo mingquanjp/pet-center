@@ -3,6 +3,7 @@ import type {
   BoardingBookingOptions,
   BoardingBookingOptionsParams,
   BoardingRecordCreated,
+  BoardingRecordDetail,
   BoardingRecordListItem,
   BoardingRecordListParams,
   CreateBoardingRecordPayload,
@@ -80,16 +81,12 @@ export const boardingApi = {
   async getOwnerRecordById(
     boardingRecordId: string,
     init: RequestInit = {}
-  ): Promise<BoardingRecordListItem | null> {
-    const result = await this.listOwnerRecords(
-      {
-        search: boardingRecordId,
-        page: 1,
-        limit: 10,
-      },
+  ): Promise<BoardingRecordDetail> {
+    const response = await apiRequest<BoardingRecordDetail>(
+      `/boarding/records/${encodeURIComponent(boardingRecordId)}`,
       init
     )
 
-    return result.records.find((record) => record.boardingRecordId === boardingRecordId) ?? null
+    return response.data
   },
 }

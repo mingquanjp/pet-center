@@ -5,7 +5,6 @@ import Link from "next/link"
 import {
   AlertCircle,
   ArrowLeft,
-  Banknote,
   CalendarCheck,
   Camera,
   Check,
@@ -26,7 +25,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { boardingApi } from "../../api/boarding.api"
-import type { BoardingHealthStatus, BoardingRecordListItem, BoardingRecordStatus } from "../../types/boarding.types"
+import type {
+  BoardingCareLog,
+  BoardingCareLogAlertLevel,
+  BoardingCareLogAttachment,
+  BoardingRecordDetail,
+  BoardingRecordStatus,
+} from "../../types/boarding.types"
 
 type OwnerBoardingDetailPageProps = {
   boardingRecordId: string
@@ -62,7 +67,7 @@ const statusMeta: Record<BoardingRecordStatus, StatusMeta> = {
 }
 
 export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetailPageProps) {
-  const [record, setRecord] = React.useState<BoardingRecordListItem | null>(null)
+  const [record, setRecord] = React.useState<BoardingRecordDetail | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
 
@@ -163,11 +168,22 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
             {meta.label}
           </span>
           <Button
+            asChild={Boolean(record.payment.receiptUrl)}
             variant="outline"
-            className="h-9 rounded-lg border-[#005E53] bg-white px-4 text-xs font-medium text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#005E53]"
+            disabled={!record.payment.receiptUrl}
+            className="h-9 rounded-lg border-[#005E53] bg-white px-4 text-xs font-medium text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#005E53] disabled:cursor-not-allowed disabled:border-[#BDC9C5] disabled:text-[#6E7A76]"
           >
-            <ReceiptText className="mr-2 size-4" aria-hidden="true" />
-            Tải hóa đơn
+            {record.payment.receiptUrl ? (
+              <a href={record.payment.receiptUrl} target="_blank" rel="noreferrer">
+                <ReceiptText className="mr-2 size-4" aria-hidden="true" />
+                Tải hóa đơn
+              </a>
+            ) : (
+              <>
+                <ReceiptText className="mr-2 size-4" aria-hidden="true" />
+                Tải hóa đơn
+              </>
+            )}
           </Button>
           <Button asChild className="h-9 rounded-lg bg-[#005E53] px-4 text-xs font-medium text-white hover:bg-[#004C43]">
             <Link href="/owner/boarding/booking">
@@ -182,8 +198,8 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
         <aside className="space-y-6">
           <InfoCard icon={CalendarCheck} title="Thông tin lưu trú">
             <div className="grid grid-cols-2 gap-4 pt-1">
-              <DateBlock label="Ngày nhận" value={formatDate(record.plannedCheckInAt)} subValue={formatTime(record.plannedCheckInAt)} />
-              <DateBlock label="Ngày trả" value={formatDate(record.plannedCheckOutAt)} subValue={formatTime(record.plannedCheckOutAt)} />
+              <DateBlock label="Ngày nhận" value={formatDate(record.stay.plannedCheckInAt)} subValue={formatTime(record.stay.plannedCheckInAt)} />
+              <DateBlock label="Ngày trả" value={formatDate(record.stay.plannedCheckOutAt)} subValue={formatTime(record.stay.plannedCheckOutAt)} />
             </div>
             <div className="mt-5 space-y-3">
               <DashedRow label="Phòng" value={record.room.roomTypeName} />
@@ -208,7 +224,10 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
               </Avatar>
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-semibold leading-[26px] text-[#1B1C15]">{record.pet.petName}</h2>
-                <p className="text-[13px] leading-[18px] text-[#3E4946]">Hồ sơ thú cưng</p>
+                <p className="text-[13px] leading-[18px] text-[#3E4946]">
+                  {record.pet.speciesLabel}
+                  {record.pet.weightKg !== null ? ` • ${formatWeight(record.pet.weightKg)}` : ""}
+                </p>
                 <span className="mt-1 inline-flex rounded bg-[#EFEEE2] px-2 py-0.5 text-[11px] font-semibold leading-[14px] tracking-[0.22px] text-[#3E4946]">
                   ID: {record.pet.petId}
                 </span>
@@ -217,11 +236,13 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
           </InfoCard>
 
           <InfoCard icon={ClipboardList} iconClassName="text-[#F59E0B]" title="Yêu cầu chăm sóc">
-            <ul className="space-y-3 pt-1">
-              <CareRequestItem icon={Utensils} text="Cho ăn đúng khẩu phần trung tâm đã tiếp nhận." />
-              <CareRequestItem icon={Banknote} text={`Thanh toán: ${record.payment.paymentMethodLabel}.`} />
-              <CareRequestItem icon={Clock3} text={`Thời gian lưu trú ${record.stayDays} ngày.`} />
-            </ul>
+            {record.careRequest ? (
+              <ul className="space-y-3 pt-1">
+                <CareRequestItem icon={Utensils} text={record.careRequest} />
+              </ul>
+            ) : (
+              <p className="text-[13px] leading-[18px] text-[#3E4946]">Chưa có yêu cầu chăm sóc đặc biệt.</p>
+            )}
           </InfoCard>
         </aside>
 
@@ -306,63 +327,99 @@ function CareRequestItem({ icon: Icon, text }: { icon: LucideIcon; text: string 
   )
 }
 
-function CareLogTimeline({ record }: { record: BoardingRecordListItem }) {
-  const entries = getCareLogEntries(record)
+function CareLogTimeline({ record }: { record: BoardingRecordDetail }) {
+  const entries = record.careLogs
+
+  if (entries.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-[#BDC9C5] bg-[#FBFAEE] p-6 text-center text-sm leading-5 text-[#3E4946]">
+        Chưa có nhật ký chăm sóc cho lịch lưu trú này.
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-0 pl-2">
-      {entries.map((entry, index) => (
-        <div className="flex gap-6 pb-8 last:pb-0" key={entry.title}>
-          <div className="relative flex shrink-0 flex-col items-center">
-            <div className={cn("z-10 flex size-10 items-center justify-center rounded-full border-2 border-white shadow-[0_1px_1px_rgba(0,0,0,0.05)]", entry.iconBoxClassName)}>
-              <entry.icon className={cn("size-4", entry.iconClassName)} aria-hidden="true" />
-            </div>
-            {index < entries.length - 1 ? <div className="absolute bottom-[-32px] top-6 w-0.5 bg-[#E6E8DD]" /> : null}
-          </div>
+      {entries.map((entry, index) => {
+        const Icon = getCareLogIcon(entry.logType)
 
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-xs font-medium leading-4 text-[#1B1C15]">{entry.title}</h3>
-                <p className="mt-1 flex items-center gap-1 text-[13px] leading-[18px] text-[#3E4946]">
-                  <Clock3 className="size-3" aria-hidden="true" />
-                  {entry.timeText}
-                </p>
+        return (
+          <div className="flex gap-6 pb-8 last:pb-0" key={entry.logId}>
+            <div className="relative flex shrink-0 flex-col items-center">
+              <div className={cn("z-10 flex size-10 items-center justify-center rounded-full border-2 border-white shadow-[0_1px_1px_rgba(0,0,0,0.05)]", getCareLogIconBoxClassName(entry.logType))}>
+                <Icon className={cn("size-4", entry.logType === "daily_update" ? "text-white" : "text-[#6E7A76]")} aria-hidden="true" />
               </div>
-              <span className={cn("shrink-0 rounded px-2 py-0.5 text-[11px] font-semibold leading-[14px] tracking-[0.22px]", entry.badgeClassName)}>
-                {entry.badge}
-              </span>
+              {index < entries.length - 1 ? <div className="absolute bottom-[-32px] top-6 w-0.5 bg-[#E6E8DD]" /> : null}
             </div>
 
-            <div className="rounded-lg border border-[#E6E8DD] bg-[#FBFAEE] p-4 text-sm leading-5 text-[#1B1C15]">
-              {entry.description}
-            </div>
-
-            {entry.showMedia ? (
-              <div className="grid grid-cols-3 gap-3 pt-2">
-                <MediaPlaceholder label="Ăn uống" />
-                <MediaPlaceholder label="Nghỉ ngơi" />
-                <MediaPlaceholder label="Video" isVideo />
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-xs font-medium leading-4 text-[#1B1C15]">{entry.title}</h3>
+                  <p className="mt-1 flex items-center gap-1 text-[13px] leading-[18px] text-[#3E4946]">
+                    <Clock3 className="size-3" aria-hidden="true" />
+                    {formatDateTime(entry.occurredAt)}
+                  </p>
+                </div>
+                <span className={cn("shrink-0 rounded px-2 py-0.5 text-[11px] font-semibold leading-[14px] tracking-[0.22px]", getHealthBadgeClassName(entry.alertLevel))}>
+                  {entry.alertLabel}
+                </span>
               </div>
-            ) : null}
+
+              <div className="rounded-lg border border-[#E6E8DD] bg-[#FBFAEE] p-4 text-sm leading-5 text-[#1B1C15]">
+                {entry.note}
+              </div>
+
+              {entry.attachments.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-3">
+                  {entry.attachments.map((attachment) => (
+                    <MediaAttachment attachment={attachment} key={attachment.url} />
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
 
-function MediaPlaceholder({ isVideo = false, label }: { isVideo?: boolean; label: string }) {
+function MediaAttachment({ attachment }: { attachment: BoardingCareLogAttachment }) {
+  if (attachment.type === "image") {
+    return (
+      <a
+        href={attachment.url}
+        target="_blank"
+        rel="noreferrer"
+        className="relative block h-[81px] overflow-hidden rounded-xl border border-[#BDC9C5] bg-[#DBDBCF]"
+        aria-label="Ảnh nhật ký chăm sóc"
+      >
+        <span
+          aria-hidden="true"
+          className="block size-full bg-cover bg-center"
+          style={{ backgroundImage: `url(${attachment.url})` }}
+        />
+      </a>
+    )
+  }
+
   return (
-    <div className="relative flex h-[81px] items-center justify-center overflow-hidden rounded-xl border border-[#BDC9C5] bg-[#DBDBCF]">
-      <Camera className="size-5 text-[#6E7A76]" aria-hidden="true" />
-      <span className="sr-only">{label}</span>
-      {isVideo ? (
+    <a
+      href={attachment.url}
+      target="_blank"
+      rel="noreferrer"
+      className="relative flex h-[81px] items-center justify-center overflow-hidden rounded-xl border border-[#BDC9C5] bg-[#DBDBCF] transition hover:border-[#005E53]"
+    >
+      {attachment.type === "video" ? (
         <span className="absolute flex size-10 items-center justify-center rounded-full bg-white/90 text-xs font-bold text-[#005E53] shadow">
           ▶
         </span>
-      ) : null}
-    </div>
+      ) : (
+        <FileText className="size-5 text-[#6E7A76]" aria-hidden="true" />
+      )}
+      <span className="sr-only">{attachment.type === "video" ? "Video nhật ký chăm sóc" : "Tệp nhật ký chăm sóc"}</span>
+    </a>
   )
 }
 
@@ -395,59 +452,27 @@ function BoardingDetailError({ message }: { message: string }) {
   )
 }
 
-function getCareLogEntries(record: BoardingRecordListItem) {
-  const latestCareTime = record.activeCare?.lastUpdatedAt ?? record.plannedCheckOutAt
+function getCareLogIcon(logType: BoardingCareLog["logType"]): LucideIcon {
+  if (logType === "check_out") return Check
+  if (logType === "daily_update") return Camera
+  if (logType === "check_in") return LogIn
 
-  return [
-    ...(record.status === "checked_out"
-      ? [
-          {
-            badge: "Hoàn tất",
-            badgeClassName: "bg-[#E4E3D7] text-[#3E4946]",
-            description: `${record.pet.petName} đã được trao trả cho chủ. Tình trạng lưu trú đã hoàn tất.`,
-            icon: Check,
-            iconBoxClassName: "bg-[#EAF5E8]",
-            iconClassName: "text-[#2E7D32]",
-            showMedia: false,
-            timeText: formatDateTime(record.plannedCheckOutAt),
-            title: "Trả thú cưng thành công",
-          },
-        ]
-      : []),
-    {
-      badge: record.activeCare?.healthStatusLabel ?? "Bình thường",
-      badgeClassName: getHealthBadgeClassName(record.activeCare?.healthStatus),
-      description:
-        record.status === "staying"
-          ? `${record.pet.petName} đang được chăm sóc tại trung tâm. Sức khỏe hiện tại: ${record.activeCare?.healthStatusLabel ?? "chưa cập nhật"}.`
-          : `${record.pet.petName} đang trong quy trình lưu trú theo trạng thái ${record.statusLabel.toLowerCase()}.`,
-      icon: Camera,
-      iconBoxClassName: "bg-[#00796B]",
-      iconClassName: "text-white",
-      showMedia: record.status === "staying" || record.status === "checked_out",
-      timeText: formatDateTime(latestCareTime),
-      title: "Cập nhật hàng ngày",
-    },
-    {
-      badge: "Bắt đầu",
-      badgeClassName: "bg-[#E4E3D7] text-[#3E4946]",
-      description: `${record.pet.petName} đã được ghi nhận lịch lưu trú tại phòng ${record.room.roomTypeName}.`,
-      icon: record.status === "pending" ? FileText : LogIn,
-      iconBoxClassName: "bg-[#EFEEE2]",
-      iconClassName: "text-[#6E7A76]",
-      showMedia: false,
-      timeText: formatDateTime(record.plannedCheckInAt),
-      title: record.status === "pending" ? "Tạo yêu cầu lưu trú" : "Nhận phòng",
-    },
-  ]
+  return FileText
 }
 
-function getHealthBadgeClassName(status: BoardingHealthStatus | undefined) {
+function getCareLogIconBoxClassName(logType: BoardingCareLog["logType"]) {
+  if (logType === "daily_update") return "bg-[#00796B]"
+  if (logType === "check_out") return "bg-[#EAF5E8]"
+
+  return "bg-[#EFEEE2]"
+}
+
+function getHealthBadgeClassName(status: BoardingCareLogAlertLevel | undefined) {
   if (status === "urgent") return "bg-[#FEE2E2] text-[#B91C1C]"
   if (status === "attention") return "bg-[#FFF3D8] text-[#B45309]"
   if (status === "normal") return "bg-[#DFF3E3] text-[#2E7D32]"
 
-  return "bg-[#DFF3E3] text-[#2E7D32]"
+  return "bg-[#E4E3D7] text-[#3E4946]"
 }
 
 function formatDate(value: string | undefined): string {
@@ -494,4 +519,8 @@ function parseDate(value: string | undefined): Date | null {
 
 function formatMoney(value: number): string {
   return `${new Intl.NumberFormat("vi-VN").format(value)} đ`
+}
+
+function formatWeight(value: number): string {
+  return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(value)} kg`
 }
