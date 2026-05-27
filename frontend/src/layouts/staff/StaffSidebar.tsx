@@ -5,9 +5,11 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { staffSidebarConfig } from "./staff-sidebar.config"
 import { PawPrint } from "lucide-react"
+import { useRouteLoading } from "../shared/RouteLoadingContext"
 
 export function StaffSidebar() {
   const pathname = usePathname()
+  const { startRouteLoading } = useRouteLoading()
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-[260px] md:w-[280px] bg-petcenter-sidebar border-r border-petcenter-border hidden md:flex flex-col py-6 z-50">
@@ -31,6 +33,10 @@ export function StaffSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                startRouteLoading(item.href)
+              }}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 mx-2 my-1 rounded-control text-sm font-medium transition-colors duration-200 ease-in-out",
                 isActive

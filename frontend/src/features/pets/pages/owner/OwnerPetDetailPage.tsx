@@ -31,10 +31,10 @@ import {
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
-import { includesSearchText, normalizeSearchText } from "@/lib/search"
+import { normalizeSearchText } from "@/lib/search"
 import { cn } from "@/lib/utils"
 import { petsApi } from "../../api/pets.api"
-import type { PetActivityLog, PetDetail, PetMedicalExam, PetVaccination, PetVaccinationStatus } from "../../types/pet.types"
+import type { PetActivityLog, PetDetail, PetMedicalExam, PetSpaHistory, PetVaccination, PetVaccinationStatus } from "../../types/pet.types"
 
 const tabs = [
   { id: "basic", label: "Hồ sơ cơ bản" },
@@ -80,49 +80,25 @@ function getVaccinationStatusLabel(status: PetVaccinationStatus) {
   }[status]
 }
 
-const spaServiceTypeOptions = ["Tất cả", "Cắt tỉa tạo kiểu", "Tắm gội", "Chăm sóc móng"] as const
-const spaTimeOptions = ["Tất cả thời gian", "3 tháng gần đây", "6 tháng gần đây", "Năm nay"] as const
+const spaServiceTypeOptions = [
+  { label: "Tất cả", value: "all" },
+  { label: "Tắm gội", value: "Tắm gội" },
+  { label: "Cắt tỉa", value: "Cắt tỉa" },
+  { label: "Spa & Cắt tỉa", value: "Spa & Cắt tỉa" },
+  { label: "Chăm sóc móng", value: "Chăm sóc móng" },
+  { label: "Massage thư giãn", value: "Massage thư giãn" },
+] as const
 
-type SpaServiceTypeFilter = (typeof spaServiceTypeOptions)[number]
-type SpaTimeFilter = (typeof spaTimeOptions)[number]
+const spaTimeOptions = [
+  { label: "Tất cả thời gian", value: "all" },
+  { label: "3 tháng gần đây", value: "3m" },
+  { label: "6 tháng gần đây", value: "6m" },
+  { label: "Năm nay", value: "year" },
+] as const
 
-const spaRecords = [
-  {
-    id: "spa-2023-09-25",
-    title: "Cắt tỉa tạo kiểu",
-    date: "25/09/2023",
-    time: "14:00 PM",
-    serviceType: "Cắt tỉa tạo kiểu",
-    packageName: "Gói tạo kiểu Golden",
-    includedServices: "Tắm sấy, cắt tỉa lông, vệ sinh tai, xịt dưỡng khử mùi.",
-  },
-  {
-    id: "spa-2023-08-10",
-    title: "Tắm gội cơ bản",
-    date: "10/08/2023",
-    time: "09:30 AM",
-    serviceType: "Tắm gội",
-    packageName: "Tắm thảo mộc",
-    includedServices: "Tắm sấy khử mùi, chải lông, vệ sinh tuyến hôi.",
-  },
-  {
-    id: "spa-2023-07-15",
-    title: "Chăm sóc móng",
-    date: "15/07/2023",
-    time: "16:15 PM",
-    serviceType: "Chăm sóc móng",
-    packageName: "Cắt mài móng",
-    includedServices: "Cắt móng, mài dũa an toàn, dưỡng viền móng.",
-  },
-] satisfies Array<{
-  id: string
-  title: string
-  date: string
-  time: string
-  serviceType: Exclude<SpaServiceTypeFilter, "Tất cả">
-  packageName: string
-  includedServices: string
-}>
+type SpaServiceTypeFilter = (typeof spaServiceTypeOptions)[number]["value"]
+type SpaTimeFilter = (typeof spaTimeOptions)[number]["value"]
+
 
 export function OwnerPetDetailPage({ petId }: { petId: string }) {
   const [pet, setPet] = React.useState<PetDetail | null>(null)
@@ -234,10 +210,13 @@ export function OwnerPetDetailPage({ petId }: { petId: string }) {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row lg:shrink-0">
-            <button className="label-md inline-flex h-11 items-center justify-center gap-2 rounded-control border border-petcenter-primary px-5 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5">
+            <Link
+              className="label-md inline-flex h-11 items-center justify-center gap-2 rounded-control border border-petcenter-primary px-5 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5"
+              href={`/owner/pets/${encodeURIComponent(pet.petId)}/edit`}
+            >
               <Edit3 className="h-4 w-4" />
               Chỉnh sửa hồ sơ
-            </button>
+            </Link>
             <button className="label-md inline-flex h-11 items-center justify-center gap-2 rounded-control bg-petcenter-cta px-5 font-semibold text-white shadow-card transition hover:bg-petcenter-cta-hover">
               <CalendarPlus className="h-4 w-4" />
               Đặt lịch khám
@@ -268,7 +247,7 @@ export function OwnerPetDetailPage({ petId }: { petId: string }) {
       {activeTab === "basic" ? <BasicProfileTab GenderIcon={GenderIcon} pet={pet} /> : null}
       {activeTab === "medical-history" ? <MedicalHistoryTab petId={pet.petId} petName={pet.petName} /> : null}
       {activeTab === "vaccination" ? <VaccinationTab petId={pet.petId} petName={pet.petName} /> : null}
-      {activeTab === "spa-history" ? <SpaHistoryTab petName={pet.petName} /> : null}
+      {activeTab === "spa-history" ? <SpaHistoryTab petId={pet.petId} petName={pet.petName} /> : null}
     </div>
   )
 }
@@ -691,40 +670,113 @@ function VaccinationTab({ petId, petName }: { petId: string; petName: string }) 
   )
 }
 
-function SpaHistoryTab({ petName }: { petName: string }) {
+function SpaHistoryTab({ petId, petName }: { petId: string; petName: string }) {
+  const [records, setRecords] = React.useState<PetSpaHistory[]>([])
+  const [overviewTotalRecords, setOverviewTotalRecords] = React.useState(0)
+  const [latestOverviewRecord, setLatestOverviewRecord] = React.useState<PetSpaHistory | null>(null)
+  const [isOverviewLoading, setIsOverviewLoading] = React.useState(true)
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [searchValue, setSearchValue] = React.useState("")
-  const [serviceTypeFilter, setServiceTypeFilter] = React.useState<SpaServiceTypeFilter>("Tất cả")
-  const [timeFilter, setTimeFilter] = React.useState<SpaTimeFilter>("Tất cả thời gian")
+  const [serviceTypeFilter, setServiceTypeFilter] = React.useState<SpaServiceTypeFilter>("all")
+  const [timeFilter, setTimeFilter] = React.useState<SpaTimeFilter>("all")
   const debouncedSearchValue = useDebouncedValue(searchValue, 300)
-  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue)
+  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue) || isLoading
+  const dateRange = React.useMemo(() => getSpaDateRange(timeFilter), [timeFilter])
+  const serviceTypeQuery = serviceTypeFilter === "all" ? undefined : serviceTypeFilter
 
-  const filteredRecords = spaRecords.filter((record) => {
-    const normalizedSearch = normalizeSearchText(debouncedSearchValue)
-    const matchesSearch =
-      normalizedSearch.length === 0 ||
-      [record.title, record.packageName, record.includedServices].some((value) =>
-        includesSearchText(value, normalizedSearch)
-      )
-    const matchesType = serviceTypeFilter === "Tất cả" || record.serviceType === serviceTypeFilter
+  React.useEffect(() => {
+    const abortController = new AbortController()
 
-    return matchesSearch && matchesType
-  })
+    async function loadSpaOverview() {
+      try {
+        setIsOverviewLoading(true)
 
-  const latestRecord = spaRecords[0]
+        const result = await petsApi.listSpaHistory(petId, { page: 1, limit: 1 }, { signal: abortController.signal })
+
+        if (!abortController.signal.aborted) {
+          setLatestOverviewRecord(result.records[0] ?? null)
+          setOverviewTotalRecords(result.pagination.total)
+        }
+      } catch {
+        if (!abortController.signal.aborted) {
+          setLatestOverviewRecord(null)
+          setOverviewTotalRecords(0)
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsOverviewLoading(false)
+        }
+      }
+    }
+
+    void loadSpaOverview()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [petId])
+
+  React.useEffect(() => {
+    const abortController = new AbortController()
+
+    async function loadSpaHistory() {
+      try {
+        setIsLoading(true)
+        setErrorMessage(null)
+
+        const result = await petsApi.listSpaHistory(
+          petId,
+          {
+            q: debouncedSearchValue.trim() || undefined,
+            serviceType: serviceTypeQuery,
+            from: dateRange.from,
+            to: dateRange.to,
+            page: 1,
+            limit: 50,
+          },
+          { signal: abortController.signal }
+        )
+
+        if (!abortController.signal.aborted) {
+          setRecords(result.records)
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setRecords([])
+          setErrorMessage(error instanceof Error ? error.message : "Không thể tải lịch sử spa")
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadSpaHistory()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [dateRange.from, dateRange.to, debouncedSearchValue, petId, serviceTypeQuery])
+
+  const latestRecordLabel = latestOverviewRecord
+    ? `${latestOverviewRecord.scheduledDate} - ${latestOverviewRecord.scheduledTime}`
+    : "Chưa có dữ liệu"
 
   function resetFilters() {
     setSearchValue("")
-    setServiceTypeFilter("Tất cả")
-    setTimeFilter("Tất cả thời gian")
+    setServiceTypeFilter("all")
+    setTimeFilter("all")
   }
 
   return (
     <div className="flex w-full flex-col gap-6">
       <section className="rounded-card border border-petcenter-border bg-white p-6 shadow-card">
         <div className="grid gap-6 md:grid-cols-3 md:divide-x md:divide-petcenter-border-strong">
-          <SummaryMetric label="Tổng số lần sử dụng" value={String(spaRecords.length)} />
-          <SummaryMetric label="Lần gần nhất" value={latestRecord?.date ?? "Chưa có dữ liệu"} />
-          <SummaryMetric label="Dịch vụ gần nhất" value={latestRecord?.serviceType ?? "Chưa có dữ liệu"} />
+          <SummaryMetric label="Tổng số lần sử dụng" value={isOverviewLoading ? "Đang tải..." : String(overviewTotalRecords)} />
+          <SummaryMetric label="Lần gần nhất" value={latestRecordLabel} />
+          <SummaryMetric label="Dịch vụ gần nhất" value={latestOverviewRecord?.serviceTypeName ?? "Chưa có dữ liệu"} />
         </div>
       </section>
 
@@ -771,9 +823,6 @@ function SpaHistoryTab({ petName }: { petName: string }) {
           </button>
         </div>
 
-        {timeFilter !== "Tất cả thời gian" ? (
-          <p className="label-sm mt-3 text-petcenter-text-secondary">Bộ lọc thời gian đang được giữ cho dữ liệu API thật.</p>
-        ) : null}
         <SearchProgressBar isActive={isSearchSettling} />
       </section>
 
@@ -795,20 +844,33 @@ function SpaHistoryTab({ petName }: { petName: string }) {
           </button>
         </div>
 
-        {filteredRecords.length > 0 ? (
-          <div className={cn("space-y-4 transition-opacity duration-200", isSearchSettling && "opacity-80")}>
-            {filteredRecords.map((record) => (
-              <SpaRecordCard key={record.id} record={record} />
+        {errorMessage ? (
+          <EmptyFilterState description={errorMessage} title="Không thể tải lịch sử spa" />
+        ) : null}
+
+        {!errorMessage && isLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="h-36 animate-pulse rounded-card border border-petcenter-border bg-white shadow-card" />
             ))}
           </div>
-        ) : (
+        ) : null}
+
+        {!errorMessage && !isLoading && records.length > 0 ? (
+          <div className={cn("space-y-4 transition-opacity duration-200", isSearchSettling && "opacity-80")}>
+            {records.map((record) => (
+              <SpaRecordCard key={record.groomingTicketId} record={record} />
+            ))}
+          </div>
+        ) : null}
+
+        {!errorMessage && !isLoading && records.length === 0 ? (
           <EmptyFilterState description="Thử đổi từ khóa hoặc bộ lọc dịch vụ." title="Không tìm thấy lịch sử spa" />
-        )}
+        ) : null}
       </section>
     </div>
   )
 }
-
 function SpaHistorySelect({
   label,
   onChange,
@@ -817,7 +879,7 @@ function SpaHistorySelect({
 }: {
   label: string
   onChange: (value: string) => void
-  options: readonly string[]
+  options: readonly { label: string; value: string }[]
   value: string
 }) {
   return (
@@ -829,34 +891,36 @@ function SpaHistorySelect({
         value={value}
       >
         {options.map((option) => (
-          <option key={option}>{option}</option>
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
         ))}
       </select>
     </label>
   )
 }
 
-function SpaRecordCard({ record }: { record: (typeof spaRecords)[number] }) {
+function SpaRecordCard({ record }: { record: PetSpaHistory }) {
   return (
     <article className="rounded-card border border-petcenter-border bg-white p-6 shadow-card">
       <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="mb-1 flex flex-wrap items-center gap-3">
-            <h3 className="title-md text-petcenter-text">{record.title}</h3>
+            <h3 className="title-md text-petcenter-text">{record.serviceName}</h3>
             <span className="label-sm rounded-pill bg-petcenter-primary/10 px-2.5 py-1 font-semibold text-petcenter-primary">
-              {record.serviceType}
+              {record.ticketStatusLabel}
             </span>
           </div>
           <p className="body-sm flex items-center gap-1.5 text-petcenter-text-secondary">
             <CalendarDays className="h-4 w-4" />
-            {record.date} - {record.time}
+            {record.scheduledDate} - {record.scheduledTime}
           </p>
         </div>
 
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <RecordNote label="Gói dịch vụ" value={record.packageName} />
+        <RecordNote label="Gói dịch vụ" value={record.serviceTypeName} />
         <RecordNote label="Dịch vụ bao gồm" value={record.includedServices} />
       </div>
     </article>
@@ -1176,6 +1240,31 @@ function getExamStatusLabel(status: PetMedicalExam["examStatus"]) {
 }
 
 function getMedicalDateRange(filter: MedicalTimeFilter): { from?: string; to?: string } {
+  if (filter === "all") return {}
+
+  const now = new Date()
+  const to = formatIsoDate(now)
+  const fromDate = new Date(now)
+
+  if (filter === "3m") {
+    fromDate.setMonth(fromDate.getMonth() - 3)
+  }
+
+  if (filter === "6m") {
+    fromDate.setMonth(fromDate.getMonth() - 6)
+  }
+
+  if (filter === "year") {
+    fromDate.setMonth(0, 1)
+  }
+
+  return {
+    from: formatIsoDate(fromDate),
+    to,
+  }
+}
+
+function getSpaDateRange(filter: SpaTimeFilter): { from?: string; to?: string } {
   if (filter === "all") return {}
 
   const now = new Date()
