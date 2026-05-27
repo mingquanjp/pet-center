@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/api"
 import type {
   GroomingTicketListItem,
+  GroomingTicketHistoryParams,
   GroomingTicketListParams,
   CreateGroomingTicketPayload,
   GroomingAvailability,
@@ -72,6 +73,33 @@ export const spaApi = {
   ): Promise<{ tickets: GroomingTicketListItem[]; pagination: Pagination }> {
     const response = await apiRequest<GroomingTicketListItem[]>(
       `/grooming/tickets${buildQuery({
+        search: params.search,
+        petId: params.petId,
+        status: params.status,
+        timeRange: params.timeRange,
+        page: params.page,
+        limit: params.limit,
+      })}`,
+      init
+    )
+
+    return {
+      tickets: response.data,
+      pagination: response.pagination ?? {
+        page: params.page ?? 1,
+        limit: params.limit ?? response.data.length,
+        total: response.data.length,
+        totalPages: response.data.length > 0 ? 1 : 0,
+      },
+    }
+  },
+
+  async listTicketHistory(
+    params: GroomingTicketHistoryParams = {},
+    init: RequestInit = {}
+  ): Promise<{ tickets: GroomingTicketListItem[]; pagination: Pagination }> {
+    const response = await apiRequest<GroomingTicketListItem[]>(
+      `/grooming/tickets/history${buildQuery({
         search: params.search,
         petId: params.petId,
         status: params.status,

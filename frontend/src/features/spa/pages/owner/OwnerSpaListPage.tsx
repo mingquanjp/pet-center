@@ -5,11 +5,8 @@ import Link from "next/link"
 import { AlertCircle, Plus, Search, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useDebouncedValue } from "@/hooks/use-debounced-value"
-import { includesSearchText, normalizeSearchText } from "@/lib/search"
 import { spaApi } from "../../api/spa.api"
 import {
-  ownerSpaHistory,
   ownerSpaTabs,
   spaServiceIconById,
 } from "../../constants/spa.constants"
@@ -18,6 +15,7 @@ import type {
   GroomingBookingPet,
   GroomingService,
   GroomingTicketListItem,
+  GroomingTicketStatus,
   OwnerSpaRequest,
   OwnerSpaTab,
   SpaBookingStatus,
@@ -28,9 +26,9 @@ import { OwnerSpaServiceCard } from "../../components/owner/OwnerSpaServiceCard"
 
 export function OwnerSpaListPage() {
   const [activeTab, setActiveTab] = React.useState<OwnerSpaTab>("available")
-  const [requestSearch, setRequestSearch] = React.useState("")
   const [availableServices, setAvailableServices] = React.useState<SpaService[]>([])
   const [bookedRequests, setBookedRequests] = React.useState<OwnerSpaRequest[]>([])
+  const [historyRequests, setHistoryRequests] = React.useState<OwnerSpaRequest[]>([])
   const [bookedPets, setBookedPets] = React.useState<GroomingBookingPet[]>([])
   const [bookedFilters, setBookedFilters] = React.useState<BookedServiceFilterState>({
     search: "",
@@ -45,8 +43,12 @@ export function OwnerSpaListPage() {
   const [isLoadingBookedRequests, setIsLoadingBookedRequests] = React.useState(false)
   const [hasLoadedBookedRequests, setHasLoadedBookedRequests] = React.useState(false)
   const [bookedRequestsError, setBookedRequestsError] = React.useState<string | null>(null)
+  const [isLoadingHistoryRequests, setIsLoadingHistoryRequests] = React.useState(false)
+  const [hasLoadedHistoryRequests, setHasLoadedHistoryRequests] = React.useState(false)
+  const [historyRequestsError, setHistoryRequestsError] = React.useState<string | null>(null)
   const shouldShowServiceSkeleton = isLoadingServices && !hasLoadedServices
   const shouldShowBookedSkeleton = isLoadingBookedRequests && !hasLoadedBookedRequests
+  const shouldShowHistorySkeleton = isLoadingHistoryRequests && !hasLoadedHistoryRequests
   const bookedPetOptions = React.useMemo(() => getBookedPetOptions(bookedPets), [bookedPets])
 
   React.useEffect(() => {
@@ -148,6 +150,48 @@ export function OwnerSpaListPage() {
     }
   }, [activeTab, bookedFilters.pet, bookedFilters.status, bookedFilters.timeRange, bookedPets.length, bookedSearchQuery])
 
+  React.useEffect(() => {
+    if (activeTab !== "history") return
+
+    const abortController = new AbortController()
+
+    async function loadHistoryRequests() {
+      try {
+        setIsLoadingHistoryRequests(true)
+        setHistoryRequestsError(null)
+
+        const result = await spaApi.listTicketHistory(
+          {
+            page: 1,
+            limit: 100,
+          },
+          { signal: abortController.signal }
+        )
+
+        if (!abortController.signal.aborted) {
+          setHistoryRequests(result.tickets.map(mapGroomingTicketToRequest))
+          setHasLoadedHistoryRequests(true)
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setHistoryRequests([])
+          setHasLoadedHistoryRequests(true)
+          setHistoryRequestsError(error instanceof Error ? error.message : "Không thể tải lịch sử dịch vụ spa")
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoadingHistoryRequests(false)
+        }
+      }
+    }
+
+    void loadHistoryRequests()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [activeTab])
+
   return (
     <div className="space-y-6">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -204,9 +248,11 @@ export function OwnerSpaListPage() {
         </TabsContent>
 
         <TabsContent value="history" className="mt-0 flex-none space-y-4">
-          {ownerSpaHistory.map((request) => (
-            <OwnerSpaRequestCard key={request.id} request={request} />
-          ))}
+          <HistoryServicesTab
+            errorMessage={historyRequestsError}
+            isLoading={shouldShowHistorySkeleton}
+            requests={historyRequests}
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -250,9 +296,11 @@ function mapGroomingTicketToRequest(ticket: GroomingTicketListItem): OwnerSpaReq
   }
 }
 
-function mapTicketStatus(status: BookedGroomingTicketStatus): SpaBookingStatus {
+function mapTicketStatus(status: GroomingTicketStatus): SpaBookingStatus {
   if (status === "waiting") return "ACCEPTED"
   if (status === "in_progress") return "IN_PROGRESS"
+  if (status === "completed") return "COMPLETED"
+  if (status === "cancelled") return "CANCELLED"
 
   return "WAITING_ACCEPT"
 }
@@ -380,6 +428,49 @@ function BookedServicesTab({
         <h2 className="text-lg font-bold leading-[26px] text-[#1B1C15]">Chưa có dịch vụ đã đặt</h2>
         <p className="mt-2 text-sm leading-5 text-[#3E4946]">
           Các yêu cầu spa đang chờ tiếp nhận hoặc đang xử lý sẽ hiển thị tại đây.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <>
+      {requests.map((request) => (
+        <OwnerSpaRequestCard key={request.id} request={request} />
+      ))}
+    </>
+  )
+}
+
+function HistoryServicesTab({
+  errorMessage,
+  isLoading,
+  requests,
+}: {
+  errorMessage: string | null
+  isLoading: boolean
+  requests: OwnerSpaRequest[]
+}) {
+  if (errorMessage) {
+    return <AvailableServicesError message={errorMessage} />
+  }
+
+  if (isLoading) {
+    return (
+      <section className="space-y-4">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <BookedRequestSkeleton key={index} />
+        ))}
+      </section>
+    )
+  }
+
+  if (requests.length === 0) {
+    return (
+      <section className="rounded-[16px] border border-dashed border-[#BDC9C5] bg-white px-6 py-12 text-center">
+        <h2 className="text-lg font-bold leading-[26px] text-[#1B1C15]">Chưa có lịch sử dịch vụ</h2>
+        <p className="mt-2 text-sm leading-5 text-[#3E4946]">
+          Các yêu cầu spa đã hoàn tất hoặc đã hủy sẽ hiển thị tại đây.
         </p>
       </section>
     )

@@ -114,6 +114,7 @@ export interface GroomingTicketCreated {
 }
 
 export type BookedGroomingTicketStatus = "pending" | "waiting" | "in_progress"
+export type GroomingTicketHistoryStatus = "completed" | "cancelled"
 
 export interface GroomingTicketListItem {
   groomingTicketId: string
@@ -123,7 +124,7 @@ export interface GroomingTicketListItem {
   scheduledAt: string
   scheduledDate: string
   scheduledTime: string
-  ticketStatus: BookedGroomingTicketStatus
+  ticketStatus: GroomingTicketStatus
   ticketStatusLabel: string
   paymentOption: SpaPaymentMethod
   paymentMethodLabel: string
@@ -138,6 +139,15 @@ export interface GroomingTicketListParams {
   search?: string
   petId?: string
   status?: "all" | BookedGroomingTicketStatus
+  timeRange?: "all" | "today" | "upcoming" | "past"
+  page?: number
+  limit?: number
+}
+
+export interface GroomingTicketHistoryParams {
+  search?: string
+  petId?: string
+  status?: "all" | GroomingTicketHistoryStatus
   timeRange?: "all" | "today" | "upcoming" | "past"
   page?: number
   limit?: number

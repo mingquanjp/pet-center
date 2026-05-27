@@ -4,7 +4,6 @@ import type { QueryResultRow } from "pg";
 import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
 import type {
-  BookedGroomingTicketStatus,
   GroomingAvailabilityDto,
   GroomingBookingPetDto,
   GroomingBookingServiceDto,
@@ -12,6 +11,7 @@ import type {
   GroomingPaymentOption,
   GroomingServiceDto,
   GroomingServicePriceRuleDto,
+  GroomingTicketHistoryFilters,
   GroomingTicketCancelledDto,
   GroomingTicketCreatedDto,
   GroomingTicketDetailDto,
@@ -66,7 +66,7 @@ type GroomingTicketListRow = QueryResultRow & {
   scheduled_at: string;
   scheduled_date: string;
   scheduled_time: string;
-  ticket_status: BookedGroomingTicketStatus;
+  ticket_status: GroomingTicketStatus;
   payment_option: GroomingPaymentOption | null;
   invoice_status: InvoiceStatus | null;
   invoice_total_amount: string | number | null;
@@ -197,7 +197,6 @@ function getPaymentMethodLabel(paymentOption: GroomingPaymentOption | null): str
 
 function getPaymentStatusLabel(invoiceStatus: InvoiceStatus | null, hasSuccessPayment: boolean): string {
   if (invoiceStatus === "paid" || hasSuccessPayment) return "Đã thanh toán";
-  if (invoiceStatus === "cancelled") return "Đã hủy";
   if (invoiceStatus === "refunded") return "Đã hoàn tiền";
 
   return "Chưa thanh toán";
@@ -373,6 +372,50 @@ function buildBookedTicketsWhere(filters: GroomingTicketListFilters): { whereSql
   const conditions = [
     "gt.owner_user_id = $1",
     "gt.ticket_status in ('pending', 'waiting', 'in_progress')"
+  ];
+
+  if (filters.search) {
+    params.push(`%${filters.search}%`);
+    conditions.push(
+      `(gt.grooming_ticket_id ilike $${params.length} or p.pet_name ilike $${params.length} or exists (
+        select 1
+        from pet_center.grooming_ticket_items search_gti
+        join pet_center.services search_s on search_s.service_id = search_gti.service_id
+        where search_gti.grooming_ticket_id = gt.grooming_ticket_id
+          and search_s.service_name ilike $${params.length}
+      ))`
+    );
+  }
+
+  if (filters.petId) {
+    params.push(filters.petId);
+    conditions.push(`gt.pet_id = $${params.length}`);
+  }
+
+  if (filters.status && filters.status !== "all") {
+    params.push(filters.status);
+    conditions.push(`gt.ticket_status = $${params.length}`);
+  }
+
+  if (filters.timeRange === "today") {
+    conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date = (now() at time zone '${timeZone}')::date`);
+  } else if (filters.timeRange === "upcoming") {
+    conditions.push("gt.scheduled_at >= now()");
+  } else if (filters.timeRange === "past") {
+    conditions.push("gt.scheduled_at < now()");
+  }
+
+  return {
+    whereSql: conditions.join(" and "),
+    params
+  };
+}
+
+function buildTicketHistoryWhere(filters: GroomingTicketHistoryFilters): { whereSql: string; params: unknown[] } {
+  const params: unknown[] = [filters.ownerUserId];
+  const conditions = [
+    "gt.owner_user_id = $1",
+    "gt.ticket_status in ('completed', 'cancelled')"
   ];
 
   if (filters.search) {
@@ -647,6 +690,37 @@ export async function findBookedGroomingTickets(
   };
 }
 
+export async function findGroomingTicketHistory(
+  filters: GroomingTicketHistoryFilters
+): Promise<{ tickets: GroomingTicketListItemDto[]; total: number }> {
+  const { whereSql, params } = buildTicketHistoryWhere(filters);
+  const listParams = [...params, filters.limit, filters.offset];
+
+  const [listResult, countResult] = await Promise.all([
+    query<GroomingTicketListRow>(
+      `select ${groomingTicketListSelectSql}
+       ${groomingTicketListJoinSql}
+       where ${whereSql}
+       ${groomingTicketListGroupSql}
+       order by gt.scheduled_at desc, gt.grooming_ticket_id desc
+       limit $${params.length + 1} offset $${params.length + 2}`,
+      listParams
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.grooming_tickets gt
+       join pet_center.pets p on p.pet_id = gt.pet_id
+       where ${whereSql}`,
+      params
+    )
+  ]);
+
+  return {
+    tickets: listResult.rows.map(mapGroomingTicketListItem),
+    total: Number(countResult.rows[0]?.total ?? 0)
+  };
+}
+
 export async function findBookedGroomingTicketById(
   ownerUserId: string,
   ticketId: string
@@ -658,7 +732,7 @@ export async function findBookedGroomingTicketById(
      ${groomingTicketListJoinSql}
      where gt.owner_user_id = $1
        and gt.grooming_ticket_id = $2
-       and gt.ticket_status in ('pending', 'waiting', 'in_progress')
+       and gt.ticket_status in ('pending', 'waiting', 'in_progress', 'completed', 'cancelled')
      ${groomingTicketListGroupSql},
        p.pet_id,
        inv.invoice_id
