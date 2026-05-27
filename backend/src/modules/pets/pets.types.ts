@@ -144,6 +144,22 @@ export type PetMedicalExamDetailDto = PetMedicalExamDto & {
   followUp: PetFollowUpInstructionDto | null;
 };
 
+export type PetVaccinationStatus = "completed" | "due-soon" | "overdue";
+
+export type PetVaccinationDto = {
+  vaccinationId: string;
+  petId: string;
+  examId: string | null;
+  appointmentId: string | null;
+  vaccineName: string;
+  vaccinationDate: string;
+  nextReminderDate: string;
+  status: PetVaccinationStatus;
+  note: string | null;
+  veterinarianUserId: string | null;
+  veterinarianName: string | null;
+};
+
 export type PetMedicalExamFilters = {
   ownerUserId: string;
   petId: string;
@@ -151,6 +167,16 @@ export type PetMedicalExamFilters = {
   examType?: PetMedicalExamDto["examTypeCode"];
   from?: Date;
   to?: Date;
+  page: number;
+  limit: number;
+  offset: number;
+};
+
+export type PetVaccinationFilters = {
+  ownerUserId: string;
+  petId: string;
+  q?: string;
+  status?: PetVaccinationStatus;
   page: number;
   limit: number;
   offset: number;

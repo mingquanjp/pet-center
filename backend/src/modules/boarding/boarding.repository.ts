@@ -27,7 +27,7 @@ function buildBoardingRecordWhere(filters: BoardingRecordListFilters): { clauses
 
   if (filters.timeRange === "upcoming") {
     clauses.push("br.boarding_status IN ('pending', 'confirmed')");
-    clauses.push("br.planned_check_in_date >= CURRENT_DATE");
+    clauses.push("br.planned_check_in_at::date >= CURRENT_DATE");
   } else if (filters.timeRange === "current") {
     clauses.push("br.boarding_status = 'staying'");
   } else if (filters.timeRange === "past") {
@@ -49,10 +49,10 @@ export async function findOwnerBoardingRecords(filters: BoardingRecordListFilter
       p.profile_image_url,
       rt.room_type_id,
       rt.room_type_name,
-      to_char(br.planned_check_in_date, 'YYYY-MM-DD') AS planned_check_in_date,
-      to_char(br.planned_check_out_date, 'YYYY-MM-DD') AS planned_check_out_date,
-      to_char(br.planned_check_in_date, 'DD/MM/YYYY') || ' - ' || to_char(br.planned_check_out_date, 'DD/MM/YYYY') AS planned_date_range_text,
-      (br.planned_check_out_date - br.planned_check_in_date)::int AS stay_days,
+      to_char(br.planned_check_in_at, 'YYYY-MM-DD') AS planned_check_in_date,
+      to_char(br.planned_check_out_at, 'YYYY-MM-DD') AS planned_check_out_date,
+      to_char(br.planned_check_in_at, 'DD/MM/YYYY') || ' - ' || to_char(br.planned_check_out_at, 'DD/MM/YYYY') AS planned_date_range_text,
+      (br.planned_check_out_at::date - br.planned_check_in_at::date)::int AS stay_days,
       br.boarding_status,
       br.estimated_total,
       inv.invoice_id,
@@ -95,7 +95,7 @@ export async function findOwnerBoardingRecords(filters: BoardingRecordListFilter
         WHEN 'checked_out' THEN 4
         ELSE 5
       END,
-      br.planned_check_in_date DESC,
+      br.planned_check_in_at DESC,
       br.boarding_record_id DESC
     LIMIT $${params.length - 1}
     OFFSET $${params.length}

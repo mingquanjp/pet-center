@@ -10,6 +10,7 @@ import {
   petMedicalExamParamsSchema,
   petMedicalExamsQuerySchema,
   petParamsSchema,
+  petVaccinationsQuerySchema,
   updatePetSchema
 } from "./pets.schema.js";
 
@@ -423,6 +424,14 @@ petsRouter.get(
   requireRole("OWNER"),
   validateRequest({ params: petParamsSchema, query: petMedicalExamsQuerySchema }),
   asyncHandler(petsController.listPetMedicalExams)
+);
+
+petsRouter.get(
+  "/pets/:petId/vaccinations",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: petParamsSchema, query: petVaccinationsQuerySchema }),
+  asyncHandler(petsController.listPetVaccinations)
 );
 
 petsRouter.get(

@@ -19,7 +19,6 @@ import {
   Info,
   LoaderCircle,
   Mars,
-  Pill,
   PawPrint,
   RotateCcw,
   Scissors,
@@ -35,7 +34,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { includesSearchText, normalizeSearchText } from "@/lib/search"
 import { cn } from "@/lib/utils"
 import { petsApi } from "../../api/pets.api"
-import type { PetActivityLog, PetDetail, PetMedicalExam } from "../../types/pet.types"
+import type { PetActivityLog, PetDetail, PetMedicalExam, PetVaccination, PetVaccinationStatus } from "../../types/pet.types"
 
 const tabs = [
   { id: "basic", label: "Hồ sơ cơ bản" },
@@ -73,100 +72,7 @@ const vaccinationFilters = [
 
 type VaccinationFilter = (typeof vaccinationFilters)[number]["id"]
 
-const vaccinationRecords = [
-  {
-    id: "rabies-2023",
-    name: "Vaccine Rabies (Dại)",
-    shortName: "Vaccine Rabies",
-    type: "Tiêm phòng dại",
-    performedDate: "10/06/2023",
-    doctor: "Bs. Trần Văn B",
-    note: "Cần theo dõi 24h sau tiêm.",
-    reaction: "Không ghi nhận bất thường.",
-    icon: Syringe,
-  },
-  {
-    id: "care-2023",
-    name: "Vaccine Care (5 trong 1)",
-    shortName: "Vaccine Care",
-    type: "Vaccine tổng hợp",
-    performedDate: "15/04/2023",
-    doctor: "Bs. Nguyễn Thị A",
-    note: "Không có dấu hiệu bất thường.",
-    reaction: "Không ghi nhận bất thường.",
-    icon: Syringe,
-  },
-  {
-    id: "deworm-2023",
-    name: "Tẩy giun định kỳ",
-    shortName: "Tẩy giun định kỳ",
-    type: "Phòng ký sinh trùng",
-    performedDate: "12/10/2023",
-    doctor: "Bs. Lê Văn C",
-    note: "Uống thuốc Nexgard.",
-    reaction: "Không ghi nhận bất thường.",
-    icon: Pill,
-  },
-  {
-    id: "parvo-2023",
-    name: "Vaccine Parvo",
-    shortName: "Vaccine Parvo",
-    type: "Tiêm phòng Parvo",
-    performedDate: "10/02/2023",
-    doctor: "Bs. Trần Văn B",
-    note: "Thú cưng khỏe mạnh.",
-    reaction: "Không ghi nhận bất thường.",
-    icon: Syringe,
-  },
-] satisfies Array<{
-  id: string
-  name: string
-  shortName: string
-  type: string
-  performedDate: string
-  doctor: string
-  note: string
-  reaction: string
-  icon: typeof Syringe
-}>
-
-function parseDisplayDate(value: string) {
-  const [day, month, year] = value.split("/").map(Number)
-
-  return new Date(year, month - 1, day)
-}
-
-function formatDisplayDate(value: Date) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(value)
-}
-
-function getVaccinationReminderDate(performedDate: string) {
-  const reminderDate = parseDisplayDate(performedDate)
-  reminderDate.setFullYear(reminderDate.getFullYear() + 1)
-
-  return reminderDate
-}
-
-function getVaccinationStatus(performedDate: string): Exclude<VaccinationFilter, "all"> {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const dueSoonThreshold = new Date(today)
-  dueSoonThreshold.setDate(dueSoonThreshold.getDate() + 30)
-
-  const reminderDate = getVaccinationReminderDate(performedDate)
-
-  if (reminderDate < today) return "overdue"
-  if (reminderDate <= dueSoonThreshold) return "due-soon"
-
-  return "completed"
-}
-
-function getVaccinationStatusLabel(status: Exclude<VaccinationFilter, "all">) {
+function getVaccinationStatusLabel(status: PetVaccinationStatus) {
   return {
     completed: "Đã hoàn thành",
     "due-soon": "Sắp đến hạn",
@@ -361,7 +267,7 @@ export function OwnerPetDetailPage({ petId }: { petId: string }) {
 
       {activeTab === "basic" ? <BasicProfileTab GenderIcon={GenderIcon} pet={pet} /> : null}
       {activeTab === "medical-history" ? <MedicalHistoryTab petId={pet.petId} petName={pet.petName} /> : null}
-      {activeTab === "vaccination" ? <VaccinationTab petName={pet.petName} /> : null}
+      {activeTab === "vaccination" ? <VaccinationTab petId={pet.petId} petName={pet.petName} /> : null}
       {activeTab === "spa-history" ? <SpaHistoryTab petName={pet.petName} /> : null}
     </div>
   )
@@ -601,26 +507,93 @@ function MedicalHistoryTab({ petId, petName }: { petId: string; petName: string 
   )
 }
 
-function VaccinationTab({ petName }: { petName: string }) {
+function VaccinationTab({ petId, petName }: { petId: string; petName: string }) {
+  const [records, setRecords] = React.useState<PetVaccination[]>([])
+  const [overviewTotalRecords, setOverviewTotalRecords] = React.useState(0)
+  const [latestOverviewRecord, setLatestOverviewRecord] = React.useState<PetVaccination | null>(null)
+  const [isOverviewLoading, setIsOverviewLoading] = React.useState(true)
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [searchValue, setSearchValue] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState<VaccinationFilter>("all")
-  const [selectedRecord, setSelectedRecord] = React.useState<(typeof vaccinationRecords)[number] | null>(null)
+  const [selectedRecord, setSelectedRecord] = React.useState<PetVaccination | null>(null)
   const debouncedSearchValue = useDebouncedValue(searchValue, 300)
-  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue)
+  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue) || isLoading
 
-  const filteredRecords = vaccinationRecords.filter((record) => {
-    const recordStatus = getVaccinationStatus(record.performedDate)
-    const matchesFilter = activeFilter === "all" || recordStatus === activeFilter
-    const normalizedSearch = normalizeSearchText(debouncedSearchValue)
-    const matchesSearch =
-      normalizedSearch.length === 0 ||
-      [record.name, record.type, record.doctor, record.note].some((value) => includesSearchText(value, normalizedSearch))
+  React.useEffect(() => {
+    const abortController = new AbortController()
 
-    return matchesFilter && matchesSearch
-  })
+    async function loadVaccinationOverview() {
+      try {
+        setIsOverviewLoading(true)
 
-  const latestRecord = vaccinationRecords[0]
-  const latestReminderDate = latestRecord ? formatDisplayDate(getVaccinationReminderDate(latestRecord.performedDate)) : "Chưa có dữ liệu"
+        const result = await petsApi.listVaccinations(petId, { page: 1, limit: 1 }, { signal: abortController.signal })
+
+        if (!abortController.signal.aborted) {
+          setLatestOverviewRecord(result.vaccinations[0] ?? null)
+          setOverviewTotalRecords(result.pagination.total)
+        }
+      } catch {
+        if (!abortController.signal.aborted) {
+          setLatestOverviewRecord(null)
+          setOverviewTotalRecords(0)
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsOverviewLoading(false)
+        }
+      }
+    }
+
+    void loadVaccinationOverview()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [petId])
+
+  React.useEffect(() => {
+    const abortController = new AbortController()
+
+    async function loadVaccinations() {
+      try {
+        setIsLoading(true)
+        setErrorMessage(null)
+
+        const result = await petsApi.listVaccinations(
+          petId,
+          {
+            q: debouncedSearchValue.trim() || undefined,
+            status: activeFilter,
+            page: 1,
+            limit: 50,
+          },
+          { signal: abortController.signal }
+        )
+
+        if (!abortController.signal.aborted) {
+          setRecords(result.vaccinations)
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setRecords([])
+          setErrorMessage(error instanceof Error ? error.message : "Không thể tải sổ tiêm chủng")
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadVaccinations()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [activeFilter, debouncedSearchValue, petId])
+
+  const latestReminderDate = latestOverviewRecord ? formatDate(latestOverviewRecord.nextReminderDate) : "Chưa có dữ liệu"
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -628,11 +601,11 @@ function VaccinationTab({ petName }: { petName: string }) {
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <Activity className="h-5 w-5 text-petcenter-primary" />
-            <h2 className="label-md font-bold text-petcenter-primary">Tóm tắt tiêm chủng</h2>
+            <h2 className="label-md font-bold text-petcenter-primary">Tổng quan tiêm chủng</h2>
           </div>
           <div className="grid flex-1 gap-4 sm:grid-cols-3 lg:max-w-4xl lg:divide-x lg:divide-petcenter-border-strong">
-            <SummaryInline label="Tổng số liều" value={`${vaccinationRecords.length} liều`} />
-            <SummaryInline label="Mũi gần nhất" value={`${latestRecord.shortName} - ${latestRecord.performedDate}`} />
+            <SummaryInline label="Tổng số liều" value={isOverviewLoading ? "Đang tải..." : `${overviewTotalRecords} liều`} />
+            <SummaryInline label="Mũi gần nhất" value={latestOverviewRecord ? `${latestOverviewRecord.vaccineName} - ${formatDate(latestOverviewRecord.vaccinationDate)}` : "Chưa có dữ liệu"} />
             <SummaryInline label="Nhắc lại tự động" value={latestReminderDate} />
           </div>
         </div>
@@ -688,15 +661,29 @@ function VaccinationTab({ petName }: { petName: string }) {
         </div>
         <SearchProgressBar isActive={isSearchSettling} />
 
-        {filteredRecords.length > 0 ? (
-          <div className={cn("space-y-4 transition-opacity duration-200", isSearchSettling && "opacity-80")}>
-            {filteredRecords.map((record) => (
-              <VaccinationRecordCard key={record.id} onViewDetails={() => setSelectedRecord(record)} record={record} />
+        {errorMessage ? (
+          <EmptyFilterState description={errorMessage} title="Không thể tải sổ tiêm chủng" />
+        ) : null}
+
+        {!errorMessage && isLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="h-36 animate-pulse rounded-card border border-petcenter-border bg-white shadow-card" />
             ))}
           </div>
-        ) : (
+        ) : null}
+
+        {!errorMessage && !isLoading && records.length > 0 ? (
+          <div className={cn("space-y-4 transition-opacity duration-200", isSearchSettling && "opacity-80")}>
+            {records.map((record) => (
+              <VaccinationRecordCard key={record.vaccinationId} onViewDetails={() => setSelectedRecord(record)} record={record} />
+            ))}
+          </div>
+        ) : null}
+
+        {!errorMessage && !isLoading && records.length === 0 ? (
           <EmptyFilterState description="Thử đổi từ khóa hoặc bộ lọc tiêm chủng." title="Không tìm thấy bản ghi" />
-        )}
+        ) : null}
       </section>
 
       <VaccinationDetailDialog onOpenChange={(open) => !open && setSelectedRecord(null)} petName={petName} record={selectedRecord} />
@@ -913,12 +900,12 @@ function VaccinationRecordCard({
   record,
 }: {
   onViewDetails: () => void
-  record: (typeof vaccinationRecords)[number]
+  record: PetVaccination
 }) {
-  const Icon = record.icon
-  const status = getVaccinationStatus(record.performedDate)
+  const Icon = Syringe
+  const status = record.status
   const statusLabel = getVaccinationStatusLabel(status)
-  const reminderDate = formatDisplayDate(getVaccinationReminderDate(record.performedDate))
+  const reminderDate = formatDate(record.nextReminderDate)
 
   return (
     <article className="flex flex-col gap-6 rounded-card border border-petcenter-border bg-white p-5 shadow-card lg:p-6">
@@ -936,7 +923,7 @@ function VaccinationRecordCard({
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="body-lg font-semibold text-petcenter-text">{record.name}</h3>
+              <h3 className="body-lg font-semibold text-petcenter-text">{record.vaccineName}</h3>
               <VaccinationStatusBadge status={status} label={statusLabel} />
             </div>
           </div>
@@ -952,10 +939,10 @@ function VaccinationRecordCard({
       </div>
 
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <VaccinationField label="Ngày thực hiện" value={record.performedDate} />
+        <VaccinationField label="Ngày thực hiện" value={formatDate(record.vaccinationDate)} />
         <VaccinationField emphasis label="Ngày nhắc lại" value={reminderDate} />
-        <VaccinationField label="Bác sĩ" value={record.doctor} />
-        <VaccinationField italic label="Ghi chú" value={record.note} />
+        <VaccinationField label="Bác sĩ" value={record.veterinarianName ?? "Chưa cập nhật"} />
+        <VaccinationField italic label="Ghi chú" value={record.note ?? "Chưa cập nhật"} />
       </div>
     </article>
   )
@@ -970,7 +957,7 @@ function VaccinationField({ emphasis = false, italic = false, label, value }: { 
   )
 }
 
-function VaccinationStatusBadge({ label, status }: { label: string; status: Exclude<VaccinationFilter, "all"> }) {
+function VaccinationStatusBadge({ label, status }: { label: string; status: PetVaccinationStatus }) {
   return (
     <span
       className={cn(
@@ -992,11 +979,11 @@ function VaccinationDetailDialog({
 }: {
   onOpenChange: (open: boolean) => void
   petName: string
-  record: (typeof vaccinationRecords)[number] | null
+  record: PetVaccination | null
 }) {
-  const status = record ? getVaccinationStatus(record.performedDate) : null
+  const status = record ? record.status : null
   const statusLabel = status ? getVaccinationStatusLabel(status) : ""
-  const reminderDate = record ? formatDisplayDate(getVaccinationReminderDate(record.performedDate)) : ""
+  const reminderDate = record ? formatDate(record.nextReminderDate) : ""
 
   return (
     <Dialog open={Boolean(record)} onOpenChange={onOpenChange}>
@@ -1008,7 +995,7 @@ function VaccinationDetailDialog({
                 <div>
                   <DialogTitle className="heading-sm text-petcenter-text">Chi tiết bản ghi tiêm chủng</DialogTitle>
                   <DialogDescription className="body-md mt-1 text-petcenter-text-secondary">
-                    {record.shortName} • {petName}
+                    {record.vaccineName} • {petName}
                   </DialogDescription>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1023,26 +1010,26 @@ function VaccinationDetailDialog({
             <div className="space-y-6 p-6">
               <DetailSection title="Thông tin tiêm chủng">
                 <div className="grid gap-4 rounded-control border border-petcenter-border bg-petcenter-filter p-5 sm:grid-cols-2">
-                  <DialogInfo label="Tên vaccine" value={record.shortName} />
-                  <DialogInfo label="Loại" value={record.type} />
+                  <DialogInfo label="Tên vaccine" value={record.vaccineName} />
+                  <DialogInfo label="Loại" value="Tiêm chủng" />
                   <DialogInfo label="Thú cưng" value={petName} />
                   <DialogInfo label="Trạng thái" value={statusLabel} valueClassName={status === "due-soon" ? "text-petcenter-warning-text" : status === "overdue" ? "text-petcenter-danger-text" : "text-petcenter-success-text"} />
-                  <DialogInfo label="Ngày thực hiện" value={record.performedDate} />
+                  <DialogInfo label="Ngày thực hiện" value={formatDate(record.vaccinationDate)} />
                   <DialogInfo label="Ngày nhắc lại" value={reminderDate} valueClassName="text-petcenter-cta-active" />
-                  <DialogInfo className="sm:col-span-2" label="Bác sĩ thực hiện" value={record.doctor} />
+                  <DialogInfo className="sm:col-span-2" label="Bác sĩ thực hiện" value={record.veterinarianName ?? "Chưa cập nhật"} />
                 </div>
               </DetailSection>
 
               <DetailSection title="Ghi chú">
                 <div className="rounded-control border border-petcenter-border bg-petcenter-filter p-4">
-                  <p className="body-md italic text-petcenter-text">{record.note}</p>
+                  <p className="body-md italic text-petcenter-text">{record.note ?? "Chưa cập nhật"}</p>
                 </div>
               </DetailSection>
 
               <DetailSection title="Phản ứng sau tiêm">
                 <div className="flex items-center gap-2 text-petcenter-primary">
                   <CheckCircle2 className="h-5 w-5" />
-                  <p className="body-md font-medium">{record.reaction}</p>
+                  <p className="body-md font-medium">Chưa ghi nhận phản ứng bất thường</p>
                 </div>
               </DetailSection>
 
@@ -1471,3 +1458,4 @@ function formatFileDate(value: Date) {
     year: "numeric",
   }).format(value)
 }
+

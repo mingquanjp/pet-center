@@ -19,7 +19,10 @@ import type {
   PetMedicalExamFilters,
   PetPrescriptionDto,
   PetPrescriptionItemDto,
-  PetSpecies
+  PetSpecies,
+  PetVaccinationDto,
+  PetVaccinationFilters,
+  PetVaccinationStatus
 } from "./pets.types.js";
 
 type PetRow = QueryResultRow & {
@@ -126,6 +129,20 @@ type PrescriptionItemRow = QueryResultRow & {
   duration: string;
   usage_instruction: string | null;
   note: string | null;
+};
+
+type PetVaccinationRow = QueryResultRow & {
+  vaccination_id: string;
+  pet_id: string;
+  exam_id: string | null;
+  appointment_id: string | null;
+  vaccine_name: string;
+  vaccination_date: string;
+  next_reminder_date: string;
+  status: PetVaccinationStatus;
+  note: string | null;
+  veterinarian_user_id: string | null;
+  veterinarian_name: string | null;
 };
 
 function toDateInput(value?: Date | null): string | null {
@@ -322,6 +339,22 @@ function mapPrescriptionItem(row: PrescriptionItemRow): PetPrescriptionItemDto {
     duration: row.duration,
     usageInstruction: row.usage_instruction,
     note: row.note
+  };
+}
+
+function mapPetVaccination(row: PetVaccinationRow): PetVaccinationDto {
+  return {
+    vaccinationId: row.vaccination_id,
+    petId: row.pet_id,
+    examId: row.exam_id,
+    appointmentId: row.appointment_id,
+    vaccineName: row.vaccine_name,
+    vaccinationDate: row.vaccination_date,
+    nextReminderDate: row.next_reminder_date,
+    status: row.status,
+    note: row.note,
+    veterinarianUserId: row.veterinarian_user_id,
+    veterinarianName: row.veterinarian_name
   };
 }
 
@@ -687,6 +720,86 @@ export async function findPetMedicalExamDetail(
           ownerNote: examRow.follow_up_owner_note
         }
       : null
+  };
+}
+
+function vaccinationStatusSql(): string {
+  return `case
+    when (v.vaccination_date + interval '1 year')::date < current_date then 'overdue'
+    when (v.vaccination_date + interval '1 year')::date <= current_date + interval '30 days' then 'due-soon'
+    else 'completed'
+  end`;
+}
+
+function buildVaccinationsWhere(filters: PetVaccinationFilters): { whereSql: string; params: unknown[] } {
+  const params: unknown[] = [filters.ownerUserId, filters.petId];
+  const conditions = ["p.owner_user_id = $1", "v.pet_id = $2"];
+
+  if (filters.status) {
+    params.push(filters.status);
+    conditions.push(`${vaccinationStatusSql()} = $${params.length}`);
+  }
+
+  if (filters.q) {
+    params.push(`%${normalizeSearchText(filters.q)}%`);
+    const paramIndex = params.length;
+    conditions.push(`(
+      ${normalizedSql("v.vaccine_name")} like $${paramIndex}
+      or ${normalizedSql("v.note")} like $${paramIndex}
+      or ${normalizedSql("u.full_name")} like $${paramIndex}
+    )`);
+  }
+
+  return {
+    whereSql: conditions.join(" and "),
+    params
+  };
+}
+
+export async function findPetVaccinations(
+  filters: PetVaccinationFilters
+): Promise<{ vaccinations: PetVaccinationDto[]; total: number }> {
+  const { whereSql, params } = buildVaccinationsWhere(filters);
+  const listParams = [...params, filters.limit, filters.offset];
+  const statusSql = vaccinationStatusSql();
+
+  const [listResult, countResult] = await Promise.all([
+    query<PetVaccinationRow>(
+      `select
+         v.vaccination_id,
+         v.pet_id,
+         v.exam_id,
+         me.appointment_id,
+         v.vaccine_name,
+         v.vaccination_date::text as vaccination_date,
+         (v.vaccination_date + interval '1 year')::date::text as next_reminder_date,
+         ${statusSql} as status,
+         v.note,
+         me.examined_by_veterinarian_id as veterinarian_user_id,
+         u.full_name as veterinarian_name
+       from pet_center.vaccinations v
+       inner join pet_center.pets p on p.pet_id = v.pet_id
+       left join pet_center.medical_exams me on me.exam_id = v.exam_id
+       left join pet_center.users u on u.user_id = me.examined_by_veterinarian_id
+       where ${whereSql}
+       order by v.vaccination_date desc, v.vaccination_id desc
+       limit $${params.length + 1} offset $${params.length + 2}`,
+      listParams
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.vaccinations v
+       inner join pet_center.pets p on p.pet_id = v.pet_id
+       left join pet_center.medical_exams me on me.exam_id = v.exam_id
+       left join pet_center.users u on u.user_id = me.examined_by_veterinarian_id
+       where ${whereSql}`,
+      params
+    )
+  ]);
+
+  return {
+    vaccinations: listResult.rows.map(mapPetVaccination),
+    total: Number(countResult.rows[0]?.total ?? 0)
   };
 }
 
