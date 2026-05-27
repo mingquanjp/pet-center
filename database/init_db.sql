@@ -362,6 +362,47 @@ CREATE TABLE notifications (
     )
 );
 
+CREATE TABLE pet_activity_logs (
+    activity_log_id VARCHAR(30) PRIMARY KEY,
+    pet_id VARCHAR(30) NOT NULL REFERENCES pets(pet_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    owner_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    actor_user_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
+    activity_category VARCHAR(30) NOT NULL,
+    activity_type VARCHAR(60) NOT NULL,
+    activity_status VARCHAR(30) NOT NULL DEFAULT 'completed',
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    title VARCHAR(180) NOT NULL,
+    summary TEXT,
+    source_type VARCHAR(40) NOT NULL,
+    source_id VARCHAR(30) NOT NULL,
+    visibility_status VARCHAR(20) NOT NULL DEFAULT 'visible',
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_pet_activity_category CHECK (
+        activity_category IN ('medical', 'vaccination', 'grooming', 'boarding', 'invoice', 'payment', 'profile')
+    ),
+    CONSTRAINT chk_pet_activity_status CHECK (
+        activity_status IN ('scheduled', 'pending', 'confirmed', 'completed', 'cancelled', 'rejected', 'failed')
+    ),
+    CONSTRAINT chk_pet_activity_source CHECK (
+        source_type IN (
+            'medical_appointment',
+            'medical_exam',
+            'vaccination',
+            'prescription',
+            'follow_up_instruction',
+            'grooming_ticket',
+            'boarding_record',
+            'boarding_update',
+            'invoice',
+            'payment',
+            'pet'
+        )
+    ),
+    CONSTRAINT chk_pet_activity_visibility CHECK (visibility_status IN ('visible', 'hidden')),
+    CONSTRAINT uq_pet_activity_source UNIQUE (source_type, source_id, activity_type)
+);
+
 CREATE UNIQUE INDEX uq_payments_transaction_code
     ON payments(transaction_code)
     WHERE transaction_code IS NOT NULL;
@@ -413,5 +454,9 @@ CREATE INDEX idx_payments_invoice ON payments(invoice_id);
 CREATE INDEX idx_payments_status_paid_at ON payments(payment_status, paid_at DESC);
 CREATE INDEX idx_notifications_receiver_status ON notifications(receiver_user_id, notification_status, created_at DESC);
 CREATE INDEX idx_notifications_related ON notifications(related_object_type, related_object_id);
+CREATE INDEX idx_pet_activity_logs_pet_time ON pet_activity_logs(pet_id, occurred_at DESC);
+CREATE INDEX idx_pet_activity_logs_owner_time ON pet_activity_logs(owner_user_id, occurred_at DESC);
+CREATE INDEX idx_pet_activity_logs_category_time ON pet_activity_logs(activity_category, occurred_at DESC);
+CREATE INDEX idx_pet_activity_logs_source ON pet_activity_logs(source_type, source_id);
 
 COMMIT;

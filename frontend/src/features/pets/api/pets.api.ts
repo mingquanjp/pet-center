@@ -1,5 +1,14 @@
 import { apiRequest } from "@/lib/api";
-import type { CreatePetInput, Pagination, Pet, PetDetail, PetsListParams } from "../types/pet.types";
+import type {
+  CreatePetInput,
+  Pagination,
+  Pet,
+  PetDetail,
+  PetMedicalExam,
+  PetMedicalExamDetail,
+  PetMedicalExamsParams,
+  PetsListParams,
+} from "../types/pet.types";
 
 function buildQuery(params: PetsListParams): string {
   const searchParams = new URLSearchParams();
@@ -41,6 +50,33 @@ export const petsApi = {
 
   async get(petId: string): Promise<PetDetail> {
     const response = await apiRequest<PetDetail>(`/pets/${encodeURIComponent(petId)}`);
+
+    return response.data;
+  },
+
+  async listMedicalExams(
+    petId: string,
+    params: PetMedicalExamsParams = {},
+    init: RequestInit = {}
+  ): Promise<{ exams: PetMedicalExam[]; pagination: Pagination }> {
+    const response = await apiRequest<PetMedicalExam[]>(`/pets/${encodeURIComponent(petId)}/medical-exams${buildQuery(params)}`, init);
+
+    return {
+      exams: response.data,
+      pagination: response.pagination ?? {
+        page: params.page ?? 1,
+        limit: params.limit ?? response.data.length,
+        total: response.data.length,
+        totalPages: response.data.length > 0 ? 1 : 0,
+      },
+    };
+  },
+
+  async getMedicalExam(petId: string, examId: string, init: RequestInit = {}): Promise<PetMedicalExamDetail> {
+    const response = await apiRequest<PetMedicalExamDetail>(
+      `/pets/${encodeURIComponent(petId)}/medical-exams/${encodeURIComponent(examId)}`,
+      init
+    );
 
     return response.data;
   },
