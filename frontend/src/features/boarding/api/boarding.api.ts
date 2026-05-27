@@ -76,4 +76,20 @@ export const boardingApi = {
       },
     }
   },
+
+  async getOwnerRecordById(
+    boardingRecordId: string,
+    init: RequestInit = {}
+  ): Promise<BoardingRecordListItem | null> {
+    const result = await this.listOwnerRecords(
+      {
+        search: boardingRecordId,
+        page: 1,
+        limit: 10,
+      },
+      init
+    )
+
+    return result.records.find((record) => record.boardingRecordId === boardingRecordId) ?? null
+  },
 }

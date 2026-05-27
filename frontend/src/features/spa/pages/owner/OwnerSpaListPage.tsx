@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { AlertCircle, Plus, Search, Sparkles } from "lucide-react"
+import { AppPagination } from "@/components/ui/app-pagination"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { spaApi } from "../../api/spa.api"
@@ -18,11 +19,20 @@ import type {
   GroomingTicketStatus,
   OwnerSpaRequest,
   OwnerSpaTab,
+  Pagination,
   SpaBookingStatus,
   SpaService,
 } from "../../types/spa.types"
 import { OwnerSpaRequestCard } from "../../components/owner/OwnerSpaRequestCard"
 import { OwnerSpaServiceCard } from "../../components/owner/OwnerSpaServiceCard"
+
+const SPA_REQUEST_PAGE_SIZE = 5
+const defaultPagination: Pagination = {
+  page: 1,
+  limit: SPA_REQUEST_PAGE_SIZE,
+  total: 0,
+  totalPages: 1,
+}
 
 export function OwnerSpaListPage() {
   const [activeTab, setActiveTab] = React.useState<OwnerSpaTab>("available")
@@ -37,6 +47,10 @@ export function OwnerSpaListPage() {
     timeRange: "all",
   })
   const [bookedSearchQuery, setBookedSearchQuery] = React.useState("")
+  const [bookedPage, setBookedPage] = React.useState(1)
+  const [historyPage, setHistoryPage] = React.useState(1)
+  const [bookedPagination, setBookedPagination] = React.useState<Pagination>(defaultPagination)
+  const [historyPagination, setHistoryPagination] = React.useState<Pagination>(defaultPagination)
   const [isLoadingServices, setIsLoadingServices] = React.useState(true)
   const [hasLoadedServices, setHasLoadedServices] = React.useState(false)
   const [servicesError, setServicesError] = React.useState<string | null>(null)
@@ -54,6 +68,7 @@ export function OwnerSpaListPage() {
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
       setBookedSearchQuery(bookedFilters.search.trim())
+      setBookedPage(1)
     }, 350)
 
     return () => window.clearTimeout(timer)
@@ -112,8 +127,8 @@ export function OwnerSpaListPage() {
               petId: bookedFilters.pet === "all" ? undefined : bookedFilters.pet,
               status: bookedFilters.status,
               timeRange: bookedFilters.timeRange,
-              page: 1,
-              limit: 100,
+              page: bookedPage,
+              limit: SPA_REQUEST_PAGE_SIZE,
             },
             { signal: abortController.signal }
           ),
@@ -124,6 +139,7 @@ export function OwnerSpaListPage() {
 
         if (!abortController.signal.aborted) {
           setBookedRequests(ticketsResult.tickets.map(mapGroomingTicketToRequest))
+          setBookedPagination(ticketsResult.pagination)
           setHasLoadedBookedRequests(true)
 
           if (bookingOptions) {
@@ -133,6 +149,7 @@ export function OwnerSpaListPage() {
       } catch (error) {
         if (!abortController.signal.aborted) {
           setBookedRequests([])
+          setBookedPagination(defaultPagination)
           setHasLoadedBookedRequests(true)
           setBookedRequestsError(error instanceof Error ? error.message : "Không thể tải dịch vụ đã đặt")
         }
@@ -148,7 +165,15 @@ export function OwnerSpaListPage() {
     return () => {
       abortController.abort()
     }
-  }, [activeTab, bookedFilters.pet, bookedFilters.status, bookedFilters.timeRange, bookedPets.length, bookedSearchQuery])
+  }, [
+    activeTab,
+    bookedFilters.pet,
+    bookedFilters.status,
+    bookedFilters.timeRange,
+    bookedPage,
+    bookedPets.length,
+    bookedSearchQuery,
+  ])
 
   React.useEffect(() => {
     if (activeTab !== "history") return
@@ -162,19 +187,21 @@ export function OwnerSpaListPage() {
 
         const result = await spaApi.listTicketHistory(
           {
-            page: 1,
-            limit: 100,
+            page: historyPage,
+            limit: SPA_REQUEST_PAGE_SIZE,
           },
           { signal: abortController.signal }
         )
 
         if (!abortController.signal.aborted) {
           setHistoryRequests(result.tickets.map(mapGroomingTicketToRequest))
+          setHistoryPagination(result.pagination)
           setHasLoadedHistoryRequests(true)
         }
       } catch (error) {
         if (!abortController.signal.aborted) {
           setHistoryRequests([])
+          setHistoryPagination(defaultPagination)
           setHasLoadedHistoryRequests(true)
           setHistoryRequestsError(error instanceof Error ? error.message : "Không thể tải lịch sử dịch vụ spa")
         }
@@ -190,7 +217,7 @@ export function OwnerSpaListPage() {
     return () => {
       abortController.abort()
     }
-  }, [activeTab])
+  }, [activeTab, historyPage])
 
   return (
     <div className="space-y-6">
@@ -238,11 +265,15 @@ export function OwnerSpaListPage() {
           <BookedServiceFilters
             filters={bookedFilters}
             onFiltersChange={setBookedFilters}
+            onPageReset={() => setBookedPage(1)}
             petOptions={bookedPetOptions}
           />
           <BookedServicesTab
             errorMessage={bookedRequestsError}
             isLoading={shouldShowBookedSkeleton}
+            onPageChange={setBookedPage}
+            pagination={bookedPagination}
+            requestsLoading={isLoadingBookedRequests}
             requests={bookedRequests}
           />
         </TabsContent>
@@ -251,6 +282,9 @@ export function OwnerSpaListPage() {
           <HistoryServicesTab
             errorMessage={historyRequestsError}
             isLoading={shouldShowHistorySkeleton}
+            onPageChange={setHistoryPage}
+            pagination={historyPagination}
+            requestsLoading={isLoadingHistoryRequests}
             requests={historyRequests}
           />
         </TabsContent>
@@ -402,11 +436,17 @@ function AvailableServicesError({ message }: { message: string }) {
 function BookedServicesTab({
   errorMessage,
   isLoading,
+  onPageChange,
+  pagination,
   requests,
+  requestsLoading,
 }: {
   errorMessage: string | null
   isLoading: boolean
+  onPageChange: (page: number) => void
+  pagination: Pagination
   requests: OwnerSpaRequest[]
+  requestsLoading: boolean
 }) {
   if (errorMessage) {
     return <AvailableServicesError message={errorMessage} />
@@ -438,6 +478,14 @@ function BookedServicesTab({
       {requests.map((request) => (
         <OwnerSpaRequestCard key={request.id} request={request} />
       ))}
+      <AppPagination
+        ariaLabel="Phân trang dịch vụ đã đặt"
+        className="pb-8 pt-2"
+        currentPage={pagination.page}
+        isLoading={requestsLoading}
+        onPageChange={onPageChange}
+        totalPages={pagination.totalPages}
+      />
     </>
   )
 }
@@ -445,11 +493,17 @@ function BookedServicesTab({
 function HistoryServicesTab({
   errorMessage,
   isLoading,
+  onPageChange,
+  pagination,
   requests,
+  requestsLoading,
 }: {
   errorMessage: string | null
   isLoading: boolean
+  onPageChange: (page: number) => void
+  pagination: Pagination
   requests: OwnerSpaRequest[]
+  requestsLoading: boolean
 }) {
   if (errorMessage) {
     return <AvailableServicesError message={errorMessage} />
@@ -481,6 +535,14 @@ function HistoryServicesTab({
       {requests.map((request) => (
         <OwnerSpaRequestCard key={request.id} request={request} />
       ))}
+      <AppPagination
+        ariaLabel="Phân trang lịch sử dịch vụ"
+        className="pb-8 pt-2"
+        currentPage={pagination.page}
+        isLoading={requestsLoading}
+        onPageChange={onPageChange}
+        totalPages={pagination.totalPages}
+      />
     </>
   )
 }
@@ -516,10 +578,12 @@ function BookedRequestSkeleton() {
 function BookedServiceFilters({
   filters,
   onFiltersChange,
+  onPageReset,
   petOptions,
 }: {
   filters: BookedServiceFilterState
   onFiltersChange: React.Dispatch<React.SetStateAction<BookedServiceFilterState>>
+  onPageReset: () => void
   petOptions: Array<{ label: string; value: string }>
 }) {
   const hasActiveFilter =
@@ -529,6 +593,7 @@ function BookedServiceFilters({
     filters.timeRange !== "all"
 
   function resetFilters() {
+    onPageReset()
     onFiltersChange({
       search: "",
       pet: "all",
@@ -538,6 +603,7 @@ function BookedServiceFilters({
   }
 
   function updateFilter(key: keyof BookedServiceFilterState, value: string) {
+    onPageReset()
     onFiltersChange((currentFilters) => ({
       ...currentFilters,
       [key]: value,
