@@ -1,9 +1,11 @@
 import type { QueryResultRow } from "pg";
 
 export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out";
+export type BoardingCreateStatus = "pending_payment" | "pending";
 export type BoardingPaymentOption = "online" | "counter";
 export type BoardingInvoiceStatus = "pending_payment" | "paid" | "cancelled" | "refunded";
 export type BoardingAlertLevel = "normal" | "attention" | "urgent";
+export type BoardingPetSpecies = "Dog" | "Cat" | "Other";
 
 export type BoardingRecordListFilters = {
   ownerUserId: string;
@@ -22,6 +24,8 @@ export type BoardingRecordListRow = QueryResultRow & {
   profile_image_url: string | null;
   room_type_id: string;
   room_type_name: string;
+  planned_check_in_at: string | Date;
+  planned_check_out_at: string | Date;
   planned_check_in_date: string;
   planned_check_out_date: string;
   planned_date_range_text: string;
@@ -40,6 +44,34 @@ export type CountRow = QueryResultRow & {
   total: string;
 };
 
+export type BoardingBookingPetRow = QueryResultRow & {
+  pet_id: string;
+  pet_name: string;
+  species: BoardingPetSpecies;
+  weight_kg: string | number | null;
+  profile_image_url: string | null;
+};
+
+export type BoardingRoomTypeAvailabilityRow = QueryResultRow & {
+  room_type_id: string;
+  room_type_name: string;
+  capacity: number;
+  boarding_unit_price: string | number;
+  description: string | null;
+  booked_units: string | number;
+};
+
+export type CreateBoardingRecordInput = {
+  ownerUserId: string;
+  pet: BoardingBookingPetDto;
+  roomType: BoardingRoomTypeBookingDto;
+  plannedCheckInAt: Date;
+  plannedCheckOutAt: Date;
+  stayDays: number;
+  careRequest?: string | null;
+  paymentOption: BoardingPaymentOption;
+};
+
 export type BoardingRecordListItemDto = {
   boardingRecordId: string;
   boardingCode: string;
@@ -52,6 +84,8 @@ export type BoardingRecordListItemDto = {
     roomTypeId: string;
     roomTypeName: string;
   };
+  plannedCheckInAt: string;
+  plannedCheckOutAt: string;
   plannedCheckInDate: string;
   plannedCheckOutDate: string;
   plannedDateRangeText: string;
@@ -70,4 +104,50 @@ export type BoardingRecordListItemDto = {
     healthStatusLabel: string;
     lastUpdatedAt: string | null;
   };
+};
+
+export type BoardingBookingPetDto = {
+  petId: string;
+  petName: string;
+  species: BoardingPetSpecies;
+  speciesLabel: string;
+  weightKg: number | null;
+  profileImageUrl: string | null;
+};
+
+export type BoardingRoomTypeBookingDto = {
+  roomTypeId: string;
+  roomTypeName: string;
+  description: string | null;
+  capacity: number;
+  unitPrice: number;
+  priceText: string;
+  bookedUnits: number;
+  availableUnits: number;
+  available: boolean;
+  nights: number;
+  estimatedTotal: number;
+  estimatedTotalText: string;
+};
+
+export type BoardingBookingOptionsDto = {
+  pets: BoardingBookingPetDto[];
+  selectedPet: BoardingBookingPetDto | null;
+  roomTypes: BoardingRoomTypeBookingDto[];
+};
+
+export type BoardingRecordCreatedDto = {
+  boardingRecordId: string;
+  boardingCode: string;
+  invoiceId: string;
+  paymentOption: BoardingPaymentOption;
+  boardingStatus: BoardingCreateStatus;
+  invoiceStatus: "pending_payment";
+  totalAmount: number;
+  paymentUrl: string | null;
+  petName: string;
+  roomTypeName: string;
+  plannedCheckInAt: string;
+  plannedCheckOutAt: string;
+  stayDays: number;
 };

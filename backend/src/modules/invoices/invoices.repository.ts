@@ -39,7 +39,7 @@ export async function getStaffInvoicesList(filters: any) {
               JOIN pet_center.medical_appointments ma ON me.appointment_id = ma.appointment_id 
               WHERE me.exam_id = il.source_id
             )
-            WHEN 'boarding' THEN (SELECT planned_check_in_date::timestamptz FROM pet_center.boarding_records br WHERE br.boarding_record_id = il.source_id)
+            WHEN 'boarding' THEN (SELECT planned_check_in_at::timestamptz FROM pet_center.boarding_records br WHERE br.boarding_record_id = il.source_id)
             WHEN 'prescription' THEN (SELECT prescribed_at::timestamptz FROM pet_center.prescriptions p WHERE p.prescription_id = il.source_id)
             ELSE i.issued_at::timestamptz
           END
