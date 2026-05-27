@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "sonner"
 import { spaApi } from "../../api/spa.api"
 import {
   ownerSpaTabs,
@@ -200,6 +201,7 @@ export function OwnerSpaListPage() {
       setCancelRequest(null)
       setBookedRefreshKey((current) => current + 1)
       setHistoryPage(1)
+      toast.success("Hủy yêu cầu dịch vụ thành công")
     } catch (error) {
       setCancelErrorMessage(error instanceof Error ? error.message : "Không thể hủy yêu cầu dịch vụ spa")
     } finally {
