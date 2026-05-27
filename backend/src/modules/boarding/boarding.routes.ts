@@ -5,6 +5,7 @@ import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as boardingController from "./boarding.controller.js";
 import {
+  boardingRecordParamsSchema,
   boardingBookingOptionsQuerySchema,
   createBoardingRecordSchema,
   listBoardingRecordsQuerySchema
@@ -70,6 +71,14 @@ boardingRouter.get(
   requireRole("OWNER"),
   validateRequest({ query: listBoardingRecordsQuerySchema }),
   asyncHandler(boardingController.listOwnerBoardingRecords)
+);
+
+boardingRouter.get(
+  "/boarding/records/:boardingRecordId",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: boardingRecordParamsSchema }),
+  asyncHandler(boardingController.getOwnerBoardingRecordDetail)
 );
 
 boardingRouter.post(
