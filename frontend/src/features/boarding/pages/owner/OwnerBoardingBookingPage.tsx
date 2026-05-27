@@ -18,6 +18,12 @@ import {
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { boardingApi } from "../../api/boarding.api"
@@ -183,13 +189,11 @@ export function OwnerBoardingBookingPage() {
       </section>
 
       {errorMessage ? <BookingError message={errorMessage} /> : null}
-      {successRecord ? (
-        <BookingSuccess
-          record={successRecord}
-          onBackToList={() => router.push("/owner/boarding")}
-          onClose={() => setSuccessRecord(null)}
-        />
-      ) : null}
+      <BookingSuccessDialog
+        record={successRecord}
+        onBackToList={() => router.push("/owner/boarding")}
+        onClose={() => setSuccessRecord(null)}
+      />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className="rounded-xl border border-[rgba(189,201,197,0.3)] bg-white px-[25px] pb-[41px] pt-[25px] shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.03)]">
@@ -396,51 +400,66 @@ function BookingError({ message }: { message: string }) {
   )
 }
 
-function BookingSuccess({
+function BookingSuccessDialog({
   onBackToList,
   onClose,
   record,
 }: {
   onBackToList: () => void
   onClose: () => void
-  record: BoardingRecordCreated
+  record: BoardingRecordCreated | null
 }) {
   return (
-    <div className="rounded-xl border border-[#B7D9D3] bg-white p-6 shadow-[0_4px_14px_rgba(0,0,0,0.08)]">
-      <div className="flex items-start gap-4">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#E0F2F1] text-[#00796B]">
-          <Check className="size-7" aria-hidden="true" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-bold leading-7 text-[#1B1C15]">Đặt phòng thành công</h2>
-          <p className="mt-1 text-sm leading-5 text-[#3E4946]">
-            Yêu cầu {record.boardingCode} đã được gửi tới trung tâm và đang chờ xác nhận.
-          </p>
-          <div className="mt-4 grid gap-2 text-sm leading-5 sm:grid-cols-2">
-            <SummaryInline label="Thú cưng" value={record.petName} />
-            <SummaryInline label="Loại phòng" value={record.roomTypeName} />
-            <SummaryInline label="Thời gian" value={`${formatShortDate(record.plannedCheckInAt)} - ${formatShortDate(record.plannedCheckOutAt)}`} />
-            <SummaryInline label="Tạm tính" value={formatMoney(record.totalAmount)} />
+    <Dialog open={Boolean(record)} onOpenChange={(open) => {
+      if (!open) {
+        onClose()
+      }
+    }}>
+      <DialogContent className="max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-[420px] overflow-y-auto rounded-xl border border-[#B7D9D3] bg-white px-5 py-8 shadow-[0_12px_30px_rgba(0,0,0,0.12)] sm:max-w-[460px] sm:px-8" showCloseButton>
+        {record ? (
+          <div className="flex flex-col items-center text-center">
+            <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#E0F2F1] text-[#00796B] sm:size-[72px]">
+              <Check className="size-9" aria-hidden="true" />
+            </span>
+
+            <DialogTitle className="mt-5 text-2xl font-bold leading-8 tracking-[0] text-[#1B1C15] sm:text-[28px] sm:leading-9">
+              Đặt phòng thành công
+            </DialogTitle>
+            <DialogDescription className="mt-2 max-w-[440px] break-words text-sm leading-6 text-[#3E4946] sm:text-base">
+              Yêu cầu {record.boardingCode} đã được gửi tới trung tâm và đang chờ xác nhận.
+            </DialogDescription>
+
+            <div className="mt-6 grid w-full min-w-0 gap-3 text-sm leading-5">
+              <SummaryInline label="Thú cưng" value={record.petName} />
+              <SummaryInline label="Loại phòng" value={record.roomTypeName} />
+              <SummaryInline
+                label="Thời gian"
+                value={`${formatShortDate(record.plannedCheckInAt)} - ${formatShortDate(record.plannedCheckOutAt)}`}
+              />
+              <SummaryInline label="Tạm tính" value={formatMoney(record.totalAmount)} />
+            </div>
+
+            <div className="mt-6 grid flex justify-center">
+              <Button
+                className="h-12 rounded-lg bg-[#00796B] px-5 text-base font-semibold text-white hover:bg-[#00695C]"
+                onClick={onBackToList}
+              >
+                Về danh sách lưu trú
+              </Button>
+        
+            </div>
           </div>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Button className="rounded-lg bg-[#00796B] text-white hover:bg-[#00695C]" onClick={onBackToList}>
-              Về danh sách lưu trú
-            </Button>
-            <Button className="rounded-lg border-[#6E7A76]" variant="outline" onClick={onClose}>
-              Tiếp tục xem trang
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
   )
 }
 
 function SummaryInline({ label, value }: { label: string; value: string }) {
   return (
-    <p className="flex justify-between gap-3 rounded-lg bg-[#FBFAEE] px-3 py-2">
-      <span className="text-[#3E4946]">{label}</span>
-      <span className="font-semibold text-[#1B1C15]">{value}</span>
+    <p className="flex min-h-[52px] min-w-0 items-center justify-between gap-4 rounded-lg bg-[#FBFAEE] px-4 py-3 text-left">
+      <span className="shrink-0 text-[#3E4946]">{label}</span>
+      <span className="min-w-0 break-words text-right font-semibold text-[#1B1C15]">{value}</span>
     </p>
   )
 }
