@@ -9,6 +9,7 @@ import {
   bookingOptionsQuerySchema,
   createGroomingTicketSchema,
   groomingTicketParamsSchema,
+  listGroomingTicketHistoryQuerySchema,
   listGroomingTicketsQuerySchema
 } from "./grooming.schema.js";
 
@@ -245,12 +246,64 @@ groomingRouter.get(
 
 /**
  * @openapi
+ * /api/v1/grooming/tickets/history:
+ *   get:
+ *     tags:
+ *       - Grooming
+ *     summary: List current owner's grooming ticket history
+ *     description: "Returns completed and cancelled grooming tickets for the Owner history tab. Pending online payments are excluded because they are not considered booked services. Roles: OWNER."
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: petId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [all, completed, cancelled]
+ *       - in: query
+ *         name: timeRange
+ *         schema:
+ *           type: string
+ *           enum: [all, today, upcoming, past]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *     responses:
+ *       200:
+ *         description: Grooming ticket history returned successfully.
+ */
+groomingRouter.get(
+  "/grooming/tickets/history",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ query: listGroomingTicketHistoryQuerySchema }),
+  asyncHandler(groomingController.listTicketHistory)
+);
+
+/**
+ * @openapi
  * /api/v1/grooming/tickets/{ticketId}:
  *   get:
  *     tags:
  *       - Grooming
  *     summary: Get current owner's booked grooming ticket detail
- *     description: "Returns detail for a booked grooming ticket. Pending online payments are excluded until payment succeeds. Roles: OWNER."
+ *     description: "Returns detail for a booked or historical grooming ticket. Pending online payments are excluded until payment succeeds. Roles: OWNER."
  *     security:
  *       - bearerAuth: []
  *     parameters:

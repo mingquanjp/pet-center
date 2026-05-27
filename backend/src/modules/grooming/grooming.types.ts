@@ -75,12 +75,23 @@ export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled" |
 export type GroomingPaymentOption = "counter" | "online";
 
 export type BookedGroomingTicketStatus = Extract<GroomingTicketStatus, "pending" | "waiting" | "in_progress">;
+export type GroomingTicketHistoryStatus = Extract<GroomingTicketStatus, "completed" | "cancelled">;
 
 export type GroomingTicketListFilters = {
   ownerUserId: string;
   search?: string;
   petId?: string;
   status?: "all" | BookedGroomingTicketStatus;
+  timeRange?: "all" | "today" | "upcoming" | "past";
+  limit: number;
+  offset: number;
+};
+
+export type GroomingTicketHistoryFilters = {
+  ownerUserId: string;
+  search?: string;
+  petId?: string;
+  status?: "all" | GroomingTicketHistoryStatus;
   timeRange?: "all" | "today" | "upcoming" | "past";
   limit: number;
   offset: number;
@@ -94,7 +105,7 @@ export type GroomingTicketListItemDto = {
   scheduledAt: string;
   scheduledDate: string;
   scheduledTime: string;
-  ticketStatus: BookedGroomingTicketStatus;
+  ticketStatus: GroomingTicketStatus;
   ticketStatusLabel: string;
   paymentOption: GroomingPaymentOption;
   paymentMethodLabel: string;
