@@ -10,6 +10,15 @@ export const listStaffInvoicesQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(10),
 });
 
+export const listOwnerInvoicesQuerySchema = z.object({
+  search: z.string().optional(),
+  status: z.enum(["PAID", "PENDING_PAYMENT", "OVERDUE"]).optional(),
+  serviceType: z.enum(["MEDICAL", "GROOMING", "BOARDING", "PRESCRIPTION"]).optional(),
+  date: z.string().optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(4),
+});
+
 export const invoiceParamsSchema = z.object({
   invoiceId: z.string().max(30),
 });
