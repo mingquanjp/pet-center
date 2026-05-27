@@ -34,7 +34,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { includesSearchText, normalizeSearchText } from "@/lib/search"
 import { cn } from "@/lib/utils"
 import { petsApi } from "../../api/pets.api"
-import type { PetActivityLog, PetDetail } from "../../types/pet.types"
+import type { PetActivityLog, PetDetail, PetMedicalExam } from "../../types/pet.types"
 
 const tabs = [
   { id: "basic", label: "Hồ sơ cơ bản" },
@@ -45,36 +45,23 @@ const tabs = [
 
 type PetDetailTab = (typeof tabs)[number]["id"]
 
-const examinationRecords = [
-  {
-    title: "Khám sức khỏe định kỳ",
-    date: "12/10/2023",
-    time: "09:30 AM",
-    type: "Khám định kỳ",
-    doctor: "Bs. Trần Văn B",
-    diagnosis: "Sức khỏe ổn định",
-    conclusion:
-      "Thú cưng phát triển bình thường, cân nặng ổn định. Đã tẩy giun định kỳ. Khuyến nghị duy trì chế độ ăn hiện tại.",
-  },
-  {
-    title: "Khám da liễu",
-    date: "20/07/2023",
-    time: "15:00 PM",
-    type: "Khám bệnh",
-    doctor: "Bs. Lê Thu H",
-    diagnosis: "Kích ứng da nhẹ",
-    conclusion: "Theo dõi trong 7 ngày, vệ sinh vùng cổ và tránh tiếp xúc hóa chất tắm gội mạnh.",
-  },
-  {
-    title: "Tái khám sau điều trị",
-    date: "28/07/2023",
-    time: "10:00 AM",
-    type: "Tái khám",
-    doctor: "Bs. Lê Thu H",
-    diagnosis: "Da phục hồi tốt",
-    conclusion: "Không cần điều trị thêm. Tiếp tục theo dõi và duy trì vệ sinh định kỳ.",
-  },
-]
+const medicalExamTypeOptions = [
+  { label: "Tất cả", value: "all" },
+  { label: "Khám tổng quát", value: "general_checkup" },
+  { label: "Tiêm phòng", value: "vaccination" },
+  { label: "Xét nghiệm", value: "lab_test" },
+  { label: "Tái khám", value: "recheck" },
+] as const
+
+const medicalTimeOptions = [
+  { label: "Tất cả thời gian", value: "all" },
+  { label: "3 tháng gần đây", value: "3m" },
+  { label: "6 tháng gần đây", value: "6m" },
+  { label: "Năm nay", value: "year" },
+] as const
+
+type MedicalExamTypeFilter = (typeof medicalExamTypeOptions)[number]["value"]
+type MedicalTimeFilter = (typeof medicalTimeOptions)[number]["value"]
 
 const vaccinationFilters = [
   { id: "all", label: "Tất cả" },
@@ -372,7 +359,7 @@ export function OwnerPetDetailPage({ petId }: { petId: string }) {
       </nav>
 
       {activeTab === "basic" ? <BasicProfileTab GenderIcon={GenderIcon} pet={pet} /> : null}
-      {activeTab === "medical-history" ? <MedicalHistoryTab petName={pet.petName} /> : null}
+      {activeTab === "medical-history" ? <MedicalHistoryTab petId={pet.petId} petName={pet.petName} /> : null}
       {activeTab === "vaccination" ? <VaccinationTab petName={pet.petName} /> : null}
       {activeTab === "spa-history" ? <SpaHistoryTab petName={pet.petName} /> : null}
     </div>
@@ -412,25 +399,78 @@ function BasicProfileTab({ GenderIcon, pet }: { GenderIcon: typeof Mars; pet: Pe
   )
 }
 
-function MedicalHistoryTab({ petName }: { petName: string }) {
+function MedicalHistoryTab({ petId, petName }: { petId: string; petName: string }) {
+  const [records, setRecords] = React.useState<PetMedicalExam[]>([])
+  const [totalRecords, setTotalRecords] = React.useState(0)
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [searchValue, setSearchValue] = React.useState("")
+  const [examTypeFilter, setExamTypeFilter] = React.useState<MedicalExamTypeFilter>("all")
+  const [timeFilter, setTimeFilter] = React.useState<MedicalTimeFilter>("all")
   const debouncedSearchValue = useDebouncedValue(searchValue, 300)
-  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue)
-  const normalizedSearch = normalizeSearchText(debouncedSearchValue)
-  const filteredRecords = examinationRecords.filter((record) =>
-    [record.title, record.type, record.doctor, record.diagnosis, record.conclusion].some((value) =>
-      includesSearchText(value, normalizedSearch)
-    )
-  )
+  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearchValue) || isLoading
+  const latestRecord = records[0]
+  const dateRange = React.useMemo(() => getMedicalDateRange(timeFilter), [timeFilter])
+
+  React.useEffect(() => {
+    const abortController = new AbortController()
+
+    async function loadMedicalExams() {
+      try {
+        setIsLoading(true)
+        setErrorMessage(null)
+
+        const result = await petsApi.listMedicalExams(
+          petId,
+          {
+            q: debouncedSearchValue.trim() || undefined,
+            examType: examTypeFilter,
+            from: dateRange.from,
+            to: dateRange.to,
+            page: 1,
+            limit: 50,
+          },
+          { signal: abortController.signal }
+        )
+
+        if (!abortController.signal.aborted) {
+          setRecords(result.exams)
+          setTotalRecords(result.pagination.total)
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setRecords([])
+          setTotalRecords(0)
+          setErrorMessage(error instanceof Error ? error.message : "Không thể tải lịch sử khám")
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadMedicalExams()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [dateRange.from, dateRange.to, debouncedSearchValue, examTypeFilter, petId])
+
+  function resetFilters() {
+    setSearchValue("")
+    setExamTypeFilter("all")
+    setTimeFilter("all")
+  }
 
   return (
     <div className="flex w-full flex-col gap-6">
       <section className="rounded-card border border-petcenter-border-strong bg-white p-6 shadow-card">
         <h2 className="label-md mb-4 font-bold uppercase text-petcenter-text">Tóm tắt khám bệnh</h2>
         <div className="grid gap-6 md:grid-cols-3 md:divide-x md:divide-petcenter-border-strong">
-          <SummaryMetric label="Tổng số lần khám" value={String(examinationRecords.length)} />
-          <SummaryMetric label="Lần khám gần nhất" value={examinationRecords[0]?.date ?? "Chưa có dữ liệu"} />
-          <SummaryMetric label="Bác sĩ gần đây" value={examinationRecords[0]?.doctor ?? "Chưa có dữ liệu"} />
+          <SummaryMetric label="Tổng số lần khám" value={isLoading ? "Đang tải..." : String(totalRecords)} />
+          <SummaryMetric label="Lần khám gần nhất" value={latestRecord ? formatDate(latestRecord.examDate) : "Chưa có dữ liệu"} />
+          <SummaryMetric label="Bác sĩ gần đây" value={latestRecord?.veterinarianName ?? "Chưa có dữ liệu"} />
         </div>
       </section>
 
@@ -455,12 +495,22 @@ function MedicalHistoryTab({ petName }: { petName: string }) {
             </span>
           </label>
 
-          <FilterSelect label="Loại khám" options={["Tất cả", "Khám định kỳ", "Khám bệnh", "Tái khám"]} />
-          <FilterSelect label="Thời gian" options={["Tất cả thời gian", "3 tháng gần đây", "6 tháng gần đây", "Năm nay"]} />
+          <FilterSelect
+            label="Loại khám"
+            onChange={(value) => setExamTypeFilter(value as MedicalExamTypeFilter)}
+            options={medicalExamTypeOptions}
+            value={examTypeFilter}
+          />
+          <FilterSelect
+            label="Thời gian"
+            onChange={(value) => setTimeFilter(value as MedicalTimeFilter)}
+            options={medicalTimeOptions}
+            value={timeFilter}
+          />
 
           <button
             className="label-md inline-flex h-10 w-full items-center justify-center gap-2 rounded-control px-4 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5 md:w-auto"
-            onClick={() => setSearchValue("")}
+            onClick={resetFilters}
             type="button"
           >
             <RotateCcw className="h-4 w-4" />
@@ -488,18 +538,32 @@ function MedicalHistoryTab({ petName }: { petName: string }) {
           </button>
         </div>
 
-        {filteredRecords.length > 0 ? (
-          <div className={cn("space-y-4 transition-opacity duration-200", isSearchSettling && "opacity-80")}>
-            {filteredRecords.map((record) => (
-              <ExaminationRecordCard key={`${record.title}-${record.date}`} record={record} />
+        {errorMessage ? (
+          <EmptyFilterState description={errorMessage} title="Không thể tải lịch sử khám" />
+        ) : null}
+
+        {!errorMessage && isLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="h-44 animate-pulse rounded-card border border-petcenter-border-strong bg-white shadow-card" />
             ))}
           </div>
-        ) : (
+        ) : null}
+
+        {!errorMessage && !isLoading && records.length > 0 ? (
+          <div className={cn("space-y-4 transition-opacity duration-200", isSearchSettling && "opacity-80")}>
+            {records.map((record) => (
+              <ExaminationRecordCard key={record.examId} record={record} />
+            ))}
+          </div>
+        ) : null}
+
+        {!errorMessage && !isLoading && records.length === 0 ? (
           <EmptyFilterState
             description="Thử đổi từ khóa tìm kiếm lịch sử khám."
             title="Không tìm thấy lịch sử khám"
           />
-        )}
+        ) : null}
       </section>
     </div>
   )
@@ -1000,57 +1064,119 @@ function SummaryMetric({ label, value }: { label: string; value: string }) {
   )
 }
 
-function FilterSelect({ label, options }: { label: string; options: string[] }) {
+function FilterSelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string
+  onChange: (value: string) => void
+  options: readonly { label: string; value: string }[]
+  value: string
+}) {
   return (
     <label className="block">
       <span className="label-sm mb-1 block font-bold text-petcenter-text-secondary">{label}</span>
-      <select className="body-sm h-10 w-full rounded-control border-0 bg-petcenter-sidebar px-3 text-petcenter-text outline-none transition focus:bg-white focus:ring-2 focus:ring-petcenter-primary/20">
+      <select
+        className="body-sm h-10 w-full rounded-control border-0 bg-petcenter-sidebar px-3 text-petcenter-text outline-none transition focus:bg-white focus:ring-2 focus:ring-petcenter-primary/20"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
         {options.map((option) => (
-          <option key={option}>{option}</option>
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
         ))}
       </select>
     </label>
   )
 }
 
-function ExaminationRecordCard({ record }: { record: (typeof examinationRecords)[number] }) {
+function ExaminationRecordCard({ record }: { record: PetMedicalExam }) {
   return (
     <article className="flex flex-col gap-4 rounded-card border border-petcenter-border-strong bg-white p-6 shadow-card">
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-4">
           <div>
             <div className="mb-1 flex flex-wrap items-center gap-3">
-              <h3 className="title-md text-petcenter-text">{record.title}</h3>
+              <h3 className="title-md text-petcenter-text">{record.examTypeName}</h3>
               <span className="label-sm rounded-pill bg-petcenter-primary/10 px-2.5 py-1 font-semibold text-petcenter-primary">
-                {record.type}
+                {getExamStatusLabel(record.examStatus)}
               </span>
             </div>
             <p className="body-sm flex items-center gap-1.5 text-petcenter-text-secondary">
               <CalendarDays className="h-4 w-4" />
-              {record.date} - {record.time}
+              {formatDate(record.examDate)}
             </p>
           </div>
 
-          <RecordNote label="Chẩn đoán" value={record.diagnosis} />
+          <RecordNote label="Chẩn đoán" value={record.diagnosis || "Chưa cập nhật"} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
           <div className="lg:text-right">
             <p className="label-sm uppercase text-petcenter-text-secondary">Bác sĩ phụ trách</p>
-            <p className="body-md font-bold text-petcenter-text">{record.doctor}</p>
+            <p className="body-md font-bold text-petcenter-text">{record.veterinarianName}</p>
           </div>
 
-          <RecordNote label="Kết luận & Dặn dò" value={record.conclusion} />
+          <RecordNote label="Kết luận & Dặn dò" value={record.conclusion || record.healthNote || "Chưa cập nhật"} />
         </div>
       </div>
 
-      <div className="flex justify-end border-t border-petcenter-border pt-4">
-        <button className="label-md inline-flex h-10 items-center justify-center rounded-control border border-petcenter-primary px-5 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5">
-          Xem chi tiết
-        </button>
+      <div className="flex flex-wrap gap-2 border-t border-petcenter-border pt-4">
+        {record.hasPrescription ? (
+          <span className="label-sm rounded bg-petcenter-primary/10 px-2 py-1 font-semibold text-petcenter-primary">Có toa thuốc</span>
+        ) : null}
+        {record.hasFollowUp ? (
+          <span className="label-sm rounded bg-petcenter-warning-bg px-2 py-1 font-semibold text-petcenter-warning-text">
+            Tái khám: {formatDate(record.followUpDate)}
+          </span>
+        ) : null}
       </div>
     </article>
   )
+}
+
+function getExamStatusLabel(status: PetMedicalExam["examStatus"]) {
+  return {
+    result_recorded: "Đã có kết quả",
+    prescribed: "Có toa thuốc",
+    follow_up_required: "Cần tái khám",
+  }[status]
+}
+
+function getMedicalDateRange(filter: MedicalTimeFilter): { from?: string; to?: string } {
+  if (filter === "all") return {}
+
+  const now = new Date()
+  const to = formatIsoDate(now)
+  const fromDate = new Date(now)
+
+  if (filter === "3m") {
+    fromDate.setMonth(fromDate.getMonth() - 3)
+  }
+
+  if (filter === "6m") {
+    fromDate.setMonth(fromDate.getMonth() - 6)
+  }
+
+  if (filter === "year") {
+    fromDate.setMonth(0, 1)
+  }
+
+  return {
+    from: formatIsoDate(fromDate),
+    to,
+  }
+}
+
+function formatIsoDate(value: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(value)
 }
 
 function RecordNote({ label, value }: { label: string; value: string }) {

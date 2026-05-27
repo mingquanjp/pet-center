@@ -47,9 +47,10 @@ export const petsApi = {
 
   async listMedicalExams(
     petId: string,
-    params: PetMedicalExamsParams = {}
+    params: PetMedicalExamsParams = {},
+    init: RequestInit = {}
   ): Promise<{ exams: PetMedicalExam[]; pagination: Pagination }> {
-    const response = await apiRequest<PetMedicalExam[]>(`/pets/${encodeURIComponent(petId)}/medical-exams${buildQuery(params)}`);
+    const response = await apiRequest<PetMedicalExam[]>(`/pets/${encodeURIComponent(petId)}/medical-exams${buildQuery(params)}`, init);
 
     return {
       exams: response.data,
