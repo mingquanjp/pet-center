@@ -37,7 +37,7 @@ export function StaffAppointmentFilterBar({ filters, onChange, onReset }: Props)
     <div className="p-4 border-b border-petcenter-border w-full">
       <div className="flex flex-wrap items-center gap-3">
         {/* Search Input */}
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-50">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-petcenter-text-secondary" />
           <input 
             className="w-full pl-9 pr-3 py-2 bg-petcenter-background body-md border border-petcenter-border rounded-[0.75rem] focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary placeholder:text-petcenter-text-secondary text-petcenter-text" 
@@ -52,7 +52,7 @@ export function StaffAppointmentFilterBar({ filters, onChange, onReset }: Props)
         <label className="flex items-center gap-2">
           <span className="text-sm font-medium text-petcenter-text-secondary whitespace-nowrap">Dịch vụ:</span>
           <select 
-            className="py-2 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-[0.75rem] text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary min-w-[140px]"
+            className="py-2 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-[0.75rem] text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary min-w-35"
             value={filters.serviceType}
             onChange={(e) => onChange({ ...filters, serviceType: e.target.value as StaffAppointmentFilters['serviceType'] })}
           >
@@ -67,7 +67,7 @@ export function StaffAppointmentFilterBar({ filters, onChange, onReset }: Props)
           <span className="text-sm font-medium text-petcenter-text-secondary whitespace-nowrap">Ngày hẹn:</span>
           <input 
             type="date"
-            className="py-2 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-[0.75rem] text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary min-w-[140px]"
+            className="py-2 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-[0.75rem] text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary min-w-35"
             value={filters.date}
             onChange={(e) => onChange({ ...filters, date: e.target.value })}
           />

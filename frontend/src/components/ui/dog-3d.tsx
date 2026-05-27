@@ -13,7 +13,7 @@ function DogModel(props: any) {
   const backRightLeg = useRef<THREE.Group>(null)
   const body = useRef<THREE.Group>(null)
   const tail = useRef<THREE.Group>(null)
-  
+
   // Custom PetCenter colors
   const furColor = "#f59e0b" // petcenter-cta
   const darkColor = "#1f261f" // petcenter-text
@@ -22,22 +22,22 @@ function DogModel(props: any) {
   useFrame((state) => {
     const t = state.clock.getElapsedTime()
     const speed = 15 // Tốc độ chạy nhanh
-    
+
     // Tính góc vung chân (từ -45 độ đến 45 độ)
     const swing = Math.sin(t * speed) * (Math.PI / 4)
-    
+
     // Hai chân chéo nhau cùng tiến/lùi
     if (frontLeftLeg.current) frontLeftLeg.current.rotation.x = swing
     if (backRightLeg.current) backRightLeg.current.rotation.x = swing
-    
+
     if (frontRightLeg.current) frontRightLeg.current.rotation.x = -swing
     if (backLeftLeg.current) backLeftLeg.current.rotation.x = -swing
-    
+
     // Toàn bộ thân nhấp nhô khi chạy
     if (body.current) {
       body.current.position.y = 1.2 + Math.abs(Math.sin(t * speed)) * 0.15
     }
-    
+
     // Đuôi vẫy
     if (tail.current) {
       tail.current.rotation.z = Math.sin(t * speed * 0.8) * 0.3
@@ -49,13 +49,13 @@ function DogModel(props: any) {
     <group ref={group} {...props} dispose={null}>
       {/* Container của chó, position y=1.2 để chân chạm mốc 0 */}
       <group ref={body} position={[0, 1.2, 0]}>
-        
+
         {/* Thân chó */}
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[1, 1, 2.2]} />
           <meshStandardMaterial color={furColor} />
         </mesh>
-        
+
         {/* Đầu chó (Nằm trước thân một chút) */}
         <group position={[0, 0.7, 1.2]}>
           <mesh>
@@ -136,17 +136,17 @@ export function Dog3DScene() {
         <directionalLight position={[10, 15, 10]} intensity={1.5} castShadow />
         {/* Fill light */}
         <directionalLight position={[-10, 5, -5]} intensity={0.5} />
-        
+
         {/* Model chó 3D */}
         <DogModel />
-        
+
         {/* Đổ bóng (Shadow) siêu mượt dưới chân */}
-        <ContactShadows 
-          position={[0, 0, 0]} 
-          opacity={0.3} 
-          scale={10} 
-          blur={2.5} 
-          far={4} 
+        <ContactShadows
+          position={[0, 0, 0]}
+          opacity={0.3}
+          scale={10}
+          blur={2.5}
+          far={4}
         />
       </Canvas>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { StaffAppointmentFilters } from "../../types/appointment.types";
 import { useStaffAppointments } from "../../hooks/useStaffAppointments";
@@ -10,6 +10,7 @@ import { StaffAppointmentTabs } from "../../components/staff/StaffAppointmentTab
 import { StaffAppointmentTable } from "../../components/staff/StaffAppointmentTable";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const defaultFilters: StaffAppointmentFilters = {
   search: "",
@@ -39,7 +40,7 @@ export function StaffAppointmentsPage() {
   const pathname = usePathname();
 
   const filters = useMemo(() => parseFiltersFromParams(searchParams), [searchParams]);
-  const { data, stats, pagination, isLoading, isError, refetch } = useStaffAppointments(filters);
+  const { data, stats, pagination, isLoading, isInitialLoading, isError, refetch } = useStaffAppointments(filters);
 
   const updateFilters = useCallback((newFilters: StaffAppointmentFilters) => {
     const params = new URLSearchParams();
@@ -120,15 +121,16 @@ export function StaffAppointmentsPage() {
 
         {/* Table & Loading & Error */}
         <div className="relative flex-1">
-          {isLoading && (
-            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
-              <div className="w-8 h-8 border-4 border-petcenter-primary/30 border-t-petcenter-primary rounded-full animate-spin shadow-sm"></div>
+          {isInitialLoading ? (
+            <div className="py-10">
+              <LoadingState 
+                title="Đang tải dữ liệu..." 
+                description="Vui lòng đợi giây lát trong khi chúng tôi tải dữ liệu từ hệ thống."
+              />
             </div>
-          )}
-
-          {isError ? (
+          ) : isError && data.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
-              <AlertCircle className="h-12 w-12 text-red-400" />
+              <AlertCircle className="h-12 w-12 text-petcenter-danger-text" />
               <p className="text-petcenter-text-secondary font-medium">
                 Không thể tải danh sách lịch hẹn
               </p>
@@ -141,12 +143,14 @@ export function StaffAppointmentsPage() {
               </Button>
             </div>
           ) : (
-            <StaffAppointmentTable
-              appointments={data}
-              pagination={pagination}
-              onPageChange={handlePageChange}
-              onReset={handleReset}
-            />
+            <div className={`transition-opacity duration-200 ${isLoading && !isInitialLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+              <StaffAppointmentTable
+                appointments={data}
+                pagination={pagination}
+                onPageChange={handlePageChange}
+                onReset={handleReset}
+              />
+            </div>
           )}
         </div>
       </div>
