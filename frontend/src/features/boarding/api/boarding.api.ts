@@ -1,5 +1,13 @@
 import { apiRequest } from "@/lib/api"
-import type { BoardingRecordListItem, BoardingRecordListParams, Pagination } from "../types/boarding.types"
+import type {
+  BoardingBookingOptions,
+  BoardingBookingOptionsParams,
+  BoardingRecordCreated,
+  BoardingRecordListItem,
+  BoardingRecordListParams,
+  CreateBoardingRecordPayload,
+  Pagination,
+} from "../types/boarding.types"
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const searchParams = new URLSearchParams()
@@ -16,6 +24,32 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 export const boardingApi = {
+  async getBookingOptions(
+    params: BoardingBookingOptionsParams = {},
+    init: RequestInit = {}
+  ): Promise<BoardingBookingOptions> {
+    const response = await apiRequest<BoardingBookingOptions>(
+      `/boarding/booking-options${buildQuery({
+        petId: params.petId,
+        plannedCheckInAt: params.plannedCheckInAt,
+        plannedCheckOutAt: params.plannedCheckOutAt,
+      })}`,
+      init
+    )
+
+    return response.data
+  },
+
+  async createRecord(payload: CreateBoardingRecordPayload, init: RequestInit = {}): Promise<BoardingRecordCreated> {
+    const response = await apiRequest<BoardingRecordCreated>("/boarding/records", {
+      ...init,
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+
+    return response.data
+  },
+
   async listOwnerRecords(
     params: BoardingRecordListParams = {},
     init: RequestInit = {}

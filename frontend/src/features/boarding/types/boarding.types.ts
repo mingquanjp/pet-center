@@ -1,4 +1,5 @@
 export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out"
+export type BoardingCreateStatus = "pending_payment" | "pending"
 export type BoardingPaymentOption = "online" | "counter"
 export type BoardingPaymentStatus = "paid" | "unpaid" | "refunded" | "cancelled"
 export type BoardingHealthStatus = "normal" | "attention" | "urgent" | "unknown"
@@ -16,6 +17,8 @@ export interface BoardingRecordListItem {
     roomTypeId: string
     roomTypeName: string
   }
+  plannedCheckInAt?: string
+  plannedCheckOutAt?: string
   plannedCheckInDate: string
   plannedCheckOutDate: string
   plannedDateRangeText: string
@@ -50,4 +53,65 @@ export interface Pagination {
   limit: number
   total: number
   totalPages: number
+}
+
+export interface BoardingBookingPet {
+  petId: string
+  petName: string
+  species: "Dog" | "Cat" | "Other"
+  speciesLabel: string
+  weightKg: number | null
+  profileImageUrl: string | null
+}
+
+export interface BoardingRoomTypeBooking {
+  roomTypeId: string
+  roomTypeName: string
+  description: string | null
+  capacity: number
+  unitPrice: number
+  priceText: string
+  bookedUnits: number
+  availableUnits: number
+  available: boolean
+  nights: number
+  estimatedTotal: number
+  estimatedTotalText: string
+}
+
+export interface BoardingBookingOptions {
+  pets: BoardingBookingPet[]
+  selectedPet: BoardingBookingPet | null
+  roomTypes: BoardingRoomTypeBooking[]
+}
+
+export interface BoardingBookingOptionsParams {
+  petId?: string
+  plannedCheckInAt?: string
+  plannedCheckOutAt?: string
+}
+
+export interface CreateBoardingRecordPayload {
+  petId: string
+  roomTypeId: string
+  plannedCheckInAt: string
+  plannedCheckOutAt: string
+  careRequest?: string | null
+  paymentOption: BoardingPaymentOption
+}
+
+export interface BoardingRecordCreated {
+  boardingRecordId: string
+  boardingCode: string
+  invoiceId: string
+  paymentOption: BoardingPaymentOption
+  boardingStatus: BoardingCreateStatus
+  invoiceStatus: "pending_payment"
+  totalAmount: number
+  paymentUrl: string | null
+  petName: string
+  roomTypeName: string
+  plannedCheckInAt: string
+  plannedCheckOutAt: string
+  stayDays: number
 }
