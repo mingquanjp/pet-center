@@ -1,6 +1,8 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { Dog3DScene } from "./dog-3d"
+import dynamic from "next/dynamic"
+
+const Dog3DScene = dynamic(() => import("./dog-3d").then((mod) => mod.Dog3DScene), { ssr: false })
 
 export interface LoadingStateProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string;

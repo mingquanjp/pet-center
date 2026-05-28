@@ -1,9 +1,10 @@
-import html2pdf from "html2pdf.js"
 import { StaffInvoice } from "../types/invoice.types"
 import { formatInvoiceMoney, formatInvoiceDate } from "./invoice-format"
 import { invoicePaymentOptionLabel, invoiceServiceTypeLabel } from "../constants/invoice.constants"
 
 export const generateInvoicePdf = async (invoice: StaffInvoice) => {
+  const html2pdf = (await import("html2pdf.js")).default
+
   // Create a hidden container for the PDF content
   const container = document.createElement("div")
   
