@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin", "vietnamese"],
-  variable: "--font-inter",
-});
 
 export const metadata: Metadata = {
   title: "PetCenter Management System",
@@ -20,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className={inter.variable}>
+      <body>
         {children}
         <Toaster richColors position="top-right" />
       </body>

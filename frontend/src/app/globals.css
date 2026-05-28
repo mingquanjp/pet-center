@@ -4,7 +4,7 @@
 
 @theme {
   /* Font */
-  --font-sans: var(--font-inter), Inter, system-ui, sans-serif;
+  --font-sans: Inter, system-ui, sans-serif;
 
   /* PetCenter colors */
   --color-petcenter-background: #f7f6ea;

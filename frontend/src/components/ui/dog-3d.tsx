@@ -1,11 +1,11 @@
 "use client"
 
 import React, { useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, type ThreeElements } from '@react-three/fiber'
 import { ContactShadows } from '@react-three/drei'
 import * as THREE from 'three'
 
-function DogModel(props: any) {
+function DogModel(props: ThreeElements["group"]) {
   const group = useRef<THREE.Group>(null)
   const frontLeftLeg = useRef<THREE.Group>(null)
   const frontRightLeg = useRef<THREE.Group>(null)

@@ -51,13 +51,15 @@ const initialFormState: FormState = {
   identifyingMarks: "",
 }
 
-const speciesOptions: Array<{ icon: React.ElementType; label: string; value: PetSpecies }> = [
+type SegmentIcon = React.ComponentType<{ className?: string }>
+
+const speciesOptions: Array<{ icon: SegmentIcon; label: string; value: PetSpecies }> = [
   { icon: Dog, label: "Chó", value: "Dog" },
   { icon: Cat, label: "Mèo", value: "Cat" },
   { icon: PawPrint, label: "Khác", value: "Other" },
 ]
 
-const genderOptions: Array<{ icon: React.ElementType; label: string; value: PetGender }> = [
+const genderOptions: Array<{ icon: SegmentIcon; label: string; value: PetGender }> = [
   { icon: Mars, label: "Đực", value: "male" },
   { icon: Venus, label: "Cái", value: "female" },
   { icon: CircleHelp, label: "Khác", value: "unknown" },
@@ -425,7 +427,7 @@ function formatFileSize(size: number) {
 }
 
 type SegmentOption = {
-  icon: React.ElementType
+  icon: SegmentIcon
   label: string
   value: string
 }
@@ -524,7 +526,7 @@ function DateField({ label, name, onChange, value }: TextFieldProps) {
 }
 
 type NumberWithSuffixFieldProps = TextFieldProps & {
-  icon?: React.ElementType
+  icon?: SegmentIcon
   suffix: string
 }
 

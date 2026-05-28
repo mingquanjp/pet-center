@@ -7,7 +7,6 @@ import { ConfirmPaymentModal } from "../../components/staff/ConfirmPaymentModal"
 import { CancelInvoiceModal } from "../../components/staff/CancelInvoiceModal"
 import { useStaffInvoices } from "../../hooks/useStaffInvoices"
 import { StaffInvoice, StaffInvoiceFilters } from "../../types/invoice.types"
-import { toast } from "sonner"
 import { LoadingState } from "@/components/ui/loading-state"
 
 const DEFAULT_FILTERS: StaffInvoiceFilters = {

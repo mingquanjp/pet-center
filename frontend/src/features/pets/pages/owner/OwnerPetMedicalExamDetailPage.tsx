@@ -67,26 +67,27 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
     return <ErrorState message={errorMessage ?? "Không tìm thấy phiếu khám"} petId={petId} />
   }
 
-  const petSubtitle = [exam.pet.speciesLabel, exam.pet.breed].filter(Boolean).join(" / ")
+  const currentExam = exam
+  const petSubtitle = [currentExam.pet.speciesLabel, currentExam.pet.breed].filter(Boolean).join(" / ")
 
   function printExam() {
-    printHtmlDocument(`Phiếu khám ${exam.examId}`, buildExamPrintHtml(exam))
+    printHtmlDocument(`Phiếu khám ${currentExam.examId}`, buildExamPrintHtml(currentExam))
   }
 
   function downloadPrescription() {
-    if (!exam.prescription) return
+    if (!currentExam.prescription) return
 
     const generatedAt = new Date()
     const rows = [
-      ["Mã phiếu", exam.examId],
-      ["Thú cưng", exam.pet.petName],
-      ["Ngày khám", formatDate(exam.examDate)],
-      ["Bác sĩ", exam.veterinarianName],
-      ["Ngày xuất toa", formatDate(exam.prescription.prescribedAt)],
-      ["Ghi chú chung", exam.prescription.generalNote || ""],
+      ["Mã phiếu", currentExam.examId],
+      ["Thú cưng", currentExam.pet.petName],
+      ["Ngày khám", formatDate(currentExam.examDate)],
+      ["Bác sĩ", currentExam.veterinarianName],
+      ["Ngày xuất toa", formatDate(currentExam.prescription.prescribedAt)],
+      ["Ghi chú chung", currentExam.prescription.generalNote || ""],
       [],
       ["Tên thuốc", "Liều lượng", "Tần suất", "Thời gian", "Hướng dẫn", "Ghi chú"],
-      ...exam.prescription.items.map((item) => [
+      ...currentExam.prescription.items.map((item) => [
         item.medicineName,
         item.dosage,
         item.frequency,
@@ -97,7 +98,7 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
     ]
 
     downloadTextFile(
-      `toa-thuoc-${toSafeFilename(exam.pet.petName)}-${exam.examId}-${formatFileDate(generatedAt)}.csv`,
+      `toa-thuoc-${toSafeFilename(currentExam.pet.petName)}-${currentExam.examId}-${formatFileDate(generatedAt)}.csv`,
       toCsv(rows),
       "text/csv;charset=utf-8"
     )

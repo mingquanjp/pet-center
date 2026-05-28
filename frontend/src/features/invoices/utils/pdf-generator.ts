@@ -1,9 +1,12 @@
-import html2pdf from "html2pdf.js"
 import { StaffInvoice } from "../types/invoice.types"
 import { formatInvoiceMoney, formatInvoiceDate } from "./invoice-format"
 import { invoicePaymentOptionLabel, invoiceServiceTypeLabel } from "../constants/invoice.constants"
 
 export const generateInvoicePdf = async (invoice: StaffInvoice) => {
+  const { default: html2pdf } = await import("html2pdf.js")
+  const owner = invoice.owner as StaffInvoice["owner"] & Partial<{ phone: string }>
+  const pet = invoice.pet as StaffInvoice["pet"] & Partial<{ species: string }>
+
   // Create a hidden container for the PDF content
   const container = document.createElement("div")
   
@@ -26,12 +29,12 @@ export const generateInvoicePdf = async (invoice: StaffInvoice) => {
         <div>
           <h3 style="margin: 0 0 10px; font-size: 16px; color: #666; text-transform: uppercase;">Thông tin khách hàng</h3>
           <p style="margin: 0 0 5px;"><strong>Chủ nuôi:</strong> ${invoice.owner.fullName}</p>
-          <p style="margin: 0 0 5px;"><strong>Số điện thoại:</strong> ${invoice.owner.phone}</p>
+          <p style="margin: 0 0 5px;"><strong>Số điện thoại:</strong> ${owner.phone ?? "Chưa cập nhật"}</p>
         </div>
         <div style="text-align: right;">
           <h3 style="margin: 0 0 10px; font-size: 16px; color: #666; text-transform: uppercase;">Thông tin thú cưng</h3>
           <p style="margin: 0 0 5px;"><strong>Tên:</strong> ${invoice.pet.name}</p>
-          <p style="margin: 0 0 5px;"><strong>Giống loài:</strong> ${invoice.pet.species}</p>
+          <p style="margin: 0 0 5px;"><strong>Giống loài:</strong> ${pet.species ?? "Chưa cập nhật"}</p>
         </div>
       </div>
 
@@ -82,11 +85,11 @@ export const generateInvoicePdf = async (invoice: StaffInvoice) => {
 
   // Configure html2pdf options
   const opt = {
-    margin:       [10, 0],
+    margin:       [10, 0] as [number, number],
     filename:     `Hoa_Don_${invoice.invoiceCode}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
+    image:        { type: 'jpeg' as const, quality: 0.98 },
     html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
   };
 
   // Generate and save

@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { StaffInvoiceFilters, StaffInvoicesResult, StaffInvoice } from "../types/invoice.types";
 import { staffInvoicesApi } from "../api/invoices.api";
 
+type CursorPagination = {
+  nextCursor?: string | null;
+  hasMore?: boolean;
+};
+
 export function useStaffInvoices(filters: StaffInvoiceFilters): StaffInvoicesResult & { 
   refetch: () => void;
   updateInvoice: (id: string, updates: Partial<StaffInvoice>) => void;
@@ -52,7 +57,7 @@ export function useStaffInvoices(filters: StaffInvoiceFilters): StaffInvoicesRes
         setData(res.data);
       }
 
-      const pagination = res.pagination as any;
+      const pagination = res.pagination as CursorPagination | undefined;
       setNextCursor(pagination?.nextCursor || null);
       setHasMore(pagination?.hasMore || false);
     } catch (error) {
