@@ -193,7 +193,7 @@ export function buildVnpayPaymentUrl(input: VnpayPaymentUrlInput): {
     vnp_CurrCode: "VND",
     vnp_TxnRef: input.txnRef,
     vnp_OrderInfo: normalizeOrderInfo(input.orderInfo),
-    vnp_OrderType: input.orderType ?? "other",
+    vnp_OrderType: input.orderType ?? "billpayment",
     vnp_Locale: "vn",
     vnp_ReturnUrl: config.returnUrl,
     vnp_IpAddr: normalizeClientIp(input.clientIp),
