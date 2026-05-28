@@ -3,11 +3,25 @@ import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
 import { createPagination, normalizePagination } from "../../shared/utils/pagination.js";
 import type { CreatePetPayload, ListPetsQuery, PetMedicalExamsQuery, PetSpaHistoryQuery, PetVaccinationsQuery, UpdatePetPayload } from "./pets.schema.js";
+import type { PetDetailDto } from "./pets.types.js";
 import * as petsRepository from "./pets.repository.js";
 
 function assertOwner(authUser: AuthUser): void {
   if (authUser.role !== "OWNER") {
     throw new AppError("Bạn không có quyền thao tác với hồ sơ thú cưng của chủ nuôi", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+}
+
+function hasOwnKey<T extends object>(value: T, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function assertValidPetAgeSourceAfterUpdate(existingPet: PetDetailDto, payload: UpdatePetPayload): void {
+  const hasBirthDate = hasOwnKey(payload, "birthDate") ? payload.birthDate !== null && payload.birthDate !== undefined : existingPet.birthDate !== null;
+  const estimatedAge = hasOwnKey(payload, "estimatedAge") ? payload.estimatedAge : existingPet.estimatedAge;
+
+  if (!hasBirthDate && (estimatedAge === null || estimatedAge === undefined)) {
+    throw new AppError("Cần nhập ngày sinh hoặc tuổi ước tính", "PET_AGE_SOURCE_REQUIRED", httpStatus.BAD_REQUEST);
   }
 }
 
@@ -137,6 +151,14 @@ export async function createOwnerPet(authUser: AuthUser, payload: CreatePetPaylo
 
 export async function updateOwnerPet(authUser: AuthUser, petId: string, payload: UpdatePetPayload) {
   assertOwner(authUser);
+
+  const existingPet = await petsRepository.findPetById(authUser.userId, petId);
+
+  if (!existingPet) {
+    throw new AppError("KhÃ´ng tÃ¬m tháº¥y há»“ sÆ¡ thÃº cÆ°ng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  assertValidPetAgeSourceAfterUpdate(existingPet, payload);
 
   const pet = await petsRepository.updatePet(authUser.userId, petId, payload);
 
