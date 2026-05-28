@@ -344,6 +344,32 @@ CREATE TABLE payments (
     CONSTRAINT chk_payments_success_paid_at CHECK ((payment_status = 'success' AND paid_at IS NOT NULL) OR payment_status <> 'success')
 );
 
+CREATE TABLE online_payment_attempts (
+    payment_attempt_id VARCHAR(30) PRIMARY KEY,
+    invoice_id VARCHAR(30) NOT NULL REFERENCES invoices(invoice_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    payment_provider VARCHAR(80) NOT NULL,
+    provider_txn_ref VARCHAR(100) NOT NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    attempt_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    payment_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    completed_at TIMESTAMPTZ,
+    provider_transaction_no VARCHAR(100),
+    response_code VARCHAR(20),
+    transaction_status VARCHAR(20),
+    raw_return_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    raw_ipn_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    CONSTRAINT chk_online_payment_attempts_provider CHECK (payment_provider IN ('vnpay')),
+    CONSTRAINT chk_online_payment_attempts_amount CHECK (amount > 0),
+    CONSTRAINT chk_online_payment_attempts_status CHECK (attempt_status IN ('pending', 'success', 'failed', 'cancelled', 'expired')),
+    CONSTRAINT chk_online_payment_attempts_completed_at CHECK (
+        (attempt_status = 'pending' AND completed_at IS NULL)
+        OR (attempt_status IN ('success', 'failed', 'cancelled', 'expired') AND completed_at IS NOT NULL)
+    ),
+    CONSTRAINT chk_online_payment_attempts_expiry CHECK (expires_at > created_at)
+);
+
 CREATE TABLE notifications (
     notification_id VARCHAR(30) PRIMARY KEY,
     receiver_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,
@@ -411,6 +437,13 @@ CREATE UNIQUE INDEX uq_invoice_success_payment
     ON payments(invoice_id)
     WHERE payment_status = 'success';
 
+CREATE UNIQUE INDEX uq_online_payment_attempts_provider_txn_ref
+    ON online_payment_attempts(payment_provider, provider_txn_ref);
+
+CREATE UNIQUE INDEX uq_online_payment_attempts_pending_invoice
+    ON online_payment_attempts(invoice_id)
+    WHERE attempt_status = 'pending';
+
 CREATE INDEX idx_users_role_status ON users(role, account_status);
 CREATE INDEX idx_pets_owner ON pets(owner_user_id);
 CREATE INDEX idx_pets_species_status ON pets(species, pet_status);
@@ -452,6 +485,8 @@ CREATE INDEX idx_invoice_lines_service ON invoice_lines(service_id);
 CREATE INDEX idx_invoice_lines_source ON invoice_lines(source_type, source_id);
 CREATE INDEX idx_payments_invoice ON payments(invoice_id);
 CREATE INDEX idx_payments_status_paid_at ON payments(payment_status, paid_at DESC);
+CREATE INDEX idx_online_payment_attempts_invoice ON online_payment_attempts(invoice_id);
+CREATE INDEX idx_online_payment_attempts_status_expiry ON online_payment_attempts(attempt_status, expires_at);
 CREATE INDEX idx_notifications_receiver_status ON notifications(receiver_user_id, notification_status, created_at DESC);
 CREATE INDEX idx_notifications_related ON notifications(related_object_type, related_object_id);
 CREATE INDEX idx_pet_activity_logs_pet_time ON pet_activity_logs(pet_id, occurred_at DESC);
