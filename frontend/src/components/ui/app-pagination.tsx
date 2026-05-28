@@ -11,6 +11,7 @@ type AppPaginationProps = {
   onPageChange: (page: number) => void
   totalPages: number
   className?: string
+  size?: "default" | "sm"
 }
 
 export function AppPagination({
@@ -20,28 +21,40 @@ export function AppPagination({
   isLoading = false,
   onPageChange,
   totalPages,
+  size = "default",
 }: AppPaginationProps) {
   if (totalPages <= 1) return null
 
   const pages = getPaginationItems(currentPage, totalPages)
 
+  const isSm = size === "sm"
+  const buttonBase = isSm ? "h-9 w-9 rounded-lg" : "h-11 w-11 rounded-[14px]"
+  const pageButtonBase = isSm ? "h-9 min-w-9 rounded-lg px-2 text-sm" : "h-11 min-w-11 rounded-[14px] px-3 text-lg"
+  const ellipsisBase = isSm ? "h-9 min-w-9 text-sm" : "h-11 min-w-11 text-base"
+  const iconSize = isSm ? "size-4" : "size-5"
+  const gapSize = isSm ? "gap-1.5" : "gap-3"
+  const innerGapSize = isSm ? "gap-1" : "gap-2"
+
   return (
-    <nav className={cn("flex items-center justify-center gap-3", className)} aria-label={ariaLabel}>
+    <nav className={cn(`flex items-center justify-center ${gapSize}`, className)} aria-label={ariaLabel}>
       <button
         aria-label="Trang trước"
-        className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-[#CFD8D5] bg-white text-[#52615D] shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition hover:bg-[#F1EFE2] disabled:cursor-not-allowed disabled:opacity-50"
+        className={cn(
+          "flex items-center justify-center border border-[#CFD8D5] bg-white text-[#52615D] shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition hover:bg-[#F1EFE2] disabled:cursor-not-allowed disabled:opacity-50",
+          buttonBase
+        )}
         disabled={currentPage === 1 || isLoading}
         onClick={() => onPageChange(currentPage - 1)}
         type="button"
       >
-        <ChevronLeft className="size-5" aria-hidden="true" />
+        <ChevronLeft className={iconSize} aria-hidden="true" />
       </button>
 
-      <div className="flex items-center gap-2">
+      <div className={`flex items-center ${innerGapSize}`}>
         {pages.map((item, index) =>
           item === "ellipsis" ? (
             <span
-              className="flex h-11 min-w-11 items-center justify-center text-base font-semibold leading-none text-[#6E7A76]"
+              className={cn("flex items-center justify-center font-semibold leading-none text-[#6E7A76]", ellipsisBase)}
               key={`ellipsis-${index}`}
             >
               ...
@@ -50,7 +63,8 @@ export function AppPagination({
             <button
               aria-current={item === currentPage ? "page" : undefined}
               className={cn(
-                "flex h-11 min-w-11 items-center justify-center rounded-[14px] px-3 text-lg font-semibold leading-none shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition disabled:cursor-not-allowed",
+                "flex items-center justify-center font-semibold leading-none shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition disabled:cursor-not-allowed",
+                pageButtonBase,
                 item === currentPage
                   ? "bg-[#008577] text-white"
                   : "border border-[#CFD8D5] bg-white text-[#52615D] hover:bg-[#F1EFE2]"
@@ -68,12 +82,15 @@ export function AppPagination({
 
       <button
         aria-label="Trang sau"
-        className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-[#CFD8D5] bg-white text-[#52615D] shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition hover:bg-[#F1EFE2] disabled:cursor-not-allowed disabled:opacity-50"
+        className={cn(
+          "flex items-center justify-center border border-[#CFD8D5] bg-white text-[#52615D] shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition hover:bg-[#F1EFE2] disabled:cursor-not-allowed disabled:opacity-50",
+          buttonBase
+        )}
         disabled={currentPage === totalPages || isLoading}
         onClick={() => onPageChange(currentPage + 1)}
         type="button"
       >
-        <ChevronRight className="size-5" aria-hidden="true" />
+        <ChevronRight className={iconSize} aria-hidden="true" />
       </button>
     </nav>
   )

@@ -17,7 +17,7 @@ export function RejectAppointmentReasonBox({ value, onChange }: Props) {
         placeholder="Nhập lý do từ chối lịch hẹn..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-h-[100px] resize-none border-petcenter-border focus-visible:ring-petcenter-danger-text/30"
+        className="min-h-25 resize-none border-petcenter-border focus-visible:ring-petcenter-danger-text/30"
       />
       <p className="text-xs text-petcenter-text-muted italic">
         Lý do này sẽ được gửi tới chủ nuôi.
