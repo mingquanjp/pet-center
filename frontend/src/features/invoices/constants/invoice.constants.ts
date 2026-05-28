@@ -1,4 +1,10 @@
-import { InvoicePaymentOption, InvoicePaymentStatus, InvoiceServiceType } from "../types/invoice.types";
+import {
+  InvoicePaymentOption,
+  InvoicePaymentStatus,
+  InvoiceServiceType,
+  OwnerInvoiceServiceFilter,
+  OwnerInvoiceStatusFilter,
+} from "../types/invoice.types";
 
 export const invoicePaymentStatusLabel: Record<InvoicePaymentStatus, string> = {
   PAID: "Đã thanh toán",
@@ -19,7 +25,7 @@ export const invoiceServiceTypeLabel: Record<InvoiceServiceType, string> = {
 
 export const invoicePaymentOptionLabel: Record<InvoicePaymentOption, string> = {
   ONLINE: "Online",
-  AT_COUNTER: "Tại trung tâm",
+  AT_COUNTER: "Tại quầy",
 };
 
 export const staffInvoiceStatusFilterOptions = [
@@ -43,3 +49,24 @@ export const staffInvoiceTimeFilterOptions = [
   { label: "Tháng này", value: "THIS_MONTH" },
   { label: "Tất cả", value: "ALL" },
 ] as const;
+
+export const ownerInvoiceStatusFilterOptions: ReadonlyArray<{
+  label: string;
+  value: OwnerInvoiceStatusFilter;
+}> = [
+  { label: "Tất cả", value: "ALL" },
+  { label: "Chưa thanh toán", value: "PENDING_PAYMENT" },
+  { label: "Đã thanh toán", value: "PAID" },
+  { label: "Quá hạn", value: "OVERDUE" },
+];
+
+export const ownerInvoiceServiceFilterOptions: ReadonlyArray<{
+  label: string;
+  value: OwnerInvoiceServiceFilter;
+}> = [
+  { label: "Tất cả", value: "ALL" },
+  { label: "Khám bệnh", value: "MEDICAL" },
+  { label: "Spa", value: "GROOMING" },
+  { label: "Lưu trú", value: "BOARDING" },
+  { label: "Đơn thuốc", value: "PRESCRIPTION" },
+];

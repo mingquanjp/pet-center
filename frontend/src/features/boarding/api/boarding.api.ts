@@ -3,6 +3,7 @@ import type {
   BoardingBookingOptions,
   BoardingBookingOptionsParams,
   BoardingRecordCreated,
+  BoardingRecordDetail,
   BoardingRecordListItem,
   BoardingRecordListParams,
   CreateBoardingRecordPayload,
@@ -168,5 +169,17 @@ export const boardingApi = {
       ...init,
       method: "DELETE",
     })
-  }
+  },
+
+  async getOwnerRecordById(
+    boardingRecordId: string,
+    init: RequestInit = {}
+  ): Promise<BoardingRecordDetail> {
+    const response = await apiRequest<BoardingRecordDetail>(
+      `/boarding/records/${encodeURIComponent(boardingRecordId)}`,
+      init
+    )
+
+    return response.data
+  },
 }

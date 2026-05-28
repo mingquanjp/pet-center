@@ -4,6 +4,7 @@ import type { AuthUser } from "../../shared/types/auth.js";
 import { createPagination, normalizePagination } from "../../shared/utils/pagination.js";
 import type {
   BoardingBookingOptionsQuery,
+  BoardingRecordParams,
   CreateBoardingRecordPayload,
   ListBoardingRecordsQuery
 } from "./boarding.schema.js";
@@ -13,14 +14,18 @@ import type {
   BoardingBookingPetDto,
   BoardingBookingPetRow,
   BoardingBookingOptionsDto,
+  BoardingCareLogDto,
   BoardingInvoiceStatus,
   BoardingPaymentOption,
   BoardingRecordCreatedDto,
+  BoardingRecordDetailDto,
+  BoardingRecordDetailRow,
   BoardingRecordListItemDto,
   BoardingRecordListRow,
   BoardingRecordStatus,
   BoardingRoomTypeAvailabilityRow,
-  BoardingRoomTypeBookingDto
+  BoardingRoomTypeBookingDto,
+  BoardingUpdateRow
 } from "./boarding.types.js";
 
 const minimumStayDays = 1;
@@ -82,6 +87,12 @@ function getHealthStatusLabel(healthStatus: BoardingAlertLevel | "unknown"): str
   return labels[healthStatus];
 }
 
+function getCareAlertLabel(alertLevel: BoardingCareLogDto["alertLevel"]): string {
+  if (alertLevel === "info") return "Thông tin";
+
+  return getHealthStatusLabel(alertLevel);
+}
+
 function normalizeTimestamp(value: unknown): string | null {
   if (!value) return null;
   if (value instanceof Date) return value.toISOString();
@@ -97,6 +108,10 @@ function requireTimestamp(value: unknown): string {
   }
 
   return normalized;
+}
+
+function optionalTimestamp(value: unknown): string | null {
+  return normalizeTimestamp(value);
 }
 
 function getSpeciesLabel(species: BoardingBookingPetRow["species"]): string {
@@ -221,6 +236,128 @@ function mapBoardingRecord(row: BoardingRecordListRow): BoardingRecordListItemDt
   };
 }
 
+function getAttachmentType(url: string): BoardingCareLogDto["attachments"][number]["type"] {
+  const normalizedUrl = url.toLowerCase();
+
+  if (/\.(mp4|mov|webm|m4v)(\?|$)/.test(normalizedUrl)) return "video";
+  if (/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/.test(normalizedUrl)) return "image";
+
+  return "file";
+}
+
+function mapBoardingUpdateToCareLog(row: BoardingUpdateRow): BoardingCareLogDto {
+  return {
+    logId: row.boarding_update_id,
+    logType: "daily_update",
+    title: "Cập nhật hàng ngày",
+    occurredAt: requireTimestamp(row.updated_at),
+    note: row.update_note,
+    alertLevel: row.alert_level,
+    alertLabel: getCareAlertLabel(row.alert_level),
+    attachments: row.attachment_url
+      ? [
+          {
+            url: row.attachment_url,
+            type: getAttachmentType(row.attachment_url)
+          }
+        ]
+      : []
+  };
+}
+
+function createSystemCareLogs(row: BoardingRecordDetailRow): BoardingCareLogDto[] {
+  const logs: BoardingCareLogDto[] = [];
+  const actualCheckOutAt = optionalTimestamp(row.actual_check_out_at);
+  const actualCheckInAt = optionalTimestamp(row.actual_check_in_at);
+  const plannedCheckInAt = requireTimestamp(row.planned_check_in_at);
+
+  if (row.boarding_status === "checked_out") {
+    logs.push({
+      logId: `${row.boarding_record_id}:check_out`,
+      logType: "check_out",
+      title: "Trả thú cưng thành công",
+      occurredAt: actualCheckOutAt ?? requireTimestamp(row.planned_check_out_at),
+      note: `${row.pet_name} đã được trao trả cho chủ. Tình trạng lưu trú đã hoàn tất.`,
+      alertLevel: "info",
+      alertLabel: "Hoàn tất",
+      attachments: []
+    });
+  }
+
+  if (row.boarding_status === "staying" || row.boarding_status === "checked_out") {
+    logs.push({
+      logId: `${row.boarding_record_id}:check_in`,
+      logType: "check_in",
+      title: "Nhận phòng",
+      occurredAt: actualCheckInAt ?? plannedCheckInAt,
+      note: `${row.pet_name} đã được ghi nhận lịch lưu trú tại phòng ${row.room_type_name}.`,
+      alertLevel: "info",
+      alertLabel: "Bắt đầu",
+      attachments: []
+    });
+  }
+
+  if (row.boarding_status === "pending" || row.boarding_status === "confirmed") {
+    logs.push({
+      logId: `${row.boarding_record_id}:booking_created`,
+      logType: "booking_created",
+      title: "Tạo yêu cầu lưu trú",
+      occurredAt: plannedCheckInAt,
+      note: `${row.pet_name} đã được ghi nhận yêu cầu lưu trú tại phòng ${row.room_type_name}.`,
+      alertLevel: "info",
+      alertLabel: row.boarding_status === "confirmed" ? "Đã xác nhận" : "Chờ xác nhận",
+      attachments: []
+    });
+  }
+
+  return logs;
+}
+
+function mapBoardingRecordDetail(row: BoardingRecordDetailRow, updates: BoardingUpdateRow[]): BoardingRecordDetailDto {
+  const paymentStatus = getPaymentStatus(row.invoice_status, row.has_success_payment);
+  const careLogs = [...createSystemCareLogs(row), ...updates.map(mapBoardingUpdateToCareLog)].sort(
+    (left, right) => new Date(right.occurredAt).getTime() - new Date(left.occurredAt).getTime()
+  );
+
+  return {
+    boardingRecordId: row.boarding_record_id,
+    boardingCode: row.boarding_record_id,
+    status: row.boarding_status,
+    statusLabel: getStatusLabel(row.boarding_status),
+    pet: {
+      petId: row.pet_id,
+      petName: row.pet_name,
+      speciesLabel: getSpeciesLabel(row.species),
+      weightKg: row.weight_kg === null ? null : Number(row.weight_kg),
+      profileImageUrl: row.profile_image_url
+    },
+    room: {
+      roomTypeId: row.room_type_id,
+      roomTypeName: row.room_type_name,
+      description: row.room_description
+    },
+    stay: {
+      plannedCheckInAt: requireTimestamp(row.planned_check_in_at),
+      plannedCheckOutAt: requireTimestamp(row.planned_check_out_at),
+      actualCheckInAt: optionalTimestamp(row.actual_check_in_at),
+      actualCheckOutAt: optionalTimestamp(row.actual_check_out_at),
+      stayDays: Number(row.stay_days)
+    },
+    payment: {
+      invoiceId: row.invoice_id,
+      paymentOption: row.payment_option,
+      paymentMethodLabel: getPaymentMethodLabel(row.payment_option),
+      paymentStatus,
+      paymentStatusLabel: getPaymentStatusLabel(paymentStatus),
+      receiptCode: row.receipt_code,
+      receiptUrl: row.receipt_url
+    },
+    estimatedTotal: Number(row.estimated_total),
+    careRequest: row.care_request,
+    careLogs
+  };
+}
+
 export async function getBookingOptions(
   authUser: AuthUser,
   query: BoardingBookingOptionsQuery
@@ -305,6 +442,26 @@ export async function createBoardingRecord(
 
     throw error;
   }
+}
+
+export async function getOwnerBoardingRecordDetail(
+  authUser: AuthUser,
+  params: BoardingRecordParams
+): Promise<BoardingRecordDetailDto> {
+  assertOwner(authUser);
+
+  const record = await boardingRepository.findOwnerBoardingRecordDetail(
+    authUser.userId,
+    params.boardingRecordId
+  );
+
+  if (!record) {
+    throw new AppError("Không tìm thấy lịch lưu trú phù hợp", "BOARDING_RECORD_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  const updates = await boardingRepository.findPublishedBoardingUpdates(record.boarding_record_id);
+
+  return mapBoardingRecordDetail(record, updates);
 }
 
 export async function listOwnerBoardingRecords(authUser: AuthUser, query: ListBoardingRecordsQuery) {

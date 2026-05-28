@@ -6,8 +6,10 @@ import { createId } from "../../shared/utils/id.js";
 import type {
   BoardingBookingPetRow,
   BoardingRecordCreatedDto,
+  BoardingRecordDetailRow,
   BoardingRecordListFilters,
   BoardingRecordListRow,
+  BoardingUpdateRow,
   BoardingRoomTypeAvailabilityRow,
   CountRow,
   CreateBoardingRecordInput
@@ -131,6 +133,98 @@ export async function countOwnerBoardingRecords(filters: BoardingRecordListFilte
   const result = await query<CountRow>(sql, params);
 
   return Number(result.rows[0]?.total ?? 0);
+}
+
+export async function findOwnerBoardingRecordDetail(
+  ownerUserId: string,
+  boardingRecordId: string
+): Promise<BoardingRecordDetailRow | null> {
+  const result = await query<BoardingRecordDetailRow>(
+    `
+      SELECT
+        br.boarding_record_id,
+        p.pet_id,
+        p.pet_name,
+        p.species,
+        p.weight_kg,
+        p.profile_image_url,
+        rt.room_type_id,
+        rt.room_type_name,
+        rt.description AS room_description,
+        br.planned_check_in_at,
+        br.planned_check_out_at,
+        br.actual_check_in_at,
+        br.actual_check_out_at,
+        br.care_request,
+        to_char(br.planned_check_in_at::date, 'YYYY-MM-DD') AS planned_check_in_date,
+        to_char(br.planned_check_out_at::date, 'YYYY-MM-DD') AS planned_check_out_date,
+        to_char(br.planned_check_in_at::date, 'DD/MM/YYYY') || ' - ' || to_char(br.planned_check_out_at::date, 'DD/MM/YYYY') AS planned_date_range_text,
+        (br.planned_check_out_at::date - br.planned_check_in_at::date)::int AS stay_days,
+        br.boarding_status,
+        br.estimated_total,
+        inv.invoice_id,
+        inv.payment_option,
+        inv.invoice_status,
+        pay.receipt_code,
+        pay.receipt_url,
+        (pay.payment_id IS NOT NULL) AS has_success_payment,
+        latest_update.updated_at AS last_update_at,
+        latest_update.alert_level
+      FROM pet_center.boarding_records br
+      JOIN pet_center.pets p ON p.pet_id = br.pet_id
+      JOIN pet_center.room_types rt ON rt.room_type_id = br.room_type_id
+      LEFT JOIN LATERAL (
+        SELECT i.invoice_id, i.payment_option, i.invoice_status, i.issued_at
+        FROM pet_center.invoice_lines il
+        JOIN pet_center.invoices i ON i.invoice_id = il.invoice_id
+        WHERE il.source_type = 'boarding'
+          AND il.source_id = br.boarding_record_id
+        ORDER BY i.issued_at DESC, i.invoice_id DESC
+        LIMIT 1
+      ) inv ON true
+      LEFT JOIN LATERAL (
+        SELECT payment_id, receipt_code, receipt_url
+        FROM pet_center.payments payment
+        WHERE payment.invoice_id = inv.invoice_id
+          AND payment.payment_status = 'success'
+        ORDER BY payment.paid_at DESC NULLS LAST, payment.payment_id DESC
+        LIMIT 1
+      ) pay ON true
+      LEFT JOIN LATERAL (
+        SELECT bu.updated_at, bu.alert_level
+        FROM pet_center.boarding_updates bu
+        WHERE bu.boarding_record_id = br.boarding_record_id
+          AND bu.visibility_status = 'published'
+        ORDER BY bu.updated_at DESC
+        LIMIT 1
+      ) latest_update ON true
+      WHERE br.owner_user_id = $1
+        AND br.boarding_record_id = $2
+        AND br.boarding_status = ANY($3)
+      LIMIT 1
+    `,
+    [ownerUserId, boardingRecordId, activeBoardingStatuses]
+  );
+
+  return result.rows[0] ?? null;
+}
+
+export async function findPublishedBoardingUpdates(boardingRecordId: string): Promise<BoardingUpdateRow[]> {
+  const result = await query<BoardingUpdateRow>(
+    `SELECT
+       boarding_update_id,
+       updated_at,
+       update_note,
+       attachment_url,
+       alert_level
+     FROM pet_center.boarding_updates
+     WHERE boarding_record_id = $1
+       AND visibility_status = 'published'
+     ORDER BY updated_at DESC, boarding_update_id DESC`,
+    [boardingRecordId]
+  );
+
+  return result.rows;
 }
 
 export async function findOwnerBookingPets(ownerUserId: string): Promise<BoardingBookingPetRow[]> {

@@ -3,6 +3,7 @@ import { httpStatus } from "../../shared/errors/http-status.js";
 import { sendPaginated, sendSuccess } from "../../shared/responses/api-response.js";
 import type {
   BoardingBookingOptionsQuery,
+  BoardingRecordParams,
   CreateBoardingRecordPayload,
   ListBoardingRecordsQuery
 } from "./boarding.schema.js";
@@ -24,6 +25,15 @@ export async function listOwnerBoardingRecords(req: Request, res: Response): Pro
   );
 
   sendPaginated(res, result.records, result.pagination);
+}
+
+export async function getOwnerBoardingRecordDetail(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.getOwnerBoardingRecordDetail(
+    req.user!,
+    req.params as unknown as BoardingRecordParams
+  );
+
+  sendSuccess(res, result);
 }
 
 export async function createBoardingRecord(req: Request, res: Response): Promise<void> {

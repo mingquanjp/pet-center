@@ -74,3 +74,63 @@ export interface StaffInvoicesResult {
   isFetchingNextPage: boolean;
   loadMore: () => void;
 }
+
+export interface OwnerInvoice {
+  id: string;
+  invoiceCode: string;
+  title: string;
+  pet: {
+    id: string;
+    name: string;
+  };
+  serviceType: InvoiceServiceType;
+  serviceName: string;
+  issuedAt: string;
+  paymentOption: InvoicePaymentOption;
+  paymentStatus: InvoicePaymentStatus;
+  invoiceStatus: InvoicePaymentStatus;
+  totalAmount: number;
+  currency: "VND";
+}
+
+export interface OwnerInvoiceDetail {
+  id: string;
+  invoiceCode: string;
+  title: string;
+  serviceType: InvoiceServiceType;
+  serviceName: string;
+  pet: {
+    id: string;
+    name: string;
+  };
+  issuedAt: string;
+  paymentOption: InvoicePaymentOption;
+  paymentStatus: InvoicePaymentStatus;
+  invoiceStatus: InvoicePaymentStatus;
+  subtotalAmount: number;
+  discountAmount: number;
+  surchargeAmount: number;
+  totalAmount: number;
+  currency: "VND";
+  note?: string;
+}
+
+export type OwnerInvoiceStatusFilter =
+  | "ALL"
+  | "PAID"
+  | "PENDING_PAYMENT"
+  | "OVERDUE";
+
+export type OwnerInvoiceServiceFilter =
+  | "ALL"
+  | "MEDICAL"
+  | "GROOMING"
+  | "BOARDING"
+  | "PRESCRIPTION";
+
+export interface OwnerInvoiceFilters {
+  search: string;
+  status: OwnerInvoiceStatusFilter;
+  serviceType: OwnerInvoiceServiceFilter;
+  date: string;
+}

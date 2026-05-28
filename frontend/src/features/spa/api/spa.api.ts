@@ -7,6 +7,7 @@ import type {
   GroomingAvailability,
   GroomingBookingOptions,
   GroomingService,
+  GroomingTicketCancelled,
   GroomingTicketCreated,
   Pagination,
 } from "../types/spa.types"
@@ -63,6 +64,18 @@ export const spaApi = {
       method: "POST",
       body: JSON.stringify(payload),
     })
+
+    return response.data
+  },
+
+  async cancelTicket(ticketId: string, init: RequestInit = {}): Promise<GroomingTicketCancelled> {
+    const response = await apiRequest<GroomingTicketCancelled>(
+      `/grooming/tickets/${encodeURIComponent(ticketId)}/cancel`,
+      {
+        ...init,
+        method: "PATCH",
+      }
+    )
 
     return response.data
   },
