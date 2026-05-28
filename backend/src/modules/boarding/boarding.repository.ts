@@ -3,6 +3,7 @@ import type { PoolClient } from "pg";
 import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
 import { createId } from "../../shared/utils/id.js";
+import { createPendingVnpayAttempt } from "../payments/payments.repository.js";
 import type {
   BoardingBookingPetRow,
   BoardingRecordCreatedDto,
@@ -269,7 +270,7 @@ export async function findActiveRoomTypesWithAvailability(
         SELECT COUNT(*)::int
         FROM pet_center.boarding_records br
         WHERE br.room_type_id = rt.room_type_id
-          AND br.boarding_status IN ('pending', 'confirmed', 'staying')
+          AND br.boarding_status IN ('pending_payment', 'pending', 'confirmed', 'staying')
           AND br.planned_check_in_at < $1
           AND br.planned_check_out_at > $2
       `
@@ -371,15 +372,25 @@ export async function createBoardingRecord(input: CreateBoardingRecordInput): Pr
       ]
     );
 
+    const paymentAttempt = input.paymentOption === "online"
+      ? await createPendingVnpayAttempt(client, {
+          invoiceId,
+          amount: totalAmount,
+          orderInfo: `Thanh toan luu tru ${boardingRecordId}`,
+          clientIp: input.clientIp
+        })
+      : null;
+
     return {
       boardingRecordId,
       boardingCode: boardingRecordId,
       invoiceId,
+      paymentAttemptId: paymentAttempt?.paymentAttemptId ?? null,
       paymentOption: input.paymentOption,
       boardingStatus,
       invoiceStatus,
       totalAmount,
-      paymentUrl: null,
+      paymentUrl: paymentAttempt?.paymentUrl ?? null,
       petName: input.pet.petName,
       roomTypeName: input.roomType.roomTypeName,
       plannedCheckInAt: input.plannedCheckInAt.toISOString(),

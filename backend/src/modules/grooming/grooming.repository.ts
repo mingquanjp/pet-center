@@ -3,6 +3,7 @@ import type { PoolClient } from "pg";
 import type { QueryResultRow } from "pg";
 import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
+import { createPendingVnpayAttempt } from "../payments/payments.repository.js";
 import type {
   GroomingAvailabilityDto,
   GroomingBookingPetDto,
@@ -112,6 +113,7 @@ type CreateBookingInput = {
   scheduledAt: Date;
   specialRequest?: string | null;
   paymentOption: GroomingPaymentOption;
+  clientIp: string;
 };
 
 const timeZone = "Asia/Ho_Chi_Minh";
@@ -878,7 +880,7 @@ export async function findBookedUnitsBySlot(date: string, client?: PoolClient): 
    from pet_center.grooming_tickets gt
    join pet_center.grooming_ticket_items gti on gti.grooming_ticket_id = gt.grooming_ticket_id
    where (gt.scheduled_at at time zone $2)::date = $1::date
-     and gt.ticket_status in ('pending', 'waiting', 'in_progress', 'completed')
+     and gt.ticket_status in ('pending_payment', 'pending', 'waiting', 'in_progress', 'completed')
    group by to_char(gt.scheduled_at at time zone $2, 'HH24:MI')`;
   const params = [date, timeZone];
   const result = client
@@ -997,15 +999,25 @@ export async function createGroomingBooking(input: CreateBookingInput): Promise<
       ]
     );
 
+    const paymentAttempt = input.paymentOption === "online"
+      ? await createPendingVnpayAttempt(client, {
+          invoiceId,
+          amount: input.service.appliedPrice,
+          orderInfo: `Thanh toan dich vu spa ${groomingTicketId}`,
+          clientIp: input.clientIp
+        })
+      : null;
+
     return {
       groomingTicketId,
       bookingCode: groomingTicketId,
       invoiceId,
+      paymentAttemptId: paymentAttempt?.paymentAttemptId ?? null,
       paymentOption: input.paymentOption,
       ticketStatus,
       invoiceStatus,
       totalAmount: input.service.appliedPrice,
-      paymentUrl: null,
+      paymentUrl: paymentAttempt?.paymentUrl ?? null,
       petName: input.pet.petName,
       serviceName: input.service.serviceName,
       scheduledAt: input.scheduledAt.toISOString()

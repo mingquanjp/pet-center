@@ -19,6 +19,7 @@ import { OwnerSpaBookingSuccessDialog } from "../../components/owner/OwnerSpaBoo
 import { OwnerSpaPetDropdown } from "../../components/owner/OwnerSpaPetDropdown"
 
 const defaultTime = "10:30"
+const paymentResultContextKey = "pet_center_payment_result_context"
 
 export function OwnerSpaBookingPage() {
   const dateInputRef = useRef<HTMLInputElement>(null)
@@ -183,6 +184,7 @@ export function OwnerSpaBookingPage() {
 
       if (ticket.paymentOption === "online") {
         if (ticket.paymentUrl) {
+          window.sessionStorage.setItem(paymentResultContextKey, "spa")
           window.location.assign(ticket.paymentUrl)
           return
         }

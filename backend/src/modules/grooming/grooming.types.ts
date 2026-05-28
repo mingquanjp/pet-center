@@ -163,6 +163,7 @@ export type GroomingTicketCreatedDto = {
   groomingTicketId: string;
   bookingCode: string;
   invoiceId: string;
+  paymentAttemptId: string | null;
   paymentOption: GroomingPaymentOption;
   ticketStatus: GroomingTicketStatus;
   invoiceStatus: InvoiceStatus;

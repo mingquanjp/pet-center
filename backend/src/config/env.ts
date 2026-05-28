@@ -11,7 +11,14 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().default(""),
   CLOUDINARY_API_KEY: z.string().default(""),
   CLOUDINARY_API_SECRET: z.string().default(""),
-  CLOUDINARY_UPLOAD_FOLDER: z.string().default("pet-center")
+  CLOUDINARY_UPLOAD_FOLDER: z.string().default("pet-center"),
+  VNPAY_PAYMENT_URL: z.string().default(""),
+  VNPAY_TMN_CODE: z.string().default(""),
+  VNPAY_HASH_SECRET: z.string().default(""),
+  VNPAY_RETURN_URL: z.string().default(""),
+  VNPAY_IPN_URL: z.string().default(""),
+  VNPAY_PAYMENT_EXPIRE_MINUTES: z.coerce.number().int().positive().default(15),
+  FRONTEND_BASE_URL: z.string().default("")
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

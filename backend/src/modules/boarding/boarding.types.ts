@@ -90,6 +90,7 @@ export type CreateBoardingRecordInput = {
   stayDays: number;
   careRequest?: string | null;
   paymentOption: BoardingPaymentOption;
+  clientIp: string;
 };
 
 export type BoardingRecordListItemDto = {
@@ -212,6 +213,7 @@ export type BoardingRecordCreatedDto = {
   boardingRecordId: string;
   boardingCode: string;
   invoiceId: string;
+  paymentAttemptId: string | null;
   paymentOption: BoardingPaymentOption;
   boardingStatus: BoardingCreateStatus;
   invoiceStatus: "pending_payment";

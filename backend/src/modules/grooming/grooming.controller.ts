@@ -56,7 +56,11 @@ export async function cancelBookedTicket(req: Request, res: Response): Promise<v
 }
 
 export async function createTicket(req: Request, res: Response): Promise<void> {
-  const ticket = await groomingService.createTicket(req.user!, req.body as CreateGroomingTicketPayload);
+  const ticket = await groomingService.createTicket(
+    req.user!,
+    req.body as CreateGroomingTicketPayload,
+    req.ip ?? "127.0.0.1"
+  );
 
   sendSuccess(res, ticket, "Tạo yêu cầu dịch vụ spa thành công", httpStatus.CREATED);
 }

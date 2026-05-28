@@ -35,6 +35,7 @@ import type {
 } from "../../types/boarding.types"
 
 const popularRoomKeywords = ["vip", "cao cấp"]
+const paymentResultContextKey = "pet_center_payment_result_context"
 
 export function OwnerBoardingBookingPage() {
   const router = useRouter()
@@ -153,6 +154,7 @@ export function OwnerBoardingBookingPage() {
 
       if (record.paymentOption === "online") {
         if (record.paymentUrl) {
+          window.sessionStorage.setItem(paymentResultContextKey, "boarding")
           window.location.assign(record.paymentUrl)
           return
         }
