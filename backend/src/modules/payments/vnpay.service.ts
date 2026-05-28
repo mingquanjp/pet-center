@@ -82,7 +82,7 @@ function normalizeOrderInfo(value: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
     .replace(/Đ/g, "D")
-    .replace(/[^a-zA-Z0-9 ._-]/g, " ")
+    .replace(/[^a-zA-Z0-9 ]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 255);

@@ -15,7 +15,7 @@ export async function createPendingVnpayAttempt(
   input: CreatePendingVnpayAttemptInput
 ): Promise<{ paymentAttemptId: string; providerTxnRef: string; paymentUrl: string; expiresAt: Date }> {
   const paymentAttemptId = createId("opa");
-  const providerTxnRef = paymentAttemptId.replace("opa_", "VNP");
+  const providerTxnRef = paymentAttemptId.replace("opa_", "VNP").toUpperCase();
   const { paymentUrl, expiresAt } = buildVnpayPaymentUrl({
     txnRef: providerTxnRef,
     amount: input.amount,
