@@ -8,3 +8,9 @@ export async function uploadImage(req: Request, res: Response): Promise<void> {
 
   sendSuccess(res, image, "Upload ảnh thành công", httpStatus.CREATED);
 }
+
+export async function uploadFile(req: Request, res: Response): Promise<void> {
+  const file = await uploadsService.uploadFile(req.file!);
+
+  sendSuccess(res, file, "Upload tệp thành công", httpStatus.CREATED);
+}

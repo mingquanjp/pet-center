@@ -151,3 +151,193 @@ export type BoardingRecordCreatedDto = {
   plannedCheckOutAt: string;
   stayDays: number;
 };
+
+// Staff Boarding Types
+export type StaffBoardingStatusDto =
+  | "PENDING_PAYMENT"
+  | "PENDING"
+  | "CONFIRMED"
+  | "STAYING"
+  | "CHECKED_OUT"
+  | "REJECTED"
+  | "CANCELLED";
+
+export type StaffBoardingRoomTypeDto = string;
+export type StaffBoardingPaymentStatusDto = "UNPAID" | "PAID";
+export type StaffBoardingPaymentMethodDto = "AT_COUNTER" | "ONLINE";
+export type StaffBoardingUpdateAlertLevelDto = "NORMAL" | "NEED_ATTENTION" | "WARNING";
+export type StaffBoardingUpdateVisibilityDto = "DRAFT" | "PUBLISHED";
+
+export type StaffBoardingTimelineTypeDto =
+  | "CREATED"
+  | "CONFIRMED"
+  | "CHECKED_IN"
+  | "CARE_UPDATE"
+  | "CHECKED_OUT"
+  | "REJECTED"
+  | "CANCELLED";
+
+export type StaffBoardingTimelineLabelToneDto =
+  | "neutral"
+  | "warning"
+  | "success"
+  | "info"
+  | "danger";
+
+export type StaffBoardingTimelineType = StaffBoardingTimelineTypeDto;
+export type StaffBoardingTimelineLabelTone = StaffBoardingTimelineLabelToneDto;
+export type StaffBoardingUpdateAlertLevel = StaffBoardingUpdateAlertLevelDto;
+export type StaffBoardingUpdateVisibilityStatus = StaffBoardingUpdateVisibilityDto;
+export type StaffBoardingStatus = StaffBoardingStatusDto;
+
+export interface StaffBoardingListItemDto {
+  id: string;
+  boardingCode: string;
+  pet: {
+    id: string;
+    name: string;
+    species: string;
+    breed: string | null;
+    ageText: string | null;
+    imageUrl: string | null;
+  };
+  owner: {
+    id: string;
+    fullName: string;
+    phoneNumber: string | null;
+    email: string | null;
+  };
+  room: {
+    id: string;
+    code: string;
+    name: string;
+    roomType: StaffBoardingRoomTypeDto;
+  };
+  requestedRoomType: StaffBoardingRoomTypeDto;
+  checkInDate: string;
+  checkOutDate: string;
+  totalDays: number;
+  status: StaffBoardingStatusDto;
+  paymentStatus: StaffBoardingPaymentStatusDto;
+  estimatedAmount: number;
+  finalAmount: number | null;
+  currency: "VND";
+  specialRequest: string | null;
+  latestUpdateAt: string | null;
+}
+
+export interface StaffBoardingStatsDto {
+  allCount: number;
+  pendingCount: number;
+  confirmedCount: number;
+  stayingCount: number;
+  checkedOutCount: number;
+  rejectedCount: number;
+  cancelledCount: number;
+}
+
+export interface StaffBoardingPaginationDto {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface StaffBoardingListResponseDto {
+  data: StaffBoardingListItemDto[];
+  stats: StaffBoardingStatsDto;
+  pagination: StaffBoardingPaginationDto;
+}
+
+export interface StaffBoardingTimelineItemDto {
+  id: string;
+  type: StaffBoardingTimelineType;
+  title: string;
+  label: string;
+  labelTone: StaffBoardingTimelineLabelTone;
+  description?: string | null;
+  createdAt: string;
+  createdBy?: {
+    id: string;
+    fullName: string;
+  } | null;
+  source?: "SYSTEM" | "BOARDING_UPDATE";
+  alertLevel?: StaffBoardingUpdateAlertLevel | null;
+  attachmentUrls?: string[];
+}
+
+export interface StaffBoardingCareUpdateDto {
+  id: string;
+  title: string;
+  description: string;
+  alertLevel: StaffBoardingUpdateAlertLevel;
+  visibilityStatus: StaffBoardingUpdateVisibilityStatus;
+  attachmentUrl: string | null;
+  attachmentUrls?: string[];
+  updatedAt: string;
+  createdBy: {
+    id: string;
+    fullName: string;
+  } | null;
+}
+
+export interface StaffBoardingDraftUpdateDto {
+  id: string;
+  boardingId: string;
+  description: string;
+  alertLevel: StaffBoardingUpdateAlertLevel;
+  visibilityStatus: "DRAFT";
+  attachmentUrl: string | null;
+  attachmentUrls?: string[];
+  updatedAt: string;
+}
+
+export interface StaffBoardingDetailDto {
+  id: string;
+  boardingCode: string;
+  pet: {
+    id: string;
+    name: string;
+    species: string;
+    breed: string | null;
+    ageText: string | null;
+    imageUrl: string | null;
+  };
+  owner: {
+    id: string;
+    fullName: string;
+    phoneNumber: string | null;
+    email: string | null;
+  };
+  room: {
+    id: string;
+    code: string;
+    name: string;
+    roomType: StaffBoardingRoomTypeDto;
+  };
+  requestedRoomType: StaffBoardingRoomTypeDto;
+  checkInDate: string;
+  checkOutDate: string;
+  actualCheckInAt: string | null;
+  actualCheckOutAt: string | null;
+  currentDayLabel: string | null;
+  totalDays: number;
+  status: StaffBoardingStatus;
+  paymentStatus: StaffBoardingPaymentStatusDto;
+  estimatedAmount: number;
+  finalAmount: number | null;
+  currency: string;
+  specialRequests: string[];
+  note: string | null;
+  rejectionReason: string | null;
+  payment: {
+    paymentMethod: StaffBoardingPaymentMethodDto;
+    paymentStatus: StaffBoardingPaymentStatusDto;
+    amount: number;
+    currency: string;
+  };
+  careUpdates: StaffBoardingCareUpdateDto[];
+  careLogs: StaffBoardingCareUpdateDto[];
+  timeline: StaffBoardingTimelineItemDto[];
+}
+

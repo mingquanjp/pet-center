@@ -77,7 +77,6 @@ export function StaffInvoiceList({
           key={invoice.id} 
           invoice={invoice} 
           onConfirmPayment={onConfirmPayment} 
-          // @ts-expect-error - Bypassing stuck VS Code TS server cache
           onCancelInvoice={onCancelInvoice}
         />
       ))}

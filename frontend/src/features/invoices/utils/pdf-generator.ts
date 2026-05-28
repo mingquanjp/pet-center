@@ -26,12 +26,12 @@ export const generateInvoicePdf = async (invoice: StaffInvoice) => {
         <div>
           <h3 style="margin: 0 0 10px; font-size: 16px; color: #666; text-transform: uppercase;">Thông tin khách hàng</h3>
           <p style="margin: 0 0 5px;"><strong>Chủ nuôi:</strong> ${invoice.owner.fullName}</p>
-          <p style="margin: 0 0 5px;"><strong>Số điện thoại:</strong> ${invoice.owner.phone}</p>
+          <p style="margin: 0 0 5px;"><strong>Số điện thoại:</strong> ${(invoice.owner as any).phone || "Không có"}</p>
         </div>
         <div style="text-align: right;">
           <h3 style="margin: 0 0 10px; font-size: 16px; color: #666; text-transform: uppercase;">Thông tin thú cưng</h3>
           <p style="margin: 0 0 5px;"><strong>Tên:</strong> ${invoice.pet.name}</p>
-          <p style="margin: 0 0 5px;"><strong>Giống loài:</strong> ${invoice.pet.species}</p>
+          <p style="margin: 0 0 5px;"><strong>Giống loài:</strong> ${(invoice.pet as any).species || "Không có"}</p>
         </div>
       </div>
 
@@ -82,7 +82,7 @@ export const generateInvoicePdf = async (invoice: StaffInvoice) => {
 
   // Configure html2pdf options
   const opt = {
-    margin:       [10, 0],
+    margin:       [10, 0] as [number, number],
     filename:     `Hoa_Don_${invoice.invoiceCode}.pdf`,
     image:        { type: 'jpeg', quality: 0.98 },
     html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
@@ -90,5 +90,5 @@ export const generateInvoicePdf = async (invoice: StaffInvoice) => {
   };
 
   // Generate and save
-  await html2pdf().set(opt).from(container).save()
+  await html2pdf().set(opt as any).from(container).save()
 }

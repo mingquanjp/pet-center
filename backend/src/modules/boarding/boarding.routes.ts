@@ -79,3 +79,100 @@ boardingRouter.post(
   validateRequest({ body: createBoardingRecordSchema }),
   asyncHandler(boardingController.createBoardingRecord)
 );
+
+// ==========================================
+// STAFF BOARDING ROUTES
+// ==========================================
+
+import {
+  listStaffBoardingRecordsQuerySchema,
+  updateStaffBoardingLogSchema,
+  confirmStaffBoardingSchema,
+  rejectStaffBoardingSchema,
+  checkInStaffBoardingSchema,
+  checkOutStaffBoardingSchema,
+  staffBoardingIdParamsSchema
+} from "./boarding.schema.js";
+
+// Keep existing routes mounted at "/boarding/staff/records" or "/staff/boarding" depending on setup
+// Since user requirement specified: "/api/v1/staff/boarding" and module mounted at "/api/v1"
+// We map them to "/staff/boarding"
+boardingRouter.get(
+  "/staff/boarding",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ query: listStaffBoardingRecordsQuerySchema }),
+  asyncHandler(boardingController.listStaffBoardingRecords)
+);
+
+boardingRouter.get(
+  "/staff/boarding/room-types",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  asyncHandler(boardingController.getRoomTypes)
+);
+
+boardingRouter.get(
+  "/staff/boarding/:boardingId",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffBoardingIdParamsSchema }),
+  asyncHandler(boardingController.getStaffBoardingDetail)
+);
+
+boardingRouter.get(
+  "/staff/boarding/:boardingId/draft-update",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffBoardingIdParamsSchema }),
+  asyncHandler(boardingController.getStaffBoardingDraftUpdate)
+);
+
+boardingRouter.patch(
+  "/staff/boarding/:boardingId/update-log",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffBoardingIdParamsSchema, body: updateStaffBoardingLogSchema }),
+  asyncHandler(boardingController.updateStaffBoardingLog)
+);
+
+boardingRouter.delete(
+  "/staff/boarding/:boardingId/draft-update",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffBoardingIdParamsSchema }),
+  asyncHandler(boardingController.deleteStaffBoardingDraftUpdate)
+);
+
+boardingRouter.patch(
+  "/staff/boarding/:boardingId/confirm",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffBoardingIdParamsSchema, body: confirmStaffBoardingSchema }),
+  asyncHandler(boardingController.confirmStaffBoarding)
+);
+
+boardingRouter.patch(
+  "/staff/boarding/:boardingId/reject",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffBoardingIdParamsSchema, body: rejectStaffBoardingSchema }),
+  asyncHandler(boardingController.rejectStaffBoarding)
+);
+
+boardingRouter.patch(
+  "/staff/boarding/:boardingId/check-in",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffBoardingIdParamsSchema, body: checkInStaffBoardingSchema }),
+  asyncHandler(boardingController.checkInStaffBoarding)
+);
+
+boardingRouter.patch(
+  "/staff/boarding/:boardingId/check-out",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffBoardingIdParamsSchema, body: checkOutStaffBoardingSchema }),
+  asyncHandler(boardingController.checkOutStaffBoarding)
+);
+

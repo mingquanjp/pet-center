@@ -7,6 +7,12 @@ import type {
   BoardingRecordListParams,
   CreateBoardingRecordPayload,
   Pagination,
+  StaffBoardingListItem,
+  StaffBoardingPagination,
+  StaffBoardingStats,
+  StaffBoardingListQuery,
+  StaffBoardingDraftUpdate,
+  StaffBoardingDetail,
 } from "../types/boarding.types"
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
@@ -24,6 +30,7 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 export const boardingApi = {
+
   async getBookingOptions(
     params: BoardingBookingOptionsParams = {},
     init: RequestInit = {}
@@ -76,4 +83,90 @@ export const boardingApi = {
       },
     }
   },
+
+  async getRoomTypes(init: RequestInit = {}): Promise<{ id: string; name: string }[]> {
+    const response = await apiRequest<{ id: string; name: string }[]>("/staff/boarding/room-types", init)
+    return response.data
+  },
+
+  async getStaffBoarding(
+    query: StaffBoardingListQuery,
+    init: RequestInit = {}
+  ): Promise<{ data: StaffBoardingListItem[]; stats: StaffBoardingStats; pagination: StaffBoardingPagination }> {
+    const response = await apiRequest<StaffBoardingListItem[]>(
+      `/staff/boarding${buildQuery({
+        search: query.search,
+        status: query.status,
+        tab: query.tab,
+        roomType: query.roomType,
+        timeRange: query.timeRange,
+        page: query.page,
+        limit: query.limit,
+      })}`,
+      init
+    )
+
+    return {
+      data: response.data,
+      stats: response.stats as StaffBoardingStats,
+      pagination: response.pagination as StaffBoardingPagination
+    }
+  },
+
+  async getStaffBoardingDetail(boardingId: string, init: RequestInit = {}): Promise<StaffBoardingDetail> {
+    const response = await apiRequest<StaffBoardingDetail>(`/staff/boarding/${boardingId}`, init)
+    return response.data
+  },
+
+  async confirmStaffBoarding(boardingId: string, payload: { internalNote?: string }, init: RequestInit = {}): Promise<void> {
+    await apiRequest(`/staff/boarding/${boardingId}/confirm`, {
+      ...init,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+  },
+
+  async rejectStaffBoarding(boardingId: string, payload: { rejectionReason: string, internalNote?: string }, init: RequestInit = {}): Promise<void> {
+    await apiRequest(`/staff/boarding/${boardingId}/reject`, {
+      ...init,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+  },
+
+  async checkInStaffBoarding(boardingId: string, payload: { internalNote?: string }, init: RequestInit = {}): Promise<void> {
+    await apiRequest(`/staff/boarding/${boardingId}/check-in`, {
+      ...init,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+  },
+
+  async checkOutStaffBoarding(boardingId: string, payload: { internalNote?: string, finalAmount?: number }, init: RequestInit = {}): Promise<void> {
+    await apiRequest(`/staff/boarding/${boardingId}/check-out`, {
+      ...init,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+  },
+
+  async getStaffBoardingDraftUpdate(boardingId: string, init: RequestInit = {}): Promise<StaffBoardingDraftUpdate | null> {
+    const response = await apiRequest<StaffBoardingDraftUpdate | null>(`/staff/boarding/${boardingId}/draft-update`, init)
+    return response.data
+  },
+
+  async updateStaffBoardingLog(boardingId: string, payload: { description: string; alertLevel?: string; visibilityStatus?: string; attachmentUrl?: string | null; attachmentUrls?: string[] }, init: RequestInit = {}): Promise<void> {
+    await apiRequest(`/staff/boarding/${boardingId}/update-log`, {
+      ...init,
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    })
+  },
+
+  async deleteStaffBoardingDraftUpdate(boardingId: string, init: RequestInit = {}): Promise<void> {
+    await apiRequest(`/staff/boarding/${boardingId}/draft-update`, {
+      ...init,
+      method: "DELETE",
+    })
+  }
 }
