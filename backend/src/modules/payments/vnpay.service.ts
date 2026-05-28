@@ -102,7 +102,7 @@ function normalizeClientIp(value: string): string {
 function buildSignedQuery(params: Record<string, string>, hashSecret: string): string {
   const sortedParams = sortObject(params);
   const signData = stringifyVnpayParams(sortedParams);
-  const secureHash = createHmac("sha512", hashSecret).update(signData, "utf8").digest("hex");
+  const secureHash = createHmac("sha512", hashSecret).update(Buffer.from(signData, "utf-8")).digest("hex");
 
   logVnpayDebug("build_payment_url", {
     signData,
@@ -119,15 +119,19 @@ function buildSignedQuery(params: Record<string, string>, hashSecret: string): s
 
 function sortObject(params: Record<string, string>): Record<string, string> {
   const sortedParams: Record<string, string> = {};
+  const encodedKeys: string[] = [];
 
-  Object.keys(params)
-    .filter((key) => params[key] !== "")
-    .map((key) => encodeURIComponent(key))
-    .sort()
-    .forEach((encodedKey) => {
-      const originalKey = decodeURIComponent(encodedKey);
-      sortedParams[encodedKey] = encodeVnpayValue(params[originalKey]);
-    });
+  Object.keys(params).forEach((key) => {
+    if (params[key] !== "") {
+      encodedKeys.push(encodeURIComponent(key));
+    }
+  });
+
+  encodedKeys.sort();
+
+  encodedKeys.forEach((encodedKey) => {
+    sortedParams[encodedKey] = encodeVnpayValue(params[encodedKey]);
+  });
 
   return sortedParams;
 }
@@ -216,7 +220,7 @@ export function verifyVnpaySignature(params: VnpayCallbackParams): boolean {
   delete signedParams.vnp_SecureHashType;
 
   const signData = stringifyVnpayParams(sortObject(signedParams));
-  const expectedHash = createHmac("sha512", config.hashSecret).update(signData, "utf8").digest("hex");
+  const expectedHash = createHmac("sha512", config.hashSecret).update(Buffer.from(signData, "utf-8")).digest("hex");
 
   return secureHash.toLowerCase() === expectedHash.toLowerCase();
 }
