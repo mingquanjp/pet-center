@@ -42,7 +42,14 @@ export async function createPendingVnpayAttempt(
 }
 
 function createVnpayTxnRef(): string {
-  return `${Date.now()}${randomInt(100000, 1_000_000)}`;
+  const now = new Date();
+  const timePart = [
+    now.getHours().toString().padStart(2, "0"),
+    now.getMinutes().toString().padStart(2, "0"),
+    now.getSeconds().toString().padStart(2, "0")
+  ].join("");
+
+  return `${timePart}${randomInt(100000, 1_000_000)}`;
 }
 
 export type VnpayAttemptSourceType = "grooming" | "boarding" | "medical_exam" | "prescription";

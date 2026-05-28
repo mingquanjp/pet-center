@@ -99,8 +99,8 @@ function normalizeClientIp(value: string): string {
 }
 
 function buildSignedQuery(params: Record<string, string>, hashSecret: string): string {
-  const sortedParams = sortVnpayParams(params);
-  const signData = buildVnpayQuery(sortedParams);
+  const sortedParams = sortObject(params);
+  const signData = stringifySortedParams(sortedParams);
   const secureHash = createHmac("sha512", hashSecret).update(signData, "utf8").digest("hex");
 
   logVnpayDebug("build_payment_url", {
@@ -110,10 +110,13 @@ function buildSignedQuery(params: Record<string, string>, hashSecret: string): s
     hashSecret
   });
 
-  return `${signData}&vnp_SecureHash=${secureHash}`;
+  return stringifySortedParams({
+    ...sortedParams,
+    vnp_SecureHash: secureHash
+  });
 }
 
-function sortVnpayParams(params: Record<string, string>): Record<string, string> {
+function sortObject(params: Record<string, string>): Record<string, string> {
   const sortedParams: Record<string, string> = {};
 
   Object.keys(params)
@@ -127,7 +130,7 @@ function sortVnpayParams(params: Record<string, string>): Record<string, string>
   return sortedParams;
 }
 
-function buildVnpayQuery(sortedParams: Record<string, string>): string {
+function stringifySortedParams(sortedParams: Record<string, string>): string {
   return Object.keys(sortedParams)
     .map((key) => `${key}=${sortedParams[key]}`)
     .join("&");
@@ -190,7 +193,8 @@ export function buildVnpayPaymentUrl(input: VnpayPaymentUrlInput): {
     vnp_Locale: "vn",
     vnp_ReturnUrl: config.returnUrl,
     vnp_IpAddr: normalizeClientIp(input.clientIp),
-    vnp_CreateDate: formatVnpayDate(createdAt)
+    vnp_CreateDate: formatVnpayDate(createdAt),
+    vnp_ExpireDate: formatVnpayDate(expiresAt)
   };
 
   return {
@@ -211,7 +215,7 @@ export function verifyVnpaySignature(params: VnpayCallbackParams): boolean {
   delete signedParams.vnp_SecureHash;
   delete signedParams.vnp_SecureHashType;
 
-  const signData = buildVnpayQuery(sortVnpayParams(signedParams));
+  const signData = stringifySortedParams(sortObject(signedParams));
   const expectedHash = createHmac("sha512", config.hashSecret).update(signData, "utf8").digest("hex");
 
   return secureHash.toLowerCase() === expectedHash.toLowerCase();
