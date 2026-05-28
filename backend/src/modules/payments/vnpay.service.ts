@@ -91,7 +91,7 @@ function normalizeOrderInfo(value: string): string {
 function normalizeClientIp(value: string): string {
   const candidate = value.split(",")[0]?.trim().replace(/^::ffff:/, "") ?? "";
 
-  if (isIP(candidate)) {
+  if (isIP(candidate) === 4) {
     return candidate;
   }
 

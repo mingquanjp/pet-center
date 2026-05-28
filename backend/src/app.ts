@@ -13,6 +13,8 @@ import { apiRouter } from "./routes/index.js";
 
 export const app = express();
 
+app.set("trust proxy", true);
+
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(express.json());
