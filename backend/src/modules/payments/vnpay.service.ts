@@ -190,8 +190,7 @@ export function buildVnpayPaymentUrl(input: VnpayPaymentUrlInput): {
     vnp_Locale: "vn",
     vnp_ReturnUrl: config.returnUrl,
     vnp_IpAddr: normalizeClientIp(input.clientIp),
-    vnp_CreateDate: formatVnpayDate(createdAt),
-    vnp_ExpireDate: formatVnpayDate(expiresAt)
+    vnp_CreateDate: formatVnpayDate(createdAt)
   };
 
   return {
