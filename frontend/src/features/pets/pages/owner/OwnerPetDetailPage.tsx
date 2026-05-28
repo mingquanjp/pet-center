@@ -29,7 +29,6 @@ import {
   Weight,
 } from "lucide-react"
 
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { normalizeSearchText } from "@/lib/search"
 import { cn } from "@/lib/utils"
@@ -665,7 +664,7 @@ function VaccinationTab({ petId, petName }: { petId: string; petName: string }) 
         ) : null}
       </section>
 
-      <VaccinationDetailDialog onOpenChange={(open) => !open && setSelectedRecord(null)} petName={petName} record={selectedRecord} />
+      <VaccinationDetailModal onOpenChange={(open) => !open && setSelectedRecord(null)} petName={petName} record={selectedRecord} />
     </div>
   )
 }
@@ -1036,7 +1035,8 @@ function VaccinationStatusBadge({ label, status }: { label: string; status: PetV
   )
 }
 
-function VaccinationDetailDialog({
+
+function VaccinationDetailModal({
   onOpenChange,
   petName,
   record,
@@ -1049,91 +1049,129 @@ function VaccinationDetailDialog({
   const statusLabel = status ? getVaccinationStatusLabel(status) : ""
   const reminderDate = record ? formatDate(record.nextReminderDate) : ""
 
+  React.useEffect(() => {
+    if (!record) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onOpenChange(false)
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown)
+    return () => document.removeEventListener("keydown", handleKeyDown)
+  }, [onOpenChange, record])
+
+  if (!record) {
+    return null
+  }
+
   return (
-    <Dialog open={Boolean(record)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-card border-petcenter-border bg-white p-0 shadow-modal" showCloseButton={false}>
-        {record ? (
-          <>
-            <DialogHeader className="border-b border-petcenter-border p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <DialogTitle className="heading-sm text-petcenter-text">Chi tiết bản ghi tiêm chủng</DialogTitle>
-                  <DialogDescription className="body-md mt-1 text-petcenter-text-secondary">
-                    {record.vaccineName} • {petName}
-                  </DialogDescription>
-                </div>
-                <div className="flex items-center gap-3">
-                  {status ? <VaccinationStatusBadge status={status} label={statusLabel} /> : null}
-                  <DialogClose className="rounded-full p-2 text-petcenter-text-secondary transition hover:bg-petcenter-sidebar" aria-label="Đóng">
-                    <span className="text-lg leading-none">×</span>
-                  </DialogClose>
-                </div>
-              </div>
-            </DialogHeader>
-
-            <div className="space-y-6 p-6">
-              <DetailSection title="Thông tin tiêm chủng">
-                <div className="grid gap-4 rounded-control border border-petcenter-border bg-petcenter-filter p-5 sm:grid-cols-2">
-                  <DialogInfo label="Tên vaccine" value={record.vaccineName} />
-                  <DialogInfo label="Loại" value="Tiêm chủng" />
-                  <DialogInfo label="Thú cưng" value={petName} />
-                  <DialogInfo label="Trạng thái" value={statusLabel} valueClassName={status === "due-soon" ? "text-petcenter-warning-text" : status === "overdue" ? "text-petcenter-danger-text" : "text-petcenter-success-text"} />
-                  <DialogInfo label="Ngày thực hiện" value={formatDate(record.vaccinationDate)} />
-                  <DialogInfo label="Ngày nhắc lại" value={reminderDate} valueClassName="text-petcenter-cta-active" />
-                  <DialogInfo className="sm:col-span-2" label="Bác sĩ thực hiện" value={record.veterinarianName ?? "Chưa cập nhật"} />
-                </div>
-              </DetailSection>
-
-              <DetailSection title="Ghi chú">
-                <div className="rounded-control border border-petcenter-border bg-petcenter-filter p-4">
-                  <p className="body-md italic text-petcenter-text">{record.note ?? "Chưa cập nhật"}</p>
-                </div>
-              </DetailSection>
-
-              <DetailSection title="Phản ứng sau tiêm">
-                <div className="flex items-center gap-2 text-petcenter-primary">
-                  <CheckCircle2 className="h-5 w-5" />
-                  <p className="body-md font-medium">Chưa ghi nhận phản ứng bất thường</p>
-                </div>
-              </DetailSection>
-
-              <DetailSection title="Kế hoạch nhắc lại">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                  <div className="heading-sm font-bold text-petcenter-cta-active">{reminderDate}</div>
-                  <div className="flex flex-col gap-1">
-                    {status ? <VaccinationStatusBadge status={status} label={statusLabel} /> : null}
-                    <p className="label-sm text-petcenter-text-secondary">Hệ thống tự nhắc lại sau 1 năm từ ngày thực hiện.</p>
-                  </div>
-                </div>
-              </DetailSection>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm" onMouseDown={() => onOpenChange(false)}>
+      <section
+        aria-labelledby="vaccination-detail-title"
+        aria-modal="true"
+        className="flex max-h-[min(92vh,820px)] w-full flex-col overflow-hidden rounded-card border border-petcenter-border bg-white shadow-modal sm:w-[clamp(460px,42vw,560px)]"
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <header className="shrink-0 border-b border-petcenter-border bg-petcenter-filter px-5 py-4">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-petcenter-primary/10 text-petcenter-primary">
+              <Syringe className="h-6 w-6" />
             </div>
+            <div className="min-w-0">
+              <h2 className="heading-sm text-petcenter-text" id="vaccination-detail-title">
+                Chi tiết bản ghi tiêm chủng
+              </h2>
+              <p className="body-md mt-1 truncate text-petcenter-text-secondary">
+                {record.vaccineName} - {petName}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              {status ? <VaccinationStatusBadge status={status} label={statusLabel} /> : null}
+              <button
+                aria-label="Đóng"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-petcenter-text-secondary transition hover:bg-petcenter-sidebar hover:text-petcenter-text"
+                onClick={() => onOpenChange(false)}
+                type="button"
+              >
+                <span className="text-xl leading-none">×</span>
+              </button>
+            </div>
+          </div>
+        </header>
 
-            <DialogFooter className="m-0 rounded-none border-petcenter-border bg-white p-6">
-              <DialogClose className="label-md inline-flex h-10 items-center justify-center rounded-control border border-petcenter-primary px-6 font-bold text-petcenter-primary transition hover:bg-petcenter-primary/5">
-                Đóng
-              </DialogClose>
-            </DialogFooter>
-          </>
-        ) : null}
-      </DialogContent>
-    </Dialog>
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5">
+          <VaccinationModalSection title="Thông tin tiêm chủng">
+            <div className="grid gap-x-8 gap-y-4 rounded-card border border-petcenter-border bg-petcenter-filter p-5 sm:grid-cols-2">
+              <VaccinationModalInfo label="Tên vaccine" value={record.vaccineName} />
+              <VaccinationModalInfo label="Loại" value="Tiêm chủng" />
+              <VaccinationModalInfo label="Thú cưng" value={petName} />
+              <VaccinationModalInfo
+                label="Trạng thái"
+                value={statusLabel}
+                valueClassName={status === "due-soon" ? "text-petcenter-warning-text" : status === "overdue" ? "text-petcenter-danger-text" : "text-petcenter-success-text"}
+              />
+              <VaccinationModalInfo label="Ngày thực hiện" value={formatDate(record.vaccinationDate)} />
+              <VaccinationModalInfo label="Ngày nhắc lại" value={reminderDate} valueClassName="text-petcenter-cta-active" />
+              <VaccinationModalInfo label="Bác sĩ thực hiện" value={record.veterinarianName ?? "Chưa cập nhật"} />
+            </div>
+          </VaccinationModalSection>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <VaccinationModalSection title="Ghi chú">
+              <div className="min-h-24 rounded-card border border-petcenter-border bg-petcenter-filter p-5">
+                <p className="body-md italic text-petcenter-text-secondary">{record.note ?? "Chưa cập nhật ghi chú."}</p>
+              </div>
+            </VaccinationModalSection>
+
+            <VaccinationModalSection title="Phản ứng sau tiêm">
+              <div className="flex min-h-24 items-center gap-3 rounded-card border border-petcenter-border bg-white p-5">
+                <CheckCircle2 className="h-5 w-5 shrink-0 fill-current text-petcenter-success-text" />
+                <p className="body-md font-medium text-petcenter-text">Không ghi nhận bất thường.</p>
+              </div>
+            </VaccinationModalSection>
+          </div>
+
+          <section className="rounded-card border border-petcenter-primary/20 bg-petcenter-primary/5 p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h3 className="label-md font-bold uppercase text-petcenter-primary">Kế hoạch nhắc lại</h3>
+                <p className="title-md mt-2 text-petcenter-text">Mũi nhắc lại tiếp theo: {reminderDate}</p>
+                <p className="body-sm mt-1 text-petcenter-text-secondary">Hệ thống sẽ gửi thông báo nhắc lịch khi gần đến hạn.</p>
+              </div>
+              <div className="shrink-0">{status ? <VaccinationStatusBadge status={status} label={statusLabel} /> : null}</div>
+            </div>
+          </section>
+        </div>
+
+        <footer className="flex shrink-0 justify-end border-t border-petcenter-border bg-white px-5 py-4">
+          <button className="label-md inline-flex h-10 items-center justify-center rounded-control border border-petcenter-primary px-6 font-bold text-petcenter-primary transition hover:bg-petcenter-primary/5" onClick={() => onOpenChange(false)} type="button">
+            Đóng
+          </button>
+        </footer>
+      </section>
+    </div>
   )
 }
 
-function DetailSection({ children, title }: { children: React.ReactNode; title: string }) {
+function VaccinationModalSection({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <section>
-      <h3 className="label-md mb-3 font-bold uppercase text-petcenter-text-secondary">{title}</h3>
+    <section className="min-w-0">
+      <h3 className="title-md mb-3 text-petcenter-text">{title}</h3>
       {children}
     </section>
   )
 }
 
-function DialogInfo({ className, label, value, valueClassName }: { className?: string; label: string; value: string; valueClassName?: string }) {
+function VaccinationModalInfo({ className, label, value, valueClassName }: { className?: string; label: string; value: string; valueClassName?: string }) {
   return (
-    <div className={className}>
-      <p className="label-sm text-petcenter-text-secondary">{label}</p>
-      <p className={cn("body-md font-medium text-petcenter-text", valueClassName)}>{value}</p>
+    <div className={cn("min-w-0", className)}>
+      <p className="label-sm mb-1 uppercase text-petcenter-text-muted">{label}</p>
+      <p className={cn("body-md break-words font-medium text-petcenter-text", valueClassName)}>{value}</p>
     </div>
   )
 }
