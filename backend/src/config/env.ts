@@ -18,6 +18,7 @@ const envSchema = z.object({
   VNPAY_RETURN_URL: z.string().default(""),
   VNPAY_IPN_URL: z.string().default(""),
   VNPAY_PAYMENT_EXPIRE_MINUTES: z.coerce.number().int().positive().default(15),
+  VNPAY_DEBUG_LOG: z.coerce.boolean().default(false),
   FRONTEND_BASE_URL: z.string().default("")
 });
 

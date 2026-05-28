@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { isIP } from "node:net";
 import { env } from "../../config/env.js";
 
@@ -99,19 +99,74 @@ function normalizeClientIp(value: string): string {
 }
 
 function buildSignedQuery(params: Record<string, string>, hashSecret: string): string {
-  const signData = buildVnpayQuery(params);
+  const sortedParams = sortVnpayParams(params);
+  const signData = buildVnpayQuery(sortedParams);
   const secureHash = createHmac("sha512", hashSecret).update(signData, "utf8").digest("hex");
+
+  logVnpayDebug("build_payment_url", {
+    signData,
+    secureHash,
+    params: sortedParams,
+    hashSecret
+  });
 
   return `${signData}&vnp_SecureHash=${secureHash}`;
 }
 
-function buildVnpayQuery(params: Record<string, string>): string {
-  const sortedKeys = Object.keys(params).sort();
+function sortVnpayParams(params: Record<string, string>): Record<string, string> {
+  const sortedParams: Record<string, string> = {};
 
-  return sortedKeys
+  Object.keys(params)
     .filter((key) => params[key] !== "")
-    .map((key) => `${encodeVnpayValue(key)}=${encodeVnpayValue(params[key])}`)
+    .map((key) => encodeURIComponent(key))
+    .sort()
+    .forEach((encodedKey) => {
+      sortedParams[encodedKey] = encodeVnpayValue(params[encodedKey]);
+    });
+
+  return sortedParams;
+}
+
+function buildVnpayQuery(sortedParams: Record<string, string>): string {
+  return Object.keys(sortedParams)
+    .map((key) => `${key}=${sortedParams[key]}`)
     .join("&");
+}
+
+function hashSecretFingerprint(hashSecret: string): string {
+  return createHash("sha256").update(hashSecret, "utf8").digest("hex").slice(0, 12);
+}
+
+function logVnpayDebug(
+  event: string,
+  data: {
+    signData: string;
+    secureHash: string;
+    params: Record<string, string>;
+    hashSecret: string;
+  }
+): void {
+  if (!env.VNPAY_DEBUG_LOG) {
+    return;
+  }
+
+  console.info(
+    JSON.stringify({
+      event: `vnpay_${event}`,
+      tmnCode: data.params.vnp_TmnCode,
+      txnRef: data.params.vnp_TxnRef,
+      amount: data.params.vnp_Amount,
+      createDate: data.params.vnp_CreateDate,
+      expireDate: data.params.vnp_ExpireDate,
+      orderInfo: data.params.vnp_OrderInfo,
+      ipAddr: data.params.vnp_IpAddr,
+      returnUrl: data.params.vnp_ReturnUrl,
+      signData: data.signData,
+      secureHash: data.secureHash,
+      hashSecretLength: data.hashSecret.length,
+      hashSecretFingerprint: hashSecretFingerprint(data.hashSecret)
+    })
+  );
 }
 
 export function buildVnpayPaymentUrl(input: VnpayPaymentUrlInput): {
@@ -157,7 +212,7 @@ export function verifyVnpaySignature(params: VnpayCallbackParams): boolean {
   delete signedParams.vnp_SecureHash;
   delete signedParams.vnp_SecureHashType;
 
-  const signData = buildVnpayQuery(signedParams);
+  const signData = buildVnpayQuery(sortVnpayParams(signedParams));
   const expectedHash = createHmac("sha512", config.hashSecret).update(signData, "utf8").digest("hex");
 
   return secureHash.toLowerCase() === expectedHash.toLowerCase();
