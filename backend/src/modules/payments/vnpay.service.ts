@@ -1,5 +1,6 @@
 import { createHash, createHmac } from "node:crypto";
 import { isIP } from "node:net";
+import qs from "qs";
 import { env } from "../../config/env.js";
 
 export type VnpayPaymentUrlInput = {
@@ -100,7 +101,7 @@ function normalizeClientIp(value: string): string {
 
 function buildSignedQuery(params: Record<string, string>, hashSecret: string): string {
   const sortedParams = sortObject(params);
-  const signData = stringifySortedParams(sortedParams);
+  const signData = stringifyVnpayParams(sortedParams);
   const secureHash = createHmac("sha512", hashSecret).update(signData, "utf8").digest("hex");
 
   logVnpayDebug("build_payment_url", {
@@ -110,7 +111,7 @@ function buildSignedQuery(params: Record<string, string>, hashSecret: string): s
     hashSecret
   });
 
-  return stringifySortedParams({
+  return stringifyVnpayParams({
     ...sortedParams,
     vnp_SecureHash: secureHash
   });
@@ -124,16 +125,15 @@ function sortObject(params: Record<string, string>): Record<string, string> {
     .map((key) => encodeURIComponent(key))
     .sort()
     .forEach((encodedKey) => {
-      sortedParams[encodedKey] = encodeVnpayValue(params[encodedKey]);
+      const originalKey = decodeURIComponent(encodedKey);
+      sortedParams[encodedKey] = encodeVnpayValue(params[originalKey]);
     });
 
   return sortedParams;
 }
 
-function stringifySortedParams(sortedParams: Record<string, string>): string {
-  return Object.keys(sortedParams)
-    .map((key) => `${key}=${sortedParams[key]}`)
-    .join("&");
+function stringifyVnpayParams(sortedParams: Record<string, string>): string {
+  return qs.stringify(sortedParams, { encode: false });
 }
 
 function hashSecretFingerprint(hashSecret: string): string {
@@ -215,7 +215,7 @@ export function verifyVnpaySignature(params: VnpayCallbackParams): boolean {
   delete signedParams.vnp_SecureHash;
   delete signedParams.vnp_SecureHashType;
 
-  const signData = stringifySortedParams(sortObject(signedParams));
+  const signData = stringifyVnpayParams(sortObject(signedParams));
   const expectedHash = createHmac("sha512", config.hashSecret).update(signData, "utf8").digest("hex");
 
   return secureHash.toLowerCase() === expectedHash.toLowerCase();
