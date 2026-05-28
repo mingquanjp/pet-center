@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { isIP } from "node:net";
 import { env } from "../../config/env.js";
 
 export type VnpayPaymentUrlInput = {
@@ -25,11 +26,11 @@ const timeZone = "Asia/Ho_Chi_Minh";
 
 function getVnpayConfig(): VnpayConfig {
   const config = {
-    paymentUrl: env.VNPAY_PAYMENT_URL,
-    tmnCode: env.VNPAY_TMN_CODE,
-    hashSecret: env.VNPAY_HASH_SECRET,
-    returnUrl: env.VNPAY_RETURN_URL,
-    ipnUrl: env.VNPAY_IPN_URL,
+    paymentUrl: env.VNPAY_PAYMENT_URL.trim(),
+    tmnCode: env.VNPAY_TMN_CODE.trim(),
+    hashSecret: env.VNPAY_HASH_SECRET.trim(),
+    returnUrl: env.VNPAY_RETURN_URL.trim(),
+    ipnUrl: env.VNPAY_IPN_URL.trim(),
     expireMinutes: env.VNPAY_PAYMENT_EXPIRE_MINUTES
   };
 
@@ -75,17 +76,40 @@ function encodeVnpayValue(value: string): string {
   return encodeURIComponent(value).replace(/%20/g, "+");
 }
 
+function normalizeOrderInfo(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .replace(/[^a-zA-Z0-9 ._-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 255);
+}
+
+function normalizeClientIp(value: string): string {
+  const candidate = value.split(",")[0]?.trim().replace(/^::ffff:/, "") ?? "";
+
+  if (isIP(candidate)) {
+    return candidate;
+  }
+
+  return "127.0.0.1";
+}
+
 function buildSignedQuery(params: Record<string, string>, hashSecret: string): string {
-  const signData = buildSignData(params);
+  const signData = buildVnpayQuery(params);
   const secureHash = createHmac("sha512", hashSecret).update(signData, "utf8").digest("hex");
 
   return `${signData}&vnp_SecureHash=${secureHash}`;
 }
 
-function buildSignData(params: Record<string, string>): string {
+function buildVnpayQuery(params: Record<string, string>): string {
   const sortedKeys = Object.keys(params).sort();
 
   return sortedKeys
+    .filter((key) => params[key] !== "")
     .map((key) => `${encodeVnpayValue(key)}=${encodeVnpayValue(params[key])}`)
     .join("&");
 }
@@ -106,11 +130,11 @@ export function buildVnpayPaymentUrl(input: VnpayPaymentUrlInput): {
     vnp_Amount: String(amountInVnpayUnit),
     vnp_CurrCode: "VND",
     vnp_TxnRef: input.txnRef,
-    vnp_OrderInfo: input.orderInfo,
-    vnp_OrderType: input.orderType ?? "210000",
+    vnp_OrderInfo: normalizeOrderInfo(input.orderInfo),
+    vnp_OrderType: input.orderType ?? "other",
     vnp_Locale: "vn",
     vnp_ReturnUrl: config.returnUrl,
-    vnp_IpAddr: input.clientIp || "127.0.0.1",
+    vnp_IpAddr: normalizeClientIp(input.clientIp),
     vnp_CreateDate: formatVnpayDate(createdAt),
     vnp_ExpireDate: formatVnpayDate(expiresAt)
   };
@@ -133,7 +157,7 @@ export function verifyVnpaySignature(params: VnpayCallbackParams): boolean {
   delete signedParams.vnp_SecureHash;
   delete signedParams.vnp_SecureHashType;
 
-  const signData = buildSignData(signedParams);
+  const signData = buildVnpayQuery(signedParams);
   const expectedHash = createHmac("sha512", config.hashSecret).update(signData, "utf8").digest("hex");
 
   return secureHash.toLowerCase() === expectedHash.toLowerCase();
