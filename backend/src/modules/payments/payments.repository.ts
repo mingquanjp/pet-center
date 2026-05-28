@@ -1,4 +1,5 @@
 import type { PoolClient } from "pg";
+import { randomInt } from "node:crypto";
 import { withTransaction } from "../../db/transactions.js";
 import { createId } from "../../shared/utils/id.js";
 import { buildVnpayPaymentUrl } from "./vnpay.service.js";
@@ -15,7 +16,7 @@ export async function createPendingVnpayAttempt(
   input: CreatePendingVnpayAttemptInput
 ): Promise<{ paymentAttemptId: string; providerTxnRef: string; paymentUrl: string; expiresAt: Date }> {
   const paymentAttemptId = createId("opa");
-  const providerTxnRef = paymentAttemptId.replace("opa_", "VNP").toUpperCase();
+  const providerTxnRef = createVnpayTxnRef();
   const { paymentUrl, expiresAt } = buildVnpayPaymentUrl({
     txnRef: providerTxnRef,
     amount: input.amount,
@@ -38,6 +39,10 @@ export async function createPendingVnpayAttempt(
     paymentUrl,
     expiresAt
   };
+}
+
+function createVnpayTxnRef(): string {
+  return `${Date.now()}${randomInt(100000, 1_000_000)}`;
 }
 
 export type VnpayAttemptSourceType = "grooming" | "boarding" | "medical_exam" | "prescription";
