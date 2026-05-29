@@ -135,3 +135,140 @@ export interface StaffAppointmentDetail {
 }
 
 export type AppointmentProcessAction = "CONFIRM" | "REJECT";
+
+export type OwnerAppointmentStatus =
+  | "PENDING_PAYMENT"
+  | "PENDING"
+  | "CONFIRMED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "COMPLETED";
+
+export type OwnerAppointmentServiceType =
+  | "GENERAL_CHECKUP"
+  | "VACCINATION"
+  | "LAB_TEST"
+  | "RECHECK"
+  | "GROOMING";
+
+export interface OwnerAppointment {
+  id: string;
+  appointmentCode: string;
+  pet: {
+    id: string;
+    name: string;
+    species: "Dog" | "Cat" | "Other";
+    breed?: string;
+    imageUrl?: string;
+  };
+  examType: {
+    id: string;
+    code: OwnerAppointmentServiceType;
+    name: string;
+  };
+  scheduledAt: string;
+  status: OwnerAppointmentStatus;
+  symptomDescription?: string;
+}
+
+export type OwnerAppointmentStatusFilter =
+  | "ALL"
+  | "PENDING"
+  | "CONFIRMED"
+  | "REJECTED"
+  | "CANCELLED"
+  | "COMPLETED";
+
+export type OwnerAppointmentPetFilter = "ALL" | string;
+
+export interface OwnerAppointmentFilters {
+  search: string;
+  petId: OwnerAppointmentPetFilter;
+  status: OwnerAppointmentStatusFilter;
+  date: string;
+}
+
+export interface OwnerAppointmentTimelineItem {
+  key: string;
+  label: string;
+  description?: string;
+  occurredAt?: string;
+  status: "DONE" | "CURRENT" | "UPCOMING";
+}
+
+export interface OwnerAppointmentDetail {
+  id: string;
+  appointmentCode: string;
+  status: OwnerAppointmentStatus;
+  serviceName: string;
+  serviceType: OwnerAppointmentServiceType;
+  scheduledAt: string;
+  reason: string;
+  note?: string;
+  pet: {
+    id: string;
+    name: string;
+    species: "Dog" | "Cat" | "Other";
+    breed?: string;
+    ageText?: string;
+    gender?: string;
+    imageUrl?: string;
+  };
+  owner: {
+    id: string;
+    fullName: string;
+    phoneNumber?: string;
+    email?: string;
+  };
+  timeline: OwnerAppointmentTimelineItem[];
+}
+
+export interface OwnerAppointmentPetOption {
+  id: string;
+  name: string;
+  species: "Dog" | "Cat" | "Other";
+  breed?: string;
+  ageText?: string;
+  imageUrl?: string;
+}
+
+export interface OwnerExamTypeOption {
+  id: string;
+  code: OwnerAppointmentServiceType;
+  name: string;
+  description?: string;
+}
+
+export interface OwnerAppointmentTimeSlot {
+  value: string;
+  label: string;
+  disabled?: boolean;
+  availableUnits?: number;
+}
+
+export interface CreateOwnerAppointmentFormValues {
+  petId: string;
+  examTypeId: string;
+  appointmentDate: string;
+  timeSlot: string;
+  symptomDescription: string;
+  note: string;
+}
+
+export interface CreateOwnerAppointmentPayload {
+  petId: string;
+  examTypeId: string;
+  scheduledAt: string;
+  symptomDescription?: string;
+  note?: string;
+}
+
+export interface CreateOwnerAppointmentResult {
+  id: string;
+  appointmentCode: string;
+  petName: string;
+  petSpecies: string;
+  examTypeName: string;
+  scheduledAt: string;
+  status: "PENDING";
+}

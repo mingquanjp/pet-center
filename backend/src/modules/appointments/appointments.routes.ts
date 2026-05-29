@@ -4,14 +4,72 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as appointmentsController from "./appointments.controller.js";
+import * as ownerAppointmentsController from "./owner-appointments.controller.js";
 import { 
   listStaffAppointmentsQuerySchema,
   staffAppointmentIdParamsSchema,
   confirmStaffAppointmentSchema,
   rejectStaffAppointmentSchema
 } from "./appointments.schema.js";
+import {
+  cancelOwnerAppointmentSchema,
+  createOwnerAppointmentSchema,
+  listOwnerAppointmentsQuerySchema,
+  ownerAppointmentIdParamsSchema,
+  ownerAvailableSlotsQuerySchema,
+} from "./owner-appointments.schema.js";
 
 export const appointmentsRouter = Router();
+
+appointmentsRouter.get(
+  "/owner/appointments",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ query: listOwnerAppointmentsQuerySchema }),
+  asyncHandler(ownerAppointmentsController.listOwnerAppointments)
+);
+
+appointmentsRouter.get(
+  "/owner/appointments/create-options",
+  authMiddleware,
+  requireRole("OWNER"),
+  asyncHandler(ownerAppointmentsController.getOwnerAppointmentCreateOptions)
+);
+
+appointmentsRouter.get(
+  "/owner/appointments/available-slots",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ query: ownerAvailableSlotsQuerySchema }),
+  asyncHandler(ownerAppointmentsController.getOwnerAvailableSlots)
+);
+
+appointmentsRouter.post(
+  "/owner/appointments",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ body: createOwnerAppointmentSchema }),
+  asyncHandler(ownerAppointmentsController.createOwnerAppointment)
+);
+
+appointmentsRouter.get(
+  "/owner/appointments/:appointmentId",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: ownerAppointmentIdParamsSchema }),
+  asyncHandler(ownerAppointmentsController.getOwnerAppointmentDetail)
+);
+
+appointmentsRouter.patch(
+  "/owner/appointments/:appointmentId/cancel",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({
+    params: ownerAppointmentIdParamsSchema,
+    body: cancelOwnerAppointmentSchema,
+  }),
+  asyncHandler(ownerAppointmentsController.cancelOwnerAppointment)
+);
 
 /**
  * @openapi

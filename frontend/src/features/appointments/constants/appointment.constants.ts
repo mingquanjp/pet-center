@@ -3,7 +3,10 @@ import {
   StaffAppointmentServiceType, 
   StaffAppointmentTab, 
   StaffAppointmentStatusFilter, 
-  StaffAppointmentServiceFilter 
+  StaffAppointmentServiceFilter,
+  OwnerAppointmentStatus,
+  OwnerAppointmentServiceType,
+  OwnerAppointmentStatusFilter
 } from "../types/appointment.types";
 
 export const staffAppointmentStatusLabel: Record<StaffAppointmentStatus, string> = {
@@ -27,6 +30,35 @@ export const staffAppointmentTabOptions: Array<{ value: StaffAppointmentTab, lab
   { value: "CONFIRMED", label: "Đã xác nhận" },
   { value: "REJECTED", label: "Từ chối" },
   { value: "CANCELLED", label: "Đã hủy" }
+];
+
+export const ownerAppointmentStatusLabel: Record<OwnerAppointmentStatus, string> = {
+  PENDING_PAYMENT: "Chờ thanh toán",
+  PENDING: "Chờ xác nhận",
+  CONFIRMED: "Đã xác nhận",
+  REJECTED: "Từ chối",
+  CANCELLED: "Đã hủy",
+  COMPLETED: "Hoàn tất",
+};
+
+export const ownerAppointmentServiceTypeLabel: Record<OwnerAppointmentServiceType, string> = {
+  GENERAL_CHECKUP: "Khám tổng quát",
+  VACCINATION: "Tiêm phòng",
+  LAB_TEST: "Xét nghiệm",
+  RECHECK: "Tái khám",
+  GROOMING: "Tắm & Cắt tỉa",
+};
+
+export const ownerAppointmentStatusFilterOptions: Array<{
+  value: OwnerAppointmentStatusFilter;
+  label: string;
+}> = [
+  { value: "ALL", label: "Tất cả" },
+  { value: "PENDING", label: "Chờ xác nhận" },
+  { value: "CONFIRMED", label: "Đã xác nhận" },
+  { value: "REJECTED", label: "Từ chối" },
+  { value: "CANCELLED", label: "Đã hủy" },
+  { value: "COMPLETED", label: "Hoàn tất" },
 ];
 
 export const staffAppointmentStatusFilterOptions: Array<{ value: StaffAppointmentStatusFilter, label: string }> = [
