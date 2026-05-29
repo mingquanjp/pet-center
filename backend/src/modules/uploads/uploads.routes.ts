@@ -104,3 +104,27 @@ uploadsRouter.post(
   },
   asyncHandler(uploadsController.uploadImage)
 );
+
+const fileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024,
+    files: 1
+  }
+});
+
+uploadsRouter.post(
+  "/uploads/file",
+  authMiddleware,
+  fileUpload.single("file"),
+  (req, _res, next) => {
+    if (!req.file) {
+      next(new AppError("Vui lòng chọn tệp để upload", "FILE_REQUIRED", httpStatus.BAD_REQUEST));
+      return;
+    }
+
+    next();
+  },
+  asyncHandler(uploadsController.uploadFile)
+);
+

@@ -10,6 +10,7 @@ import {
   petMedicalExamParamsSchema,
   petMedicalExamsQuerySchema,
   petParamsSchema,
+  petSpaHistoryQuerySchema,
   petVaccinationsQuerySchema,
   staffCreateOwnerSchema,
   staffCreatePetSchema,
@@ -483,6 +484,14 @@ petsRouter.get(
   requireRole("OWNER"),
   validateRequest({ params: petParamsSchema, query: petVaccinationsQuerySchema }),
   asyncHandler(petsController.listPetVaccinations)
+);
+
+petsRouter.get(
+  "/pets/:petId/spa-history",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: petParamsSchema, query: petSpaHistoryQuerySchema }),
+  asyncHandler(petsController.listPetSpaHistory)
 );
 
 petsRouter.get(

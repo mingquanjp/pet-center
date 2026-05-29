@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import * as invoicesService from "./invoices.service.js";
-import { sendSuccess } from "../../shared/responses/api-response.js";
+import { sendPaginated, sendSuccess } from "../../shared/responses/api-response.js";
 
 export async function listStaffInvoices(req: Request, res: Response) {
   const result = await invoicesService.listStaffInvoices(req.query);
@@ -9,6 +9,17 @@ export async function listStaffInvoices(req: Request, res: Response) {
     data: result.data,
     pagination: result.pagination
   });
+}
+
+export async function listOwnerInvoices(req: Request, res: Response) {
+  const result = await invoicesService.listOwnerInvoices(req.user!.userId, req.query);
+  sendPaginated(res, result.data, result.pagination);
+}
+
+export async function getOwnerInvoiceDetail(req: Request, res: Response) {
+  const invoiceId = req.params.invoiceId as string;
+  const data = await invoicesService.getOwnerInvoiceDetail(invoiceId, req.user!.userId);
+  sendSuccess(res, data, "Lấy thông tin hóa đơn thành công");
 }
 
 export async function getStaffInvoiceDetail(req: Request, res: Response) {

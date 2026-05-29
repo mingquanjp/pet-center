@@ -7,6 +7,7 @@ import type {
   PetMedicalExamParams,
   PetMedicalExamsQuery,
   PetParams,
+  PetSpaHistoryQuery,
   PetVaccinationsQuery,
   StaffCreateOwnerPayload,
   StaffCreatePetPayload,
@@ -83,6 +84,13 @@ export async function getPetMedicalExam(req: Request, res: Response): Promise<vo
 export async function listPetVaccinations(req: Request, res: Response): Promise<void> {
   const { petId } = req.params as PetParams;
   const result = await petsService.listOwnerPetVaccinations(req.user!, petId, req.query as unknown as PetVaccinationsQuery);
+
+  sendPaginated(res, result.data, result.pagination);
+}
+
+export async function listPetSpaHistory(req: Request, res: Response): Promise<void> {
+  const { petId } = req.params as PetParams;
+  const result = await petsService.listOwnerPetSpaHistory(req.user!, petId, req.query as unknown as PetSpaHistoryQuery);
 
   sendPaginated(res, result.data, result.pagination);
 }

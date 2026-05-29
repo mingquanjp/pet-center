@@ -10,6 +10,7 @@ type ApiEnvelope<T> = {
   success: boolean;
   data: T;
   message?: string;
+  stats?: unknown;
   pagination?: {
     page: number;
     limit: number;

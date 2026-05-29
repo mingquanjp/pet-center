@@ -70,37 +70,23 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
   const petSubtitle = [exam.pet.speciesLabel, exam.pet.breed].filter(Boolean).join(" / ")
 
   function printExam() {
-    printHtmlDocument(`Phiếu khám ${exam.examId}`, buildExamPrintHtml(exam))
+    if (!exam) return
+    const currentExam = exam
+    printHtmlDocument(`Phiếu khám ${currentExam.examId}`, buildExamPrintHtml(currentExam))
   }
 
   function downloadPrescription() {
-    if (!exam.prescription) return
+    const currentExam = exam
+    const currentPrescription = currentExam?.prescription
+    if (!currentExam || !currentPrescription) return
 
     const generatedAt = new Date()
-    const rows = [
-      ["Mã phiếu", exam.examId],
-      ["Thú cưng", exam.pet.petName],
-      ["Ngày khám", formatDate(exam.examDate)],
-      ["Bác sĩ", exam.veterinarianName],
-      ["Ngày xuất toa", formatDate(exam.prescription.prescribedAt)],
-      ["Ghi chú chung", exam.prescription.generalNote || ""],
-      [],
-      ["Tên thuốc", "Liều lượng", "Tần suất", "Thời gian", "Hướng dẫn", "Ghi chú"],
-      ...exam.prescription.items.map((item) => [
-        item.medicineName,
-        item.dosage,
-        item.frequency,
-        item.duration,
-        item.usageInstruction || "",
-        item.note || "",
-      ]),
-    ]
 
-    downloadTextFile(
-      `toa-thuoc-${toSafeFilename(exam.pet.petName)}-${exam.examId}-${formatFileDate(generatedAt)}.csv`,
-      toCsv(rows),
-      "text/csv;charset=utf-8"
-    )
+    exportPrescriptionExcel({
+      exam: currentExam,
+      generatedAt,
+      prescription: currentPrescription,
+    })
   }
 
   return (
@@ -492,19 +478,19 @@ function buildExamPrintHtml(exam: PetMedicalExamDetail) {
   const petSubtitle = [exam.pet.speciesLabel, exam.pet.breed].filter(Boolean).join(" / ")
   const fieldRows = exam.fieldValues.length
     ? exam.fieldValues
-        .map(
-          (field) => `
+      .map(
+        (field) => `
             <tr>
               <td>${escapeHtml(field.fieldLabel)}</td>
               <td>${escapeHtml(field.fieldType === "file" && field.fileUrl ? field.fileUrl : getFieldDisplayValue(field))}</td>
             </tr>`
-        )
-        .join("")
+      )
+      .join("")
     : `<tr><td colspan="2">Chưa có kết quả xét nghiệm đính kèm.</td></tr>`
   const prescriptionRows = exam.prescription?.items.length
     ? exam.prescription.items
-        .map(
-          (item) => `
+      .map(
+        (item) => `
             <tr>
               <td>${escapeHtml(item.medicineName)}</td>
               <td>${escapeHtml(item.dosage)}</td>
@@ -512,8 +498,8 @@ function buildExamPrintHtml(exam: PetMedicalExamDetail) {
               <td>${escapeHtml(item.duration)}</td>
               <td>${escapeHtml(item.usageInstruction || item.note || "")}</td>
             </tr>`
-        )
-        .join("")
+      )
+      .join("")
     : `<tr><td colspan="5">Chưa có đơn thuốc cho phiếu khám này.</td></tr>`
 
   return `<!doctype html>
@@ -589,11 +575,10 @@ function buildExamPrintHtml(exam: PetMedicalExamDetail) {
       </table>
 
       <h2>Tái khám</h2>
-      <div class="box">${
-        exam.followUp
-          ? `${escapeHtml(formatDate(exam.followUp.followUpDate))}<br />${escapeHtml(exam.followUp.reason)}`
-          : "Chưa có chỉ định tái khám."
-      }</div>
+      <div class="box">${exam.followUp
+      ? `${escapeHtml(formatDate(exam.followUp.followUpDate))}<br />${escapeHtml(exam.followUp.reason)}`
+      : "Chưa có chỉ định tái khám."
+    }</div>
 
       <footer>
         <div>
@@ -629,14 +614,69 @@ function printHtmlDocument(title: string, html: string) {
   }, 250)
 }
 
-function toCsv(rows: Array<Array<string | number | null | undefined>>) {
-  return `\uFEFF${rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n")}`
-}
+function exportPrescriptionExcel({
+  exam,
+  generatedAt,
+  prescription,
+}: {
+  exam: PetMedicalExamDetail
+  generatedAt: Date
+  prescription: NonNullable<PetMedicalExamDetail["prescription"]>
+}) {
+  const headers = ["STT", "Tên thuốc", "Liều lượng", "Tần suất", "Thời gian", "Hướng dẫn sử dụng", "Ghi chú"]
+  const headerHtml = headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")
+  const rowHtml = prescription.items
+    .map(
+      (item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(item.medicineName)}</td>
+          <td>${escapeHtml(item.dosage)}</td>
+          <td>${escapeHtml(item.frequency)}</td>
+          <td>${escapeHtml(item.duration)}</td>
+          <td>${escapeHtml(item.usageInstruction || "Không có")}</td>
+          <td>${escapeHtml(item.note || "Không có")}</td>
+        </tr>
+      `
+    )
+    .join("")
+  const html = `
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: Arial, Helvetica, sans-serif; color: #1f2a27; }
+          table { border-collapse: collapse; width: 100%; }
+          th { background: #005e53; color: #ffffff; font-weight: 700; }
+          th, td { border: 1px solid #cfd9d5; padding: 8px; mso-number-format: "\\@"; vertical-align: top; }
+          .title { color: #005e53; font-size: 22px; font-weight: 700; }
+          .section { background: #eef7f4; font-weight: 700; }
+          .meta-label { width: 180px; font-weight: 700; color: #4f625d; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr><td colspan="${headers.length}" class="title">PetCenter - Toa thuốc</td></tr>
+          <tr><td class="meta-label">Mã phiếu</td><td colspan="${headers.length - 1}">${escapeHtml(exam.examId)}</td></tr>
+          <tr><td class="meta-label">Thú cưng</td><td colspan="${headers.length - 1}">${escapeHtml(exam.pet.petName)}</td></tr>
+          <tr><td class="meta-label">Ngày khám</td><td colspan="${headers.length - 1}">${escapeHtml(formatDate(exam.examDate))}</td></tr>
+          <tr><td class="meta-label">Bác sĩ</td><td colspan="${headers.length - 1}">${escapeHtml(exam.veterinarianName)}</td></tr>
+          <tr><td class="meta-label">Ngày xuất toa</td><td colspan="${headers.length - 1}">${escapeHtml(formatDate(prescription.prescribedAt))}</td></tr>
+          <tr><td class="meta-label">Ngày tải file</td><td colspan="${headers.length - 1}">${escapeHtml(formatDateTime(generatedAt.toISOString()))}</td></tr>
+          <tr><td class="meta-label">Ghi chú chung</td><td colspan="${headers.length - 1}">${escapeHtml(prescription.generalNote || "Không có")}</td></tr>
+          <tr><td colspan="${headers.length}" class="section">Danh sách thuốc</td></tr>
+          <tr>${headerHtml}</tr>
+          ${rowHtml || `<tr><td colspan="${headers.length}">Không có thuốc trong toa.</td></tr>`}
+        </table>
+      </body>
+    </html>
+  `
 
-function escapeCsvCell(value: string | number | null | undefined) {
-  const normalizedValue = value === null || value === undefined ? "" : String(value)
-
-  return `"${normalizedValue.replaceAll('"', '""')}"`
+  downloadTextFile(
+    `toa-thuoc-${toSafeFilename(exam.pet.petName)}-${exam.examId}-${formatFileDate(generatedAt)}.xls`,
+    `\uFEFF${html}`,
+    "application/vnd.ms-excel;charset=utf-8"
+  )
 }
 
 function downloadTextFile(filename: string, content: string, mimeType: string) {

@@ -9,6 +9,7 @@ import type {
   CreatePetPayload,
   ListPetsQuery,
   PetMedicalExamsQuery,
+  PetSpaHistoryQuery,
   PetVaccinationsQuery,
   StaffCreateOwnerPayload,
   StaffCreatePetPayload,
@@ -245,6 +246,32 @@ export async function listOwnerPetVaccinations(authUser: AuthUser, petId: string
 
   return {
     data: result.vaccinations,
+    pagination: createPagination(paginationInput.page, paginationInput.limit, result.total)
+  };
+}
+
+export async function listOwnerPetSpaHistory(authUser: AuthUser, petId: string, query: PetSpaHistoryQuery) {
+  assertOwner(authUser);
+
+  const pet = await petsRepository.findPetById(authUser.userId, petId);
+
+  if (!pet) {
+    throw new AppError("Khong tim thay ho so thu cung", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  const paginationInput = normalizePagination(query.page, query.limit);
+  const result = await petsRepository.findPetSpaHistory({
+    ownerUserId: authUser.userId,
+    petId,
+    q: query.q,
+    serviceType: query.serviceType,
+    from: query.from,
+    to: query.to,
+    ...paginationInput
+  });
+
+  return {
+    data: result.records,
     pagination: createPagination(paginationInput.page, paginationInput.limit, result.total)
   };
 }

@@ -64,7 +64,7 @@ export function StaffAppointmentTable({ appointments, pagination, onPageChange, 
 
   return (
     <div className="w-full flex flex-col justify-start items-start overflow-hidden">
-      <div className="overflow-x-auto w-full">
+      <div className="overflow-x-auto overflow-y-hidden w-full">
         <table className="w-full text-left border-collapse min-w-200 table-fixed">
           <thead className="bg-petcenter-background border-b border-petcenter-border">
             <tr>

@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/api";
-import { StaffAppointment, StaffAppointmentFilters } from "../types/appointment.types";
+import { StaffAppointment, StaffAppointmentFilters, StaffAppointmentDetail } from "../types/appointment.types";
 
 export interface StaffAppointmentListResponse {
   data: StaffAppointment[];
@@ -33,5 +33,23 @@ export const appointmentsApi = {
     const res = await apiRequest<StaffAppointment[]>(`/staff/appointments?${qs}`);
 
     return res as unknown as StaffAppointmentListResponse;
+  },
+  getStaffAppointmentDetail: async (appointmentId: string) => {
+    const res = await apiRequest<StaffAppointmentDetail>(`/staff/appointments/${appointmentId}`);
+    return res.data;
+  },
+  confirmStaffAppointment: async (appointmentId: string, payload: { doctorUserId?: string; internalNote?: string }) => {
+    const res = await apiRequest<StaffAppointmentDetail>(`/staff/appointments/${appointmentId}/confirm`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  },
+  rejectStaffAppointment: async (appointmentId: string, payload: { rejectionReason: string; internalNote?: string }) => {
+    const res = await apiRequest<StaffAppointmentDetail>(`/staff/appointments/${appointmentId}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    return res.data;
   },
 };

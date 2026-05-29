@@ -138,6 +138,14 @@ export interface GroomingTicketCreated {
   scheduledAt: string
 }
 
+export interface GroomingTicketCancelled {
+  groomingTicketId: string
+  bookingCode: string
+  ticketStatus: "cancelled"
+  ticketStatusLabel: string
+  invoiceStatus: InvoiceStatus | null
+}
+
 export interface StaffGroomingTicket {
   groomingTicketId: string
   bookingCode: string

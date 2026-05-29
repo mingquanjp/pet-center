@@ -7,6 +7,8 @@ import type {
   PetMedicalExam,
   PetMedicalExamDetail,
   PetMedicalExamsParams,
+  PetSpaHistory,
+  PetSpaHistoryParams,
   PetVaccination,
   PetVaccinationsParams,
   PetsListParams,
@@ -16,6 +18,7 @@ import type {
   StaffPet,
   StaffPetDetail,
   StaffUpdatePetInput,
+  UpdatePetInput,
 } from "../types/pet.types";
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
@@ -136,6 +139,18 @@ export const petsApi = {
     return response.data;
   },
 
+  async update(petId: string, payload: UpdatePetInput): Promise<PetDetail> {
+    const response = await apiRequest<PetDetail>(`/pets/${encodeURIComponent(petId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+
+    clearApiCache("/pets");
+    clearApiCache(`/pets/${encodeURIComponent(petId)}`);
+
+    return response.data;
+  },
+
   async listMedicalExams(
     petId: string,
     params: PetMedicalExamsParams = {},
@@ -178,6 +193,27 @@ export const petsApi = {
 
     return {
       vaccinations: response.data,
+      pagination: response.pagination ?? {
+        page: params.page ?? 1,
+        limit: params.limit ?? response.data.length,
+        total: response.data.length,
+        totalPages: response.data.length > 0 ? 1 : 0,
+      },
+    };
+  },
+
+  async listSpaHistory(
+    petId: string,
+    params: PetSpaHistoryParams = {},
+    init: RequestInit = {}
+  ): Promise<{ records: PetSpaHistory[]; pagination: Pagination }> {
+    const response = await apiRequest<PetSpaHistory[]>(
+      `/pets/${encodeURIComponent(petId)}/spa-history${buildQuery(params)}`,
+      init
+    );
+
+    return {
+      records: response.data,
       pagination: response.pagination ?? {
         page: params.page ?? 1,
         limit: params.limit ?? response.data.length,

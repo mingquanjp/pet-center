@@ -17,7 +17,14 @@ export function useStaffInvoices(filters: StaffInvoiceFilters): StaffInvoicesRes
 
   // Use ref to keep track of latest filters inside fetch function without causing re-creations
   const filtersRef = useRef(filters);
-  filtersRef.current = filters;
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
+  
+  const nextCursorRef = useRef<string | null>(null);
+  useEffect(() => {
+    nextCursorRef.current = nextCursor;
+  }, [nextCursor]);
 
   const fetchInvoices = useCallback(async (isLoadMore = false) => {
     try {
@@ -30,7 +37,7 @@ export function useStaffInvoices(filters: StaffInvoiceFilters): StaffInvoicesRes
 
       const res = await staffInvoicesApi.list({
         ...filtersRef.current,
-        cursor: isLoadMore && nextCursor ? nextCursor : undefined,
+        cursor: isLoadMore && nextCursorRef.current ? nextCursorRef.current : undefined,
         limit: 10,
       });
 
@@ -56,10 +63,12 @@ export function useStaffInvoices(filters: StaffInvoiceFilters): StaffInvoicesRes
       setIsFetchingNextPage(false);
       if (isInitialLoading) setIsInitialLoading(false);
     }
-  }, [nextCursor]);
+  }, [isInitialLoading]);
 
   useEffect(() => {
-    fetchInvoices();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchInvoices();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]); // Re-fetch on filter change
 
   const loadMore = useCallback(() => {

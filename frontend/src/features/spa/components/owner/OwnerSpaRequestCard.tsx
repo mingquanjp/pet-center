@@ -9,10 +9,11 @@ import { spaStatusClassName, spaStatusLabel } from "../../constants/spa.constant
 import type { OwnerSpaRequest } from "../../types/spa.types"
 
 interface OwnerSpaRequestCardProps {
+  onCancelRequest?: (request: OwnerSpaRequest) => void
   request: OwnerSpaRequest
 }
 
-export function OwnerSpaRequestCard({ request }: OwnerSpaRequestCardProps) {
+export function OwnerSpaRequestCard({ onCancelRequest, request }: OwnerSpaRequestCardProps) {
   const Icon = request.icon
 
   return (
@@ -73,6 +74,8 @@ export function OwnerSpaRequestCard({ request }: OwnerSpaRequestCardProps) {
             <Button
               variant="outline"
               className="h-10 rounded-lg border-[#3E4946] bg-white px-4 text-base font-normal leading-6 text-[#3E4946] hover:bg-[#F5F4E8]"
+              onClick={() => onCancelRequest?.(request)}
+              type="button"
             >
               Hủy yêu cầu
             </Button>

@@ -1,214 +1,386 @@
 import type { QueryResultRow } from "pg";
 import { query } from "../../db/query.js";
-import type { StaffDashboardAppointmentTaskDto, StaffDashboardTaskSource } from "./dashboard.types.js";
+import type {
+  OwnerDashboardActivity,
+  OwnerDashboardAppointment,
+  OwnerDashboardDto,
+  OwnerDashboardPet,
+  OwnerDashboardReminder,
+} from "./dashboard.types.js";
 
 type CountRow = QueryResultRow & {
   total: string;
 };
 
-type RoomCapacityRow = QueryResultRow & {
-  total_rooms: string;
-  occupied_rooms: string;
-};
-
-type ColumnNameRow = QueryResultRow & {
-  column_name: string;
-};
-
-type AppointmentTaskRow = QueryResultRow & {
-  task_id: string;
-  code: string;
-  source_type: StaffDashboardTaskSource;
+type PetRow = QueryResultRow & {
+  pet_id: string;
   pet_name: string;
   species: "Dog" | "Cat" | "Other";
   breed: string | null;
+  birth_date: string | null;
   estimated_age: string | number | null;
-  owner_name: string;
-  scheduled_at: Date;
-  type_label: string;
+  profile_image_url: string | null;
+  pet_status: "active" | "inactive" | "deceased";
+  has_active_boarding: boolean;
+  needs_attention: boolean;
 };
 
-function getSpeciesLabel(species: AppointmentTaskRow["species"]): string {
+type AppointmentRow = QueryResultRow & {
+  appointment_id: string;
+  pet_id: string;
+  pet_name: string;
+  type_name: string;
+  scheduled_at: string;
+  appointment_status: OwnerDashboardAppointment["appointmentStatus"];
+};
+
+type ActivityRow = QueryResultRow & {
+  activity_log_id: string;
+  pet_id: string;
+  pet_name: string;
+  activity_category: OwnerDashboardActivity["activityCategory"];
+  activity_type: string;
+  activity_status: OwnerDashboardActivity["activityStatus"];
+  title: string;
+  summary: string | null;
+  occurred_at: string;
+  source_type: string;
+  source_id: string;
+};
+
+type ReminderRow = QueryResultRow & {
+  id: string;
+  pet_id: string;
+  pet_name: string;
+  title: string;
+  due_date: string;
+  tone: OwnerDashboardReminder["tone"];
+};
+
+function toNumber(value: string | number | null): number | null {
+  if (value === null) return null;
+  return Number(value);
+}
+
+function getSpeciesLabel(species: PetRow["species"]): string {
   const labels = {
     Dog: "Chó",
     Cat: "Mèo",
-    Other: "Khác"
+    Other: "Khác",
   } as const;
 
   return labels[species];
 }
 
-function formatAge(estimatedAge: AppointmentTaskRow["estimated_age"]): string | null {
-  if (estimatedAge === null) return null;
+function getAgeLabel(row: PetRow): string {
+  if (row.birth_date) {
+    const birthDate = new Date(row.birth_date);
+    const now = new Date();
+    let years = now.getFullYear() - birthDate.getFullYear();
+    const hasHadBirthday =
+      now.getMonth() > birthDate.getMonth() ||
+      (now.getMonth() === birthDate.getMonth() && now.getDate() >= birthDate.getDate());
 
-  const age = Number(estimatedAge);
+    if (!hasHadBirthday) years -= 1;
 
-  if (!Number.isFinite(age)) return null;
-  if (Number.isInteger(age)) return `${age} tuổi`;
+    return years > 0 ? `${years} năm tuổi` : "Dưới 1 năm tuổi";
+  }
 
-  return `${age.toFixed(1)} tuổi`;
+  const estimatedAge = toNumber(row.estimated_age);
+
+  if (estimatedAge === null) return "Chưa cập nhật";
+  if (estimatedAge < 1) return "Dưới 1 năm tuổi";
+
+  return `${Math.floor(estimatedAge)} năm tuổi`;
 }
 
-function getPetDescription(row: AppointmentTaskRow): string {
-  const breed = row.breed ?? getSpeciesLabel(row.species);
-  const age = formatAge(row.estimated_age);
+function getDisplayStatus(row: PetRow): OwnerDashboardPet["displayStatus"] {
+  if (row.pet_status === "inactive") return "inactive";
+  if (row.pet_status === "deceased") return "deceased";
+  if (row.has_active_boarding) return "boarding";
+  if (row.needs_attention) return "watching";
 
-  return age ? `${breed} • ${age}` : breed;
+  return "healthy";
 }
 
-function mapAppointmentTask(row: AppointmentTaskRow): StaffDashboardAppointmentTaskDto {
+function getDisplayStatusLabel(displayStatus: OwnerDashboardPet["displayStatus"]): string {
+  const labels = {
+    healthy: "Khỏe mạnh",
+    watching: "Cần theo dõi",
+    boarding: "Đang lưu trú",
+    inactive: "Ngưng theo dõi",
+    deceased: "Đã mất",
+  } as const;
+
+  return labels[displayStatus];
+}
+
+function getAppointmentStatusLabel(status: OwnerDashboardAppointment["appointmentStatus"]): string {
+  const labels = {
+    pending_payment: "Chờ thanh toán",
+    pending: "Chờ xác nhận",
+    confirmed: "Đã xác nhận",
+    rejected: "Đã từ chối",
+    cancelled: "Đã hủy",
+  } as const;
+
+  return labels[status];
+}
+
+function mapPet(row: PetRow): OwnerDashboardPet {
+  const displayStatus = getDisplayStatus(row);
+
   return {
-    taskId: row.task_id,
-    code: row.code,
-    sourceType: row.source_type,
+    petId: row.pet_id,
     petName: row.pet_name,
-    petDescription: getPetDescription(row),
-    ownerName: row.owner_name,
-    scheduledAt: row.scheduled_at.toISOString(),
-    typeLabel: row.type_label,
-    status: "pending",
-    statusLabel: "Chờ xác nhận"
+    speciesLabel: getSpeciesLabel(row.species),
+    breed: row.breed,
+    ageLabel: getAgeLabel(row),
+    profileImageUrl: row.profile_image_url,
+    displayStatus,
+    displayStatusLabel: getDisplayStatusLabel(displayStatus),
   };
 }
 
-async function getBoardingOccupancyCondition(): Promise<string> {
-  const result = await query<ColumnNameRow>(
-    `select column_name
-     from information_schema.columns
-     where table_schema = 'pet_center'
-       and table_name = 'boarding_records'
-       and column_name in (
-         'planned_check_in_at',
-         'planned_check_out_at',
-         'planned_check_in_date',
-         'planned_check_out_date'
-       )`
-  );
-  const columnNames = new Set(result.rows.map((row) => row.column_name));
-
-  if (columnNames.has("planned_check_in_at") && columnNames.has("planned_check_out_at")) {
-    return "br.planned_check_in_at <= now() and br.planned_check_out_at > now()";
-  }
-
-  if (columnNames.has("planned_check_in_date") && columnNames.has("planned_check_out_date")) {
-    return "br.planned_check_in_date <= current_date and br.planned_check_out_date > current_date";
-  }
-
-  throw new Error("boarding_records is missing planned check-in/check-out columns");
+function mapAppointment(row: AppointmentRow): OwnerDashboardAppointment {
+  return {
+    appointmentId: row.appointment_id,
+    petId: row.pet_id,
+    petName: row.pet_name,
+    examTypeName: row.type_name,
+    scheduledAt: row.scheduled_at,
+    appointmentStatus: row.appointment_status,
+    appointmentStatusLabel: getAppointmentStatusLabel(row.appointment_status),
+  };
 }
 
-export async function countPendingMedicalAppointments(): Promise<number> {
-  const result = await query<CountRow>(
-    `select count(*)::text as total
-     from pet_center.medical_appointments ma
-     where ma.appointment_status = 'pending'`
-  );
-
-  return Number(result.rows[0]?.total ?? 0);
+function mapActivity(row: ActivityRow): OwnerDashboardActivity {
+  return {
+    activityLogId: row.activity_log_id,
+    petId: row.pet_id,
+    petName: row.pet_name,
+    activityCategory: row.activity_category,
+    activityType: row.activity_type,
+    activityStatus: row.activity_status,
+    title: row.title,
+    summary: row.summary,
+    occurredAt: row.occurred_at,
+    sourceType: row.source_type,
+    sourceId: row.source_id,
+  };
 }
 
-export async function countPendingGroomingTickets(): Promise<number> {
-  const result = await query<CountRow>(
-    `select count(*)::text as total
-     from pet_center.grooming_tickets gt
-     where gt.ticket_status = 'pending'`
-  );
-
-  return Number(result.rows[0]?.total ?? 0);
+function mapReminder(row: ReminderRow): OwnerDashboardReminder {
+  return {
+    id: row.id,
+    petId: row.pet_id,
+    petName: row.pet_name,
+    title: row.title,
+    dueDate: row.due_date,
+    tone: row.tone,
+    actionHref: "/owner/appointments",
+  };
 }
 
-export async function getRoomCapacitySnapshot(): Promise<{ availableRooms: number; totalRooms: number }> {
-  const occupancyCondition = await getBoardingOccupancyCondition();
-  const result = await query<RoomCapacityRow>(
-    `with total_capacity as (
-       select coalesce(sum(rt.capacity), 0)::text as total_rooms
-       from pet_center.room_types rt
-       where rt.room_type_status = 'active'
-     ),
-     occupied_capacity as (
-       select count(*)::text as occupied_rooms
-       from pet_center.boarding_records br
-       where br.boarding_status in ('confirmed', 'staying')
-         and ${occupancyCondition}
-     )
-     select total_capacity.total_rooms, occupied_capacity.occupied_rooms
-     from total_capacity
-     cross join occupied_capacity`
-  );
-  const totalRooms = Number(result.rows[0]?.total_rooms ?? 0);
-  const occupiedRooms = Number(result.rows[0]?.occupied_rooms ?? 0);
+export async function getOwnerDashboard(ownerUserId: string, ownerName: string): Promise<OwnerDashboardDto> {
+  const [
+    petCountResult,
+    appointmentCountResult,
+    unpaidInvoiceCountResult,
+    unreadNotificationCountResult,
+    petsResult,
+    upcomingAppointmentsResult,
+    recentActivitiesResult,
+    remindersResult,
+  ] = await Promise.all([
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.pets
+       where owner_user_id = $1 and pet_status = 'active'`,
+      [ownerUserId]
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.medical_appointments
+       where owner_user_id = $1
+         and scheduled_at >= now()
+         and appointment_status in ('pending_payment', 'pending', 'confirmed')`,
+      [ownerUserId]
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.invoices
+       where owner_user_id = $1 and invoice_status = 'pending_payment'`,
+      [ownerUserId]
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.notifications
+       where receiver_user_id = $1 and notification_status = 'unread'`,
+      [ownerUserId]
+    ),
+    query<PetRow>(
+      `select
+         p.pet_id,
+         p.pet_name,
+         p.species,
+         p.breed,
+         p.birth_date::text as birth_date,
+         p.estimated_age,
+         p.profile_image_url,
+         p.pet_status,
+         exists (
+           select 1 from pet_center.boarding_records br
+           where br.pet_id = p.pet_id and br.boarding_status = 'staying'
+         ) as has_active_boarding,
+         exists (
+           select 1 from pet_center.pet_health_profiles php
+           where php.pet_id = p.pet_id
+             and (
+               nullif(trim(coalesce(php.allergy_notes, '')), '') is not null
+               or nullif(trim(coalesce(php.chronic_condition_notes, '')), '') is not null
+               or nullif(trim(coalesce(php.special_care_notes, '')), '') is not null
+             )
+         ) as needs_attention
+       from pet_center.pets p
+       where p.owner_user_id = $1 and p.pet_status = 'active'
+       order by p.pet_name asc, p.pet_id asc
+       limit 4`,
+      [ownerUserId]
+    ),
+    query<AppointmentRow>(
+      `select
+         ma.appointment_id,
+         ma.pet_id,
+         p.pet_name,
+         et.type_name,
+         ma.scheduled_at::text as scheduled_at,
+         ma.appointment_status
+       from pet_center.medical_appointments ma
+       inner join pet_center.pets p on p.pet_id = ma.pet_id
+       inner join pet_center.exam_types et on et.exam_type_id = ma.exam_type_id
+       where ma.owner_user_id = $1
+         and ma.scheduled_at >= now()
+         and ma.appointment_status in ('pending_payment', 'pending', 'confirmed')
+       order by ma.scheduled_at asc, ma.appointment_id asc
+       limit 10`,
+      [ownerUserId]
+    ),
+    query<ActivityRow>(
+      `select
+         pal.activity_log_id,
+         pal.pet_id,
+         p.pet_name,
+         pal.activity_category,
+         pal.activity_type,
+         pal.activity_status,
+         pal.title,
+         pal.summary,
+         pal.occurred_at::text as occurred_at,
+         pal.source_type,
+         pal.source_id
+       from pet_center.pet_activity_logs pal
+       inner join pet_center.pets p on p.pet_id = pal.pet_id
+       where pal.owner_user_id = $1 and pal.visibility_status = 'visible'
+       order by pal.occurred_at desc, pal.activity_log_id desc
+       limit 3`,
+      [ownerUserId]
+    ),
+    query<ReminderRow>(
+      `select *
+       from (
+         select
+           v.vaccination_id as id,
+           p.pet_id,
+           p.pet_name,
+           p.pet_name || ' cần tiêm phòng ' || v.vaccine_name as title,
+           (v.vaccination_date + interval '1 year')::date::text as due_date,
+           case
+             when (v.vaccination_date + interval '1 year')::date < current_date then 'overdue'
+             else 'due-soon'
+           end as tone
+         from pet_center.vaccinations v
+         inner join pet_center.pets p on p.pet_id = v.pet_id
+         where p.owner_user_id = $1
+           and p.pet_status = 'active'
+           and (v.vaccination_date + interval '1 year')::date <= current_date + interval '30 days'
+
+         union all
+
+         select
+           fui.follow_up_id as id,
+           p.pet_id,
+           p.pet_name,
+           p.pet_name || ' có lịch tái khám: ' || fui.reason as title,
+           fui.follow_up_date::text as due_date,
+           case
+             when fui.follow_up_date < current_date then 'overdue'
+             else 'due-soon'
+           end as tone
+         from pet_center.follow_up_instructions fui
+         inner join pet_center.medical_exams me on me.exam_id = fui.exam_id
+         inner join pet_center.medical_appointments ma on ma.appointment_id = me.appointment_id
+         inner join pet_center.pets p on p.pet_id = ma.pet_id
+         where ma.owner_user_id = $1
+           and p.pet_status = 'active'
+           and fui.follow_up_date <= current_date + interval '30 days'
+       ) reminders
+       order by due_date asc, id asc
+       limit 2`,
+      [ownerUserId]
+    ),
+  ]);
 
   return {
-    availableRooms: Math.max(totalRooms - occupiedRooms, 0),
-    totalRooms
+    ownerName,
+    summary: {
+      petCount: Number(petCountResult.rows[0]?.total ?? 0),
+      upcomingAppointmentCount: Number(appointmentCountResult.rows[0]?.total ?? 0),
+      unpaidInvoiceCount: Number(unpaidInvoiceCountResult.rows[0]?.total ?? 0),
+      unreadNotificationCount: Number(unreadNotificationCountResult.rows[0]?.total ?? 0),
+    },
+    pets: petsResult.rows.map(mapPet),
+    upcomingAppointments: upcomingAppointmentsResult.rows.map(mapAppointment),
+    recentActivities: recentActivitiesResult.rows.map(mapActivity),
+    healthReminders: remindersResult.rows.map(mapReminder),
   };
 }
 
-export async function countTodayInvoices(): Promise<number> {
-  const result = await query<CountRow>(
-    `select count(*)::text as total
-     from pet_center.invoices i
-     where i.issued_at = current_date
-       and i.invoice_status <> 'cancelled'`
-  );
-
-  return Number(result.rows[0]?.total ?? 0);
-}
-
-export async function findPendingAppointmentTasks(limit: number): Promise<StaffDashboardAppointmentTaskDto[]> {
-  const result = await query<AppointmentTaskRow>(
-    `with medical_tasks as (
-       select
-         ma.appointment_id as task_id,
-         ma.appointment_id as code,
-         'medical'::text as source_type,
+export async function findOwnerActivityLogs(
+  ownerUserId: string,
+  pagination: { limit: number; offset: number }
+): Promise<{ activities: OwnerDashboardActivity[]; total: number }> {
+  const [listResult, countResult] = await Promise.all([
+    query<ActivityRow>(
+      `select
+         pal.activity_log_id,
+         pal.pet_id,
          p.pet_name,
-         p.species,
-         p.breed,
-         p.estimated_age,
-         owner.full_name as owner_name,
-         ma.scheduled_at,
-         et.type_name as type_label
-       from pet_center.medical_appointments ma
-       join pet_center.pets p on p.pet_id = ma.pet_id
-       join pet_center.users owner on owner.user_id = ma.owner_user_id
-       join pet_center.exam_types et on et.exam_type_id = ma.exam_type_id
-       where ma.appointment_status = 'pending'
-     ),
-     grooming_tasks as (
-       select
-         gt.grooming_ticket_id as task_id,
-         gt.grooming_ticket_id as code,
-         'grooming'::text as source_type,
-         p.pet_name,
-         p.species,
-         p.breed,
-         p.estimated_age,
-         owner.full_name as owner_name,
-         gt.scheduled_at,
-         coalesce(string_agg(s.service_name, ', ' order by s.service_name), 'Dịch vụ spa') as type_label
-       from pet_center.grooming_tickets gt
-       join pet_center.pets p on p.pet_id = gt.pet_id
-       join pet_center.users owner on owner.user_id = gt.owner_user_id
-       left join pet_center.grooming_ticket_items gti on gti.grooming_ticket_id = gt.grooming_ticket_id
-       left join pet_center.services s on s.service_id = gti.service_id
-       where gt.ticket_status = 'pending'
-       group by gt.grooming_ticket_id, p.pet_id, owner.user_id
-     )
-     select *
-     from (
-       select * from medical_tasks
-       union all
-       select * from grooming_tasks
-     ) tasks
-     order by
-       case when scheduled_at >= now() then 0 else 1 end asc,
-       case when scheduled_at >= now() then scheduled_at end asc,
-       case when scheduled_at < now() then scheduled_at end desc,
-       code asc
-     limit $1`,
-    [limit]
-  );
+         pal.activity_category,
+         pal.activity_type,
+         pal.activity_status,
+         pal.title,
+         pal.summary,
+         pal.occurred_at::text as occurred_at,
+         pal.source_type,
+         pal.source_id
+       from pet_center.pet_activity_logs pal
+       inner join pet_center.pets p on p.pet_id = pal.pet_id
+       where pal.owner_user_id = $1 and pal.visibility_status = 'visible'
+       order by pal.occurred_at desc, pal.activity_log_id desc
+       limit $2 offset $3`,
+      [ownerUserId, pagination.limit, pagination.offset]
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.pet_activity_logs pal
+       where pal.owner_user_id = $1 and pal.visibility_status = 'visible'`,
+      [ownerUserId]
+    ),
+  ]);
 
-  return result.rows.map(mapAppointmentTask);
+  return {
+    activities: listResult.rows.map(mapActivity),
+    total: Number(countResult.rows[0]?.total ?? 0),
+  };
 }

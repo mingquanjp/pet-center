@@ -56,6 +56,20 @@ export const petVaccinationsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional()
 });
 
+export const petSpaHistoryQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  serviceType: z
+    .string()
+    .trim()
+    .max(100)
+    .optional()
+    .transform((value) => (value === "all" ? undefined : value)),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional()
+});
+
 export const petHealthProfileSchema = z
   .object({
     medicalHistory: optionalText(2000),
@@ -142,6 +156,7 @@ export type PetParams = z.infer<typeof petParamsSchema>;
 export type PetMedicalExamParams = z.infer<typeof petMedicalExamParamsSchema>;
 export type PetMedicalExamsQuery = z.infer<typeof petMedicalExamsQuerySchema>;
 export type PetVaccinationsQuery = z.infer<typeof petVaccinationsQuerySchema>;
+export type PetSpaHistoryQuery = z.infer<typeof petSpaHistoryQuerySchema>;
 export type CreatePetPayload = z.infer<typeof createPetSchema>;
 export type StaffCreatePetPayload = z.infer<typeof staffCreatePetSchema>;
 export type StaffCreateOwnerPayload = z.infer<typeof staffCreateOwnerSchema>;

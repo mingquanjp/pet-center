@@ -8,6 +8,7 @@ import type {
   GroomingAvailability,
   GroomingBookingOptions,
   GroomingService,
+  GroomingTicketCancelled,
   GroomingTicketCreated,
   Pagination,
   StaffCounterGroomingOptions,
@@ -236,6 +237,18 @@ export const spaApi = {
 
     clearApiCache("/grooming/staff/tickets")
     clearApiCache("/dashboards/staff/overview")
+
+    return response.data
+  },
+
+  async cancelTicket(ticketId: string, init: RequestInit = {}): Promise<GroomingTicketCancelled> {
+    const response = await apiRequest<GroomingTicketCancelled>(`/grooming/tickets/${encodeURIComponent(ticketId)}/cancel`, {
+      ...init,
+      method: "PATCH",
+    })
+
+    clearApiCache("/grooming/tickets")
+    clearApiCache("/grooming/tickets/history")
 
     return response.data
   },

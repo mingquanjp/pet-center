@@ -11,8 +11,8 @@ export function useCancelStaffInvoice() {
       setError(null);
       const res = await staffInvoicesApi.cancel(invoiceId);
       return res.data;
-    } catch (err: any) {
-      setError(err);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err : new Error(String(err)));
       throw err;
     } finally {
       setIsMutating(false);
