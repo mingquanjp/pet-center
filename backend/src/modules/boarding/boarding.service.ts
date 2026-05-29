@@ -254,14 +254,10 @@ function mapBoardingUpdateToCareLog(row: BoardingUpdateRow): BoardingCareLogDto 
     note: row.update_note,
     alertLevel: row.alert_level,
     alertLabel: getCareAlertLabel(row.alert_level),
-    attachments: row.attachment_url
-      ? [
-          {
-            url: row.attachment_url,
-            type: getAttachmentType(row.attachment_url)
-          }
-        ]
-      : []
+    attachments: normalizeAttachmentUrls(row.attachment_url).map((url) => ({
+      url,
+      type: getAttachmentType(url)
+    }))
   };
 }
 
