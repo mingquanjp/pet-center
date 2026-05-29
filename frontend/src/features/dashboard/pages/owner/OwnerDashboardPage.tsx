@@ -443,7 +443,7 @@ function ActivityHistoryDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[calc(100vh-13rem)] overflow-y-auto bg-petcenter-background/45 px-5 py-5 sm:px-6">
+        <div className="h-[min(620px,calc(100vh-13rem))] overflow-y-auto bg-petcenter-background/45 px-5 py-5 sm:px-6">
           {isLoading ? (
             <p className="body-md text-petcenter-text-secondary">Đang tải lịch sử thay đổi...</p>
           ) : errorMessage ? (
@@ -489,14 +489,14 @@ function ActivityHistoryDialog({
                   ))}
                 </div>
               ) : (
-                <div className="rounded-control border border-dashed border-petcenter-border-strong bg-white px-6 py-8 text-center">
+                <div className="flex min-h-[360px] flex-col items-center justify-center rounded-control border border-dashed border-petcenter-border-strong bg-white px-6 py-8 text-center">
                   <p className="body-md font-semibold text-petcenter-text">Không có thay đổi thuộc loại này</p>
                   <p className="body-sm mt-1 text-petcenter-text-secondary">Chọn loại khác để xem thêm lịch sử.</p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="rounded-control border border-dashed border-petcenter-border-strong bg-petcenter-filter px-6 py-10 text-center">
+            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-control border border-dashed border-petcenter-border-strong bg-petcenter-filter px-6 py-10 text-center">
               <p className="title-md text-petcenter-text">Chưa có lịch sử thay đổi</p>
               <p className="body-md mt-1 text-petcenter-text-secondary">
                 Khi có log hoạt động, danh sách sẽ hiển thị tại đây.
