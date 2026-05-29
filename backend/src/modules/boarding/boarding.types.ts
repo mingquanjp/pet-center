@@ -56,7 +56,7 @@ export type BoardingUpdateRow = QueryResultRow & {
   boarding_update_id: string;
   updated_at: string | Date;
   update_note: string;
-  attachment_url: string | null;
+  attachment_url: string[] | null;
   alert_level: BoardingAlertLevel;
 };
 
