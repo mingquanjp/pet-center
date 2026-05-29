@@ -280,6 +280,19 @@ export function StaffSpaCreatePage() {
     options?.selectedPet ??
     options?.pets.find((pet) => pet.petId === selectedPetId) ??
     null
+  const petDropdownOptions = React.useMemo(() => {
+    const petMap = new Map<string, StaffCounterGroomingPet>()
+
+    if (selectedPet) {
+      petMap.set(selectedPet.petId, selectedPet)
+    }
+
+    options?.pets.forEach((pet) => {
+      petMap.set(pet.petId, pet)
+    })
+
+    return Array.from(petMap.values())
+  }, [options?.pets, selectedPet])
   const selectedService = options?.services.find((service) => service.serviceId === selectedServiceId) ?? null
   const formattedDate = formatDisplayDate(selectedDate)
   const availableSlots = availability.filter((slot) => slot.available)
@@ -361,6 +374,28 @@ export function StaffSpaCreatePage() {
                 />
               </div>
               <div className="flex flex-col gap-3 pt-2">
+                <div className="relative">
+                  <select
+                    value={selectedPetId}
+                    disabled={isOptionsLoading || petDropdownOptions.length === 0}
+                    onChange={(event) => setSelectedPetId(event.target.value)}
+                    className="h-[54px] w-full appearance-none rounded-[12px] border border-[#bdc9c5] bg-[#fbfaee] px-4 pr-12 text-base text-[#1b1c15] shadow-none outline-none transition-colors focus:border-[#005e53] focus:ring-2 focus:ring-[#005e53]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isOptionsLoading && !options ? <option value="">Đang tải thú cưng...</option> : null}
+                    {!isOptionsLoading && petDropdownOptions.length === 0 ? (
+                      <option value="">Không tìm thấy thú cưng phù hợp</option>
+                    ) : null}
+                    {petDropdownOptions.map((pet) => (
+                      <option key={pet.petId} value={pet.petId}>
+                        {pet.petName} - {pet.speciesLabel} / {pet.breed ?? "Chưa cập nhật giống"} - {pet.ownerName}
+                        {pet.ownerPhoneNumber ? ` - ${pet.ownerPhoneNumber}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-[#3e4946]" />
+                </div>
+                {selectedPet ? <PetOption pet={selectedPet} selected onSelect={() => undefined} /> : null}
+                <div className="hidden">
                 {isOptionsLoading && !options ? (
                   <div className="h-[82px] animate-pulse rounded-[12px] border border-[#e4e3d7] bg-[#f5f4e8]" />
                 ) : null}
@@ -377,6 +412,7 @@ export function StaffSpaCreatePage() {
                     Không tìm thấy thú cưng phù hợp.
                   </div>
                 ) : null}
+                </div>
                 <button
                   type="button"
                   className="flex h-[54px] items-center justify-center gap-2 rounded-[12px] border border-dashed border-[#005e53] text-base font-medium leading-6 text-[#005e53] hover:bg-[#f5f4e8]"

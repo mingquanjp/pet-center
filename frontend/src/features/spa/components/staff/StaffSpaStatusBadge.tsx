@@ -13,6 +13,7 @@ export function StaffSpaStatusBadge({ label, tone }: StaffSpaStatusBadgeProps) {
     payment: "bg-petcenter-danger-text",
     pending: "bg-petcenter-warning-text",
     accepted: "bg-petcenter-primary",
+    inProgress: "bg-[#0369A1]",
     completed: "bg-petcenter-success-text",
     cancelled: "bg-petcenter-danger-text",
   }[tone]

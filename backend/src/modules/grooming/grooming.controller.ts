@@ -111,6 +111,13 @@ export async function completeStaffTicket(req: Request, res: Response): Promise<
   sendSuccess(res, ticket, "Hoan tat yeu cau spa thanh cong");
 }
 
+export async function startStaffTicket(req: Request, res: Response): Promise<void> {
+  const { ticketId } = req.params as GroomingTicketParams;
+  const ticket = await groomingService.startStaffTicket(req.user!, ticketId);
+
+  sendSuccess(res, ticket, "Bat dau thuc hien yeu cau spa thanh cong");
+}
+
 export async function cancelStaffTicket(req: Request, res: Response): Promise<void> {
   const { ticketId } = req.params as GroomingTicketParams;
   const ticket = await groomingService.cancelStaffTicket(req.user!, ticketId);

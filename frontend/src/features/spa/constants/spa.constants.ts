@@ -195,6 +195,7 @@ export const staffSpaStatusClassName: Record<StaffGroomingTicketStatusTone, stri
   payment: "bg-petcenter-danger-bg text-petcenter-danger-text",
   pending: "bg-petcenter-warning-bg text-petcenter-warning-text",
   accepted: "bg-[#D8F3EE] text-petcenter-primary",
+  inProgress: "bg-[#E0F2FE] text-[#0369A1]",
   completed: "bg-petcenter-success-bg text-petcenter-success-text",
   cancelled: "bg-petcenter-danger-bg text-petcenter-danger-text",
 }

@@ -69,6 +69,7 @@ const statusOptions: Array<{ value: StaffGroomingTicketStatusFilter; label: stri
   { value: "all", label: "Tất cả" },
   { value: "pending", label: "Chờ tiếp nhận" },
   { value: "waiting", label: "Đã tiếp nhận" },
+  { value: "in_progress", label: "Đang thực hiện" },
   { value: "completed", label: "Hoàn tất" },
   { value: "cancelled", label: "Đã hủy" },
 ]
@@ -81,6 +82,7 @@ const statusDisplayOptions: Array<{ value: StaffGroomingTicketStatusFilter; labe
   { value: "all", label: "Tất cả" },
   { value: "pending", label: "Chờ tiếp nhận" },
   { value: "waiting", label: "Đã tiếp nhận" },
+  { value: "in_progress", label: "Đang thực hiện" },
   { value: "completed", label: "Hoàn tất" },
   { value: "cancelled", label: "Đã hủy" },
 ]
@@ -161,12 +163,14 @@ function formatSchedule(value: string): string {
 
 function getActionLabel(ticket: StaffGroomingTicket): string | null {
   if (ticket.canAccept) return "Tiếp nhận"
-  if (ticket.canComplete) return "Hoàn tất"
+  if (ticket.canStart) return "Bắt đầu thực hiện"
+  if (ticket.canComplete) return "Hoàn thành dịch vụ"
   return null
 }
 
 function getCardAccent(tone: StaffGroomingTicketStatusTone): string {
   if (tone === "accepted") return "#005E53"
+  if (tone === "inProgress") return "#0369A1"
   if (tone === "completed") return "#2E7D32"
   if (tone === "cancelled") return "#B91C1C"
   return "#F59E0B"
@@ -213,6 +217,27 @@ export function StaffSpaListPage() {
   React.useEffect(() => {
     dataRef.current = data
   }, [data])
+
+  const replaceTicket = React.useCallback((updatedTicket: StaffGroomingTicket) => {
+    const nextData = {
+      ...dataRef.current,
+      tickets: dataRef.current.tickets.map((ticket) =>
+        ticket.groomingTicketId === updatedTicket.groomingTicketId ? updatedTicket : ticket
+      ),
+    }
+
+    dataRef.current = nextData
+    setData(nextData)
+    saveStaffSpaPageCache({
+      data: nextData,
+      search,
+      status,
+      serviceId,
+      species,
+      timeRange,
+      page: nextData.pagination.page,
+    })
+  }, [search, serviceId, species, status, timeRange])
 
   const loadTickets = React.useCallback(async (nextPage = 1, mode: "replace" | "append" = "replace") => {
     if (mode === "append") {
@@ -299,13 +324,20 @@ export function StaffSpaListPage() {
     setPendingTicketId(ticket.groomingTicketId)
 
     try {
+      let updatedTicket: StaffGroomingTicket | null = null
+
       if (ticket.canAccept) {
-        await spaApi.acceptStaffTicket(ticket.groomingTicketId)
+        updatedTicket = await spaApi.acceptStaffTicket(ticket.groomingTicketId)
+      } else if (ticket.canStart) {
+        updatedTicket = await spaApi.startStaffTicket(ticket.groomingTicketId)
       } else if (ticket.canComplete) {
-        await spaApi.completeStaffTicket(ticket.groomingTicketId)
+        updatedTicket = await spaApi.completeStaffTicket(ticket.groomingTicketId)
       }
 
-      await loadTickets()
+      if (updatedTicket) {
+        replaceTicket(updatedTicket)
+        setErrorMessage(null)
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể cập nhật yêu cầu spa")
     } finally {
@@ -317,8 +349,9 @@ export function StaffSpaListPage() {
     setPendingTicketId(ticket.groomingTicketId)
 
     try {
-      await spaApi.cancelStaffTicket(ticket.groomingTicketId)
-      await loadTickets()
+      const updatedTicket = await spaApi.cancelStaffTicket(ticket.groomingTicketId)
+      replaceTicket(updatedTicket)
+      setErrorMessage(null)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể hủy yêu cầu spa")
     } finally {
@@ -424,9 +457,9 @@ export function StaffSpaListPage() {
         </div>
 
         <div className="grid min-w-0 flex-1 grid-cols-4 items-center gap-3">
-          <label className="relative flex h-[44px] min-w-0 items-center rounded-[12px] bg-[#f7f6ea] px-[17px] text-sm leading-5 text-[#1f261f]">
+          <label className="relative flex h-[44px] min-w-0 items-center rounded-[12px] bg-[#f7f6ea] px-[17px] pr-10 text-sm leading-5 text-[#1f261f]">
             <span className="truncate">Dịch vụ: {getServiceLabel(services, serviceId)}</span>
-            <span className="ml-auto text-[#52605c]">⌄</span>
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#52605c]">⌄</span>
             <select
               value={serviceId}
               onChange={(event) => handleServiceChange(event.target.value)}
@@ -442,9 +475,9 @@ export function StaffSpaListPage() {
             </select>
           </label>
 
-          <label className="relative flex h-[44px] min-w-0 items-center rounded-[12px] bg-[#f7f6ea] px-[17px] text-sm leading-5 text-[#1f261f]">
+          <label className="relative flex h-[44px] min-w-0 items-center rounded-[12px] bg-[#f7f6ea] px-[17px] pr-10 text-sm leading-5 text-[#1f261f]">
             <span className="truncate">Thú cưng: {getSpeciesLabel(species)}</span>
-            <span className="ml-auto text-[#52605c]">⌄</span>
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#52605c]">⌄</span>
             <select
               value={species}
               onChange={(event) => handleSpeciesChange(event.target.value as StaffGroomingTicketSpeciesFilter)}
@@ -459,9 +492,9 @@ export function StaffSpaListPage() {
             </select>
           </label>
 
-          <label className="relative flex h-[44px] min-w-0 items-center rounded-[12px] bg-[#f7f6ea] px-[17px] text-sm leading-5 text-[#1f261f]">
+          <label className="relative flex h-[44px] min-w-0 items-center rounded-[12px] bg-[#f7f6ea] px-[17px] pr-10 text-sm leading-5 text-[#1f261f]">
             <span className="truncate">Trạng thái: {getStatusDisplayLabel(status)}</span>
-            <span className="ml-auto text-[#52605c]">⌄</span>
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#52605c]">⌄</span>
             <select
               value={status}
               onChange={(event) => handleStatusChange(event.target.value as StaffGroomingTicketStatusFilter)}
@@ -476,9 +509,9 @@ export function StaffSpaListPage() {
             </select>
           </label>
 
-          <label className="relative flex h-[44px] min-w-0 items-center rounded-[12px] bg-[#f7f6ea] px-[17px] text-sm leading-5 text-[#1f261f]">
+          <label className="relative flex h-[44px] min-w-0 items-center rounded-[12px] bg-[#f7f6ea] px-[17px] pr-10 text-sm leading-5 text-[#1f261f]">
             <span className="truncate">Thời gian: {getTimeRangeLabel(timeRange)}</span>
-            <span className="ml-auto text-[#52605c]">⌄</span>
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#52605c]">⌄</span>
             <select
               value={timeRange}
               onChange={(event) => handleTimeRangeChange(event.target.value as StaffGroomingTicketTimeRangeFilter)}

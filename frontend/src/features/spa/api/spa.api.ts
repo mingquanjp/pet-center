@@ -216,6 +216,18 @@ export const spaApi = {
     return response.data
   },
 
+  async startStaffTicket(ticketId: string, init: RequestInit = {}): Promise<StaffGroomingTicket> {
+    const response = await apiRequest<StaffGroomingTicket>(`/grooming/staff/tickets/${encodeURIComponent(ticketId)}/start`, {
+      ...init,
+      method: "PATCH",
+    })
+
+    clearApiCache("/grooming/staff/tickets")
+    clearApiCache("/dashboards/staff/overview")
+
+    return response.data
+  },
+
   async cancelStaffTicket(ticketId: string, init: RequestInit = {}): Promise<StaffGroomingTicket> {
     const response = await apiRequest<StaffGroomingTicket>(`/grooming/staff/tickets/${encodeURIComponent(ticketId)}/cancel`, {
       ...init,

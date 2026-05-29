@@ -285,7 +285,7 @@ function getStaffTicketStatusTone(status: GroomingTicketStatus): StaffGroomingTi
     pending_payment: "payment",
     pending: "pending",
     waiting: "accepted",
-    in_progress: "accepted",
+    in_progress: "inProgress",
     completed: "completed",
     cancelled: "cancelled"
   };
@@ -328,10 +328,11 @@ function mapStaffGroomingTicket(row: StaffGroomingTicketRow): StaffGroomingTicke
     totalAmount: Number(row.estimated_total),
     totalAmountText: `${formatMoney(Number(row.estimated_total))} VNĐ`,
     status,
-    statusLabel: getStaffTicketStatusLabel(status),
+    statusLabel: status === "in_progress" ? "Đang thực hiện" : getStaffTicketStatusLabel(status),
     statusTone: getStaffTicketStatusTone(status),
     canAccept: status === "pending",
-    canComplete: status === "waiting" || status === "in_progress",
+    canStart: status === "waiting",
+    canComplete: status === "in_progress",
     canCancel: status === "pending"
   };
 }
@@ -1377,7 +1378,7 @@ export async function findGroomingTicketStatus(ticketId: string): Promise<Groomi
 
 export async function updateGroomingTicketStatus(
   ticketId: string,
-  status: Extract<GroomingTicketStatus, "waiting" | "completed" | "cancelled">
+  status: Extract<GroomingTicketStatus, "waiting" | "in_progress" | "completed" | "cancelled">
 ): Promise<StaffGroomingTicketDto | null> {
   const result = await query<StaffGroomingTicketRow>(
     `with updated_ticket as (

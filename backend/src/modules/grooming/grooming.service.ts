@@ -438,11 +438,33 @@ export async function completeStaffTicket(authUser: AuthUser, ticketId: string) 
     throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
-  if (currentStatus !== "waiting" && currentStatus !== "in_progress") {
-    throw new AppError("Chi yeu cau da tiep nhan moi co the hoan tat", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
+  if (currentStatus !== "in_progress") {
+    throw new AppError("Chi yeu cau dang thuc hien moi co the hoan tat", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
   }
 
   const ticket = await groomingRepository.updateGroomingTicketStatus(ticketId, "completed");
+
+  if (!ticket) {
+    throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  return ticket;
+}
+
+export async function startStaffTicket(authUser: AuthUser, ticketId: string) {
+  assertStaff(authUser);
+
+  const currentStatus = await groomingRepository.findGroomingTicketStatus(ticketId);
+
+  if (!currentStatus) {
+    throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  if (currentStatus !== "waiting") {
+    throw new AppError("Chi yeu cau da tiep nhan moi co the bat dau thuc hien", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
+  }
+
+  const ticket = await groomingRepository.updateGroomingTicketStatus(ticketId, "in_progress");
 
   if (!ticket) {
     throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);

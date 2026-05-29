@@ -118,7 +118,7 @@ export type GroomingTicketStatus =
   | "cancelled"
 
 export type StaffGroomingTicketStatusFilter = GroomingTicketStatus | "all"
-export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" | "completed" | "cancelled"
+export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" | "inProgress" | "completed" | "cancelled"
 export type StaffGroomingTicketSpeciesFilter = "all" | "Dog" | "Cat" | "Other"
 export type StaffGroomingTicketTimeRangeFilter = "all" | "today" | "upcoming" | "past"
 
@@ -159,6 +159,7 @@ export interface StaffGroomingTicket {
   statusLabel: string
   statusTone: StaffGroomingTicketStatusTone
   canAccept: boolean
+  canStart: boolean
   canComplete: boolean
   canCancel: boolean
 }

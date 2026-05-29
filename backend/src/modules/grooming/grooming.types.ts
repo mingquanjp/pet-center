@@ -87,7 +87,7 @@ export type GroomingTicketStatus = "pending_payment" | "pending" | "waiting" | "
 export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled" | "refunded";
 export type GroomingPaymentOption = "counter" | "online";
 export type StaffGroomingTicketStatusFilter = GroomingTicketStatus | "all";
-export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" | "completed" | "cancelled";
+export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" | "inProgress" | "completed" | "cancelled";
 
 export type BookedGroomingTicketStatus = Extract<GroomingTicketStatus, "pending" | "waiting" | "in_progress">;
 export type GroomingTicketHistoryStatus = Extract<GroomingTicketStatus, "completed" | "cancelled">;
@@ -209,6 +209,7 @@ export type StaffGroomingTicketDto = {
   statusLabel: string;
   statusTone: StaffGroomingTicketStatusTone;
   canAccept: boolean;
+  canStart: boolean;
   canComplete: boolean;
   canCancel: boolean;
 };

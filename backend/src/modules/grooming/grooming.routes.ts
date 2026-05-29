@@ -464,6 +464,14 @@ groomingRouter.patch(
 );
 
 groomingRouter.patch(
+  "/grooming/staff/tickets/:ticketId/start",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: groomingTicketParamsSchema }),
+  asyncHandler(groomingController.startStaffTicket)
+);
+
+groomingRouter.patch(
   "/grooming/staff/tickets/:ticketId/cancel",
   authMiddleware,
   requireRole("STAFF", "ADMIN"),
