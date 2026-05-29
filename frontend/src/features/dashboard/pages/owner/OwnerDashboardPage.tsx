@@ -97,6 +97,14 @@ const activityStatusClassName: Record<OwnerDashboardActivity["activityStatus"], 
   failed: "bg-petcenter-danger-bg text-petcenter-danger-text",
 }
 
+const activityFilterOptions: Array<{ label: string; value: "all" | OwnerDashboardActivity["activityCategory"] }> = [
+  { label: "Tất cả", value: "all" },
+  { label: "Khám bệnh", value: "medical" },
+  { label: "Spa", value: "grooming" },
+  { label: "Lưu trú", value: "boarding" },
+  { label: "Hóa đơn", value: "invoice" },
+]
+
 export function OwnerDashboardPage() {
   const [dashboard, setDashboard] = React.useState<OwnerDashboard | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -377,11 +385,21 @@ function ActivityHistoryDialog({
   const [activities, setActivities] = React.useState<OwnerDashboardActivity[]>([])
   const [isLoading, setIsLoading] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = React.useState<"all" | OwnerDashboardActivity["activityCategory"]>("all")
+
+  const filteredActivities = React.useMemo(() => {
+    if (activeCategory === "all") return activities
+
+    return activities.filter((activity) => activity.activityCategory === activeCategory)
+  }, [activeCategory, activities])
+
+  const groupedActivities = React.useMemo(() => groupActivitiesByDate(filteredActivities), [filteredActivities])
 
   React.useEffect(() => {
     if (!open) return
 
     const abortController = new AbortController()
+    setActiveCategory("all")
 
     async function loadHistory() {
       try {
@@ -434,10 +452,48 @@ function ActivityHistoryDialog({
               <p className="body-sm mt-1">{errorMessage}</p>
             </div>
           ) : activities.length > 0 ? (
-            <div className="space-y-3">
-              {activities.map((activity) => (
-                <ActivityHistoryItem activity={activity} key={activity.activityLogId} />
-              ))}
+            <div className="space-y-5">
+              <div className="flex flex-wrap gap-2">
+                {activityFilterOptions.map((option) => {
+                  const isActive = activeCategory === option.value
+
+                  return (
+                    <button
+                      className={cn(
+                        "label-md rounded-pill border px-3 py-1.5 font-semibold transition-colors",
+                        isActive
+                          ? "border-petcenter-primary bg-petcenter-primary text-white"
+                          : "border-petcenter-border-strong bg-white text-petcenter-text-secondary hover:border-petcenter-primary/40 hover:text-petcenter-primary"
+                      )}
+                      key={option.value}
+                      onClick={() => setActiveCategory(option.value)}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {groupedActivities.length > 0 ? (
+                <div className="space-y-5">
+                  {groupedActivities.map((group) => (
+                    <section className="space-y-2" key={group.label}>
+                      <h3 className="label-sm uppercase text-petcenter-text-muted">{group.label}</h3>
+                      <div className="overflow-hidden rounded-card border border-petcenter-border bg-white shadow-card">
+                        {group.activities.map((activity) => (
+                          <ActivityHistoryItem activity={activity} key={activity.activityLogId} />
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-control border border-dashed border-petcenter-border-strong bg-white px-6 py-8 text-center">
+                  <p className="body-md font-semibold text-petcenter-text">Không có thay đổi thuộc loại này</p>
+                  <p className="body-sm mt-1 text-petcenter-text-secondary">Chọn loại khác để xem thêm lịch sử.</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="rounded-control border border-dashed border-petcenter-border-strong bg-petcenter-filter px-6 py-10 text-center">
@@ -469,27 +525,30 @@ function ActivityHistoryItem({ activity }: { activity: OwnerDashboardActivity })
   const Icon = activityIconByCategory[activity.activityCategory]
 
   return (
-    <article className="rounded-card border border-petcenter-border bg-white p-4 shadow-card">
-      <div className="flex gap-4">
-        <span className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${activityIconClassByCategory[activity.activityCategory]}`}>
+    <article className="border-b border-petcenter-border px-4 py-3 last:border-b-0">
+      <div className="flex gap-3">
+        <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${activityIconClassByCategory[activity.activityCategory]}`}>
           <Icon className="h-5 w-5" />
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h3 className="body-lg font-semibold text-petcenter-text">{getActivityTitle(activity)}</h3>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="label-md rounded-full bg-petcenter-sidebar px-2.5 py-1 font-semibold text-petcenter-text-secondary">
+              <h4 className="body-md font-semibold text-petcenter-text">{getActivityTitle(activity)}</h4>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <span className="label-md text-petcenter-text-secondary">
                   {activity.petName}
                 </span>
-                <span className="label-md rounded-full bg-petcenter-primary/10 px-2.5 py-1 font-semibold text-petcenter-primary">
+                <span className="h-1 w-1 rounded-full bg-petcenter-text-muted" />
+                <span className="label-md text-petcenter-text-secondary">
                   {activityCategoryLabel[activity.activityCategory]}
                 </span>
+                <span className="h-1 w-1 rounded-full bg-petcenter-text-muted" />
+                <span className="label-md text-petcenter-text-secondary">{formatTime(activity.occurredAt)}</span>
               </div>
             </div>
 
-            <div className="flex shrink-0 flex-row items-center gap-2 sm:flex-col sm:items-end">
+            <div className="shrink-0">
               <span
                 className={cn(
                   "label-sm rounded-full px-2.5 py-1 font-bold uppercase",
@@ -497,9 +556,6 @@ function ActivityHistoryItem({ activity }: { activity: OwnerDashboardActivity })
                 )}
               >
                 {activityStatusLabel[activity.activityStatus]}
-              </span>
-              <span className="label-md whitespace-nowrap text-petcenter-text-secondary">
-                {formatDateTime(activity.occurredAt)}
               </span>
             </div>
           </div>
@@ -660,6 +716,37 @@ function getActivityTitle(activity: OwnerDashboardActivity): string {
   }
 
   return activity.title || `Hồ sơ của ${activity.petName} có cập nhật`
+}
+
+function groupActivitiesByDate(activities: OwnerDashboardActivity[]): Array<{ label: string; activities: OwnerDashboardActivity[] }> {
+  const groups = new Map<string, OwnerDashboardActivity[]>()
+
+  activities.forEach((activity) => {
+    const label = getActivityDateGroupLabel(activity.occurredAt)
+    const currentActivities = groups.get(label) ?? []
+
+    currentActivities.push(activity)
+    groups.set(label, currentActivities)
+  })
+
+  return Array.from(groups.entries()).map(([label, groupedItems]) => ({
+    label,
+    activities: groupedItems,
+  }))
+}
+
+function getActivityDateGroupLabel(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "Không rõ ngày"
+
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+
+  if (date.toDateString() === today.toDateString()) return "Hôm nay"
+  if (date.toDateString() === yesterday.toDateString()) return "Hôm qua"
+
+  return formatDate(value)
 }
 
 function formatTime(value: string): string {
