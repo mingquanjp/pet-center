@@ -7,12 +7,14 @@ import { useRouter } from "next/navigation"
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   CalendarDays,
   Camera,
   Cat,
   CheckCircle2,
   CircleHelp,
   Dog,
+  List,
   Loader2,
   Mars,
   PawPrint,
@@ -51,13 +53,13 @@ const initialFormState: FormState = {
   identifyingMarks: "",
 }
 
-const speciesOptions: Array<{ icon: React.ElementType; label: string; value: PetSpecies }> = [
+const speciesOptions: Array<{ icon: React.ComponentType<{ className?: string }>; label: string; value: PetSpecies }> = [
   { icon: Dog, label: "Chó", value: "Dog" },
   { icon: Cat, label: "Mèo", value: "Cat" },
   { icon: PawPrint, label: "Khác", value: "Other" },
 ]
 
-const genderOptions: Array<{ icon: React.ElementType; label: string; value: PetGender }> = [
+const genderOptions: Array<{ icon: React.ComponentType<{ className?: string }>; label: string; value: PetGender }> = [
   { icon: Mars, label: "Đực", value: "male" },
   { icon: Venus, label: "Cái", value: "female" },
   { icon: CircleHelp, label: "Khác", value: "unknown" },
@@ -377,9 +379,9 @@ export function OwnerAddPetPage() {
       </form>
 
       {createdPet ? (
-        <SuccessModal
-          onClose={() => router.push("/owner/pets")}
-          onManage={() => router.push("/owner/pets")}
+        <PetCreatedSuccessModal
+          onManageList={() => router.push("/owner/pets")}
+          onViewProfile={() => router.push(`/owner/pets/${encodeURIComponent(createdPet.petId)}`)}
           petName={createdPet.petName}
         />
       ) : null}
@@ -425,7 +427,7 @@ function formatFileSize(size: number) {
 }
 
 type SegmentOption = {
-  icon: React.ElementType
+  icon: React.ComponentType<{ className?: string }>
   label: string
   value: string
 }
@@ -524,7 +526,7 @@ function DateField({ label, name, onChange, value }: TextFieldProps) {
 }
 
 type NumberWithSuffixFieldProps = TextFieldProps & {
-  icon?: React.ElementType
+  icon?: React.ComponentType<{ className?: string }>
   suffix: string
 }
 
@@ -601,39 +603,44 @@ function TextAreaField({ label, name, onChange, value, ...props }: TextAreaField
   )
 }
 
-function SuccessModal({
-  onClose,
-  onManage,
+function PetCreatedSuccessModal({
+  onManageList,
+  onViewProfile,
   petName,
 }: {
-  onClose: () => void
-  onManage: () => void
+  onManageList: () => void
+  onViewProfile: () => void
   petName: string
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="w-full max-w-md rounded-card bg-white p-8 text-center shadow-modal">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-petcenter-primary/10">
-          <CheckCircle2 className="h-10 w-10 text-petcenter-primary" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-[460px] overflow-hidden rounded-card border border-petcenter-border bg-white text-center shadow-modal">
+        <div className="bg-petcenter-filter px-8 pb-6 pt-8">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-petcenter-primary/10 ring-8 ring-white">
+            <CheckCircle2 className="h-10 w-10 text-petcenter-primary" />
+          </div>
+          <h2 className="heading-sm mb-2 text-petcenter-text">Tạo hồ sơ thú cưng thành công</h2>
+          <p className="body-md text-petcenter-text-secondary">
+            Hồ sơ của <span className="font-semibold text-petcenter-text">{petName}</span> đã sẵn sàng để theo dõi và chăm sóc.
+          </p>
         </div>
-        <h2 className="heading-sm mb-2 text-petcenter-text">Tạo hồ sơ thú cưng thành công</h2>
-        <p className="body-md mb-6 text-petcenter-text-secondary">
-          Hồ sơ của {petName} đã được tạo. Bạn có thể xem chi tiết hồ sơ hoặc quản lý danh sách.
-        </p>
-        <div className="flex flex-col gap-3">
+
+        <div className="space-y-3 px-6 py-5">
           <button
-            className="label-md h-12 rounded-control bg-petcenter-primary px-4 font-semibold text-white transition hover:bg-petcenter-primary-hover"
-            onClick={onClose}
+            className="label-md flex h-12 w-full items-center justify-center gap-2 rounded-control bg-petcenter-primary px-4 font-semibold text-white transition hover:bg-petcenter-primary-hover"
+            onClick={onViewProfile}
             type="button"
           >
-            Xem hồ sơ
+            Xem hồ sơ vừa tạo
+            <ArrowRight className="h-4 w-4" />
           </button>
           <button
-            className="label-md h-12 rounded-control border border-petcenter-border-strong px-4 font-semibold text-petcenter-text-secondary transition hover:bg-petcenter-sidebar"
-            onClick={onManage}
+            className="label-md flex h-12 w-full items-center justify-center gap-2 rounded-control border border-petcenter-border-strong px-4 font-semibold text-petcenter-text-secondary transition hover:bg-petcenter-sidebar"
+            onClick={onManageList}
             type="button"
           >
-            Quản lý danh sách
+            <List className="h-4 w-4" />
+            Quản lý danh sách thú cưng
           </button>
         </div>
       </div>

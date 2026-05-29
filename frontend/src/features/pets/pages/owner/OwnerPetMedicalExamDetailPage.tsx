@@ -70,23 +70,27 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
   const petSubtitle = [exam.pet.speciesLabel, exam.pet.breed].filter(Boolean).join(" / ")
 
   function printExam() {
-    printHtmlDocument(`Phiếu khám ${exam.examId}`, buildExamPrintHtml(exam))
+    if (!exam) return
+    const currentExam = exam
+    printHtmlDocument(`Phiếu khám ${currentExam.examId}`, buildExamPrintHtml(currentExam))
   }
 
   function downloadPrescription() {
-    if (!exam.prescription) return
+    const currentExam = exam
+    const currentPrescription = currentExam?.prescription
+    if (!currentExam || !currentPrescription) return
 
     const generatedAt = new Date()
     const rows = [
-      ["Mã phiếu", exam.examId],
-      ["Thú cưng", exam.pet.petName],
-      ["Ngày khám", formatDate(exam.examDate)],
-      ["Bác sĩ", exam.veterinarianName],
-      ["Ngày xuất toa", formatDate(exam.prescription.prescribedAt)],
-      ["Ghi chú chung", exam.prescription.generalNote || ""],
+      ["Mã phiếu", currentExam.examId],
+      ["Thú cưng", currentExam.pet.petName],
+      ["Ngày khám", formatDate(currentExam.examDate)],
+      ["Bác sĩ", currentExam.veterinarianName],
+      ["Ngày xuất toa", formatDate(currentPrescription.prescribedAt)],
+      ["Ghi chú chung", currentPrescription.generalNote || ""],
       [],
       ["Tên thuốc", "Liều lượng", "Tần suất", "Thời gian", "Hướng dẫn", "Ghi chú"],
-      ...exam.prescription.items.map((item) => [
+      ...currentPrescription.items.map((item) => [
         item.medicineName,
         item.dosage,
         item.frequency,
@@ -97,7 +101,7 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
     ]
 
     downloadTextFile(
-      `toa-thuoc-${toSafeFilename(exam.pet.petName)}-${exam.examId}-${formatFileDate(generatedAt)}.csv`,
+      `toa-thuoc-${toSafeFilename(currentExam.pet.petName)}-${currentExam.examId}-${formatFileDate(generatedAt)}.csv`,
       toCsv(rows),
       "text/csv;charset=utf-8"
     )
@@ -492,19 +496,19 @@ function buildExamPrintHtml(exam: PetMedicalExamDetail) {
   const petSubtitle = [exam.pet.speciesLabel, exam.pet.breed].filter(Boolean).join(" / ")
   const fieldRows = exam.fieldValues.length
     ? exam.fieldValues
-        .map(
-          (field) => `
+      .map(
+        (field) => `
             <tr>
               <td>${escapeHtml(field.fieldLabel)}</td>
               <td>${escapeHtml(field.fieldType === "file" && field.fileUrl ? field.fileUrl : getFieldDisplayValue(field))}</td>
             </tr>`
-        )
-        .join("")
+      )
+      .join("")
     : `<tr><td colspan="2">Chưa có kết quả xét nghiệm đính kèm.</td></tr>`
   const prescriptionRows = exam.prescription?.items.length
     ? exam.prescription.items
-        .map(
-          (item) => `
+      .map(
+        (item) => `
             <tr>
               <td>${escapeHtml(item.medicineName)}</td>
               <td>${escapeHtml(item.dosage)}</td>
@@ -512,8 +516,8 @@ function buildExamPrintHtml(exam: PetMedicalExamDetail) {
               <td>${escapeHtml(item.duration)}</td>
               <td>${escapeHtml(item.usageInstruction || item.note || "")}</td>
             </tr>`
-        )
-        .join("")
+      )
+      .join("")
     : `<tr><td colspan="5">Chưa có đơn thuốc cho phiếu khám này.</td></tr>`
 
   return `<!doctype html>
@@ -589,11 +593,10 @@ function buildExamPrintHtml(exam: PetMedicalExamDetail) {
       </table>
 
       <h2>Tái khám</h2>
-      <div class="box">${
-        exam.followUp
-          ? `${escapeHtml(formatDate(exam.followUp.followUpDate))}<br />${escapeHtml(exam.followUp.reason)}`
-          : "Chưa có chỉ định tái khám."
-      }</div>
+      <div class="box">${exam.followUp
+      ? `${escapeHtml(formatDate(exam.followUp.followUpDate))}<br />${escapeHtml(exam.followUp.reason)}`
+      : "Chưa có chỉ định tái khám."
+    }</div>
 
       <footer>
         <div>
