@@ -47,6 +47,17 @@ export type GroomingBookingServiceDto = {
   priceText: string;
 };
 
+export type GroomingBookingServicePriceBaseDto = {
+  serviceId: string;
+  serviceName: string;
+  description: string | null;
+  estimatedDurationMinutes: number | null;
+  durationText: string;
+  basePrice: number;
+  basePricingCondition: string;
+  basePricingConditionLabel: string;
+};
+
 export type GroomingBookingOptionsDto = {
   pets: GroomingBookingPetDto[];
   selectedPet: GroomingBookingPetDto | null;
@@ -77,6 +88,91 @@ export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled" |
 export type GroomingPaymentOption = "counter" | "online";
 export type StaffGroomingTicketStatusFilter = GroomingTicketStatus | "all";
 export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" | "completed" | "cancelled";
+
+export type BookedGroomingTicketStatus = Extract<GroomingTicketStatus, "pending" | "waiting" | "in_progress">;
+export type GroomingTicketHistoryStatus = Extract<GroomingTicketStatus, "completed" | "cancelled">;
+
+export type GroomingTicketListFilters = {
+  ownerUserId: string;
+  search?: string;
+  petId?: string;
+  status?: "all" | BookedGroomingTicketStatus;
+  timeRange?: "all" | "today" | "upcoming" | "past";
+  limit: number;
+  offset: number;
+};
+
+export type GroomingTicketHistoryFilters = {
+  ownerUserId: string;
+  search?: string;
+  petId?: string;
+  status?: "all" | GroomingTicketHistoryStatus;
+  timeRange?: "all" | "today" | "upcoming" | "past";
+  limit: number;
+  offset: number;
+};
+
+export type GroomingTicketListItemDto = {
+  groomingTicketId: string;
+  bookingCode: string;
+  serviceName: string;
+  petName: string;
+  scheduledAt: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  ticketStatus: GroomingTicketStatus;
+  ticketStatusLabel: string;
+  paymentOption: GroomingPaymentOption;
+  paymentMethodLabel: string;
+  invoiceStatus: InvoiceStatus | null;
+  paymentStatusLabel: string;
+  totalAmount: number;
+  specialRequest: string | null;
+  canCancel: boolean;
+};
+
+export type GroomingTicketDetailDto = GroomingTicketListItemDto & {
+  pet: {
+    petId: string;
+    petName: string;
+    species: string;
+    speciesLabel: string;
+    weightKg: number | null;
+    profileImageUrl: string | null;
+  };
+  services: {
+    serviceId: string;
+    serviceName: string;
+    quantity: number;
+    appliedUnitPrice: number;
+    lineAmount: number;
+  }[];
+  invoice: {
+    invoiceId: string;
+    invoiceStatus: InvoiceStatus;
+    paymentOption: GroomingPaymentOption;
+    totalAmount: number;
+  } | null;
+  payment: {
+    paymentId: string;
+    paymentMethod: string;
+    paymentProvider: string | null;
+    transactionCode: string | null;
+    paidAmount: number;
+    paidAt: string | null;
+    paymentStatus: string;
+    receiptCode: string | null;
+    receiptUrl: string | null;
+  } | null;
+};
+
+export type GroomingTicketCancelledDto = {
+  groomingTicketId: string;
+  bookingCode: string;
+  ticketStatus: "cancelled";
+  ticketStatusLabel: string;
+  invoiceStatus: InvoiceStatus | null;
+};
 
 export type GroomingTicketCreatedDto = {
   groomingTicketId: string;
@@ -127,5 +223,11 @@ export type StaffGroomingTicketSummaryDto = {
 
 export type StaffGroomingTicketListDto = {
   summary: StaffGroomingTicketSummaryDto;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
   tickets: StaffGroomingTicketDto[];
 };

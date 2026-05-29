@@ -1,16 +1,34 @@
 import { apiRequest, clearApiCache } from "@/lib/api"
 import type {
+  GroomingTicketListItem,
+  GroomingTicketHistoryParams,
+  GroomingTicketListParams,
   CreateGroomingTicketPayload,
   CreateStaffCounterGroomingTicketPayload,
   GroomingAvailability,
   GroomingBookingOptions,
   GroomingService,
   GroomingTicketCreated,
+  Pagination,
   StaffCounterGroomingOptions,
   StaffGroomingTicket,
   StaffGroomingTicketList,
   StaffGroomingTicketQuery,
 } from "../types/spa.types"
+
+function buildQuery(params: Record<string, string | number | undefined>): string {
+  const searchParams = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") {
+      searchParams.set(key, String(value))
+    }
+  })
+
+  const query = searchParams.toString()
+
+  return query ? `?${query}` : ""
+}
 
 export const spaApi = {
   async listAvailableServices(init: RequestInit = {}): Promise<GroomingService[]> {
@@ -155,12 +173,16 @@ export const spaApi = {
       query.set("search", params.search)
     }
 
+    if (params.page) {
+      query.set("page", String(params.page))
+    }
+
     if (params.limit) {
       query.set("limit", String(params.limit))
     }
 
     const response = await apiRequest<StaffGroomingTicketList>(
-      `/grooming/tickets${query.toString() ? `?${query.toString()}` : ""}`,
+      `/grooming/staff/tickets${query.toString() ? `?${query.toString()}` : ""}`,
       {
         cacheTtlMs: 30 * 1000,
         ...init,
@@ -171,38 +193,92 @@ export const spaApi = {
   },
 
   async acceptStaffTicket(ticketId: string, init: RequestInit = {}): Promise<StaffGroomingTicket> {
-    const response = await apiRequest<StaffGroomingTicket>(`/grooming/tickets/${encodeURIComponent(ticketId)}/accept`, {
+    const response = await apiRequest<StaffGroomingTicket>(`/grooming/staff/tickets/${encodeURIComponent(ticketId)}/accept`, {
       ...init,
       method: "PATCH",
     })
 
-    clearApiCache("/grooming/tickets")
+    clearApiCache("/grooming/staff/tickets")
     clearApiCache("/dashboards/staff/overview")
 
     return response.data
   },
 
   async completeStaffTicket(ticketId: string, init: RequestInit = {}): Promise<StaffGroomingTicket> {
-    const response = await apiRequest<StaffGroomingTicket>(`/grooming/tickets/${encodeURIComponent(ticketId)}/complete`, {
+    const response = await apiRequest<StaffGroomingTicket>(`/grooming/staff/tickets/${encodeURIComponent(ticketId)}/complete`, {
       ...init,
       method: "PATCH",
     })
 
-    clearApiCache("/grooming/tickets")
+    clearApiCache("/grooming/staff/tickets")
     clearApiCache("/dashboards/staff/overview")
 
     return response.data
   },
 
   async cancelStaffTicket(ticketId: string, init: RequestInit = {}): Promise<StaffGroomingTicket> {
-    const response = await apiRequest<StaffGroomingTicket>(`/grooming/tickets/${encodeURIComponent(ticketId)}/cancel`, {
+    const response = await apiRequest<StaffGroomingTicket>(`/grooming/staff/tickets/${encodeURIComponent(ticketId)}/cancel`, {
       ...init,
       method: "PATCH",
     })
 
-    clearApiCache("/grooming/tickets")
+    clearApiCache("/grooming/staff/tickets")
     clearApiCache("/dashboards/staff/overview")
 
     return response.data
+  },
+
+  async listBookedTickets(
+    params: GroomingTicketListParams = {},
+    init: RequestInit = {}
+  ): Promise<{ tickets: GroomingTicketListItem[]; pagination: Pagination }> {
+    const response = await apiRequest<GroomingTicketListItem[]>(
+      `/grooming/tickets${buildQuery({
+        search: params.search,
+        petId: params.petId,
+        status: params.status,
+        timeRange: params.timeRange,
+        page: params.page,
+        limit: params.limit,
+      })}`,
+      init
+    )
+
+    return {
+      tickets: response.data,
+      pagination: response.pagination ?? {
+        page: params.page ?? 1,
+        limit: params.limit ?? response.data.length,
+        total: response.data.length,
+        totalPages: response.data.length > 0 ? 1 : 0,
+      },
+    }
+  },
+
+  async listTicketHistory(
+    params: GroomingTicketHistoryParams = {},
+    init: RequestInit = {}
+  ): Promise<{ tickets: GroomingTicketListItem[]; pagination: Pagination }> {
+    const response = await apiRequest<GroomingTicketListItem[]>(
+      `/grooming/tickets/history${buildQuery({
+        search: params.search,
+        petId: params.petId,
+        status: params.status,
+        timeRange: params.timeRange,
+        page: params.page,
+        limit: params.limit,
+      })}`,
+      init
+    )
+
+    return {
+      tickets: response.data,
+      pagination: response.pagination ?? {
+        page: params.page ?? 1,
+        limit: params.limit ?? response.data.length,
+        total: response.data.length,
+        totalPages: response.data.length > 0 ? 1 : 0,
+      },
+    }
   },
 }

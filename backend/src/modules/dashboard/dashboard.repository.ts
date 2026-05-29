@@ -11,6 +11,10 @@ type RoomCapacityRow = QueryResultRow & {
   occupied_rooms: string;
 };
 
+type ColumnNameRow = QueryResultRow & {
+  column_name: string;
+};
+
 type AppointmentTaskRow = QueryResultRow & {
   task_id: string;
   code: string;
@@ -67,6 +71,32 @@ function mapAppointmentTask(row: AppointmentTaskRow): StaffDashboardAppointmentT
   };
 }
 
+async function getBoardingOccupancyCondition(): Promise<string> {
+  const result = await query<ColumnNameRow>(
+    `select column_name
+     from information_schema.columns
+     where table_schema = 'pet_center'
+       and table_name = 'boarding_records'
+       and column_name in (
+         'planned_check_in_at',
+         'planned_check_out_at',
+         'planned_check_in_date',
+         'planned_check_out_date'
+       )`
+  );
+  const columnNames = new Set(result.rows.map((row) => row.column_name));
+
+  if (columnNames.has("planned_check_in_at") && columnNames.has("planned_check_out_at")) {
+    return "br.planned_check_in_at <= now() and br.planned_check_out_at > now()";
+  }
+
+  if (columnNames.has("planned_check_in_date") && columnNames.has("planned_check_out_date")) {
+    return "br.planned_check_in_date <= current_date and br.planned_check_out_date > current_date";
+  }
+
+  throw new Error("boarding_records is missing planned check-in/check-out columns");
+}
+
 export async function countPendingMedicalAppointments(): Promise<number> {
   const result = await query<CountRow>(
     `select count(*)::text as total
@@ -88,6 +118,7 @@ export async function countPendingGroomingTickets(): Promise<number> {
 }
 
 export async function getRoomCapacitySnapshot(): Promise<{ availableRooms: number; totalRooms: number }> {
+  const occupancyCondition = await getBoardingOccupancyCondition();
   const result = await query<RoomCapacityRow>(
     `with total_capacity as (
        select coalesce(sum(rt.capacity), 0)::text as total_rooms
@@ -98,8 +129,7 @@ export async function getRoomCapacitySnapshot(): Promise<{ availableRooms: numbe
        select count(*)::text as occupied_rooms
        from pet_center.boarding_records br
        where br.boarding_status in ('confirmed', 'staying')
-         and br.planned_check_in_date <= current_date
-         and br.planned_check_out_date > current_date
+         and ${occupancyCondition}
      )
      select total_capacity.total_rooms, occupied_capacity.occupied_rooms
      from total_capacity

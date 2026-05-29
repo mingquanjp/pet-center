@@ -4,33 +4,90 @@ import type { AuthUser } from "../../shared/types/auth.js";
 import type {
   AvailabilityQuery,
   BookingOptionsQuery,
-  CreateStaffCounterGroomingTicketPayload,
   CreateGroomingTicketPayload,
+  CreateStaffCounterGroomingTicketPayload,
+  ListGroomingTicketHistoryQuery,
+  ListGroomingTicketsQuery,
   StaffCounterOptionsQuery,
   StaffGroomingTicketQuery
 } from "./grooming.schema.js";
-import type { GroomingBookingOptionsDto, StaffCounterGroomingOptionsDto } from "./grooming.types.js";
+import type {
+  GroomingBookingOptionsDto,
+  GroomingBookingServiceDto,
+  GroomingBookingServicePriceBaseDto,
+  StaffCounterGroomingOptionsDto
+} from "./grooming.types.js";
 import * as groomingRepository from "./grooming.repository.js";
 
 const timeZone = "Asia/Ho_Chi_Minh";
 const firstSlotHour = 8;
 const lastSlotHour = 17;
 const lastSlotMinute = 30;
+const largePetThresholdKg = 5;
+const largePetSurchargeStepKg = 3;
+const largePetSurchargeAmount = 50000;
 
 function assertOwner(authUser: AuthUser): void {
   if (authUser.role !== "OWNER") {
-    throw new AppError("Bạn không có quyền thao tác với dịch vụ spa của chủ nuôi", "FORBIDDEN", httpStatus.FORBIDDEN);
+    throw new AppError("Ban khong co quyen thao tac voi dich vu spa cua chu nuoi", "FORBIDDEN", httpStatus.FORBIDDEN);
   }
 }
 
 function assertStaff(authUser: AuthUser): void {
   if (authUser.role !== "STAFF" && authUser.role !== "ADMIN") {
-    throw new AppError("Bạn không có quyền thao tác với yêu cầu spa", "FORBIDDEN", httpStatus.FORBIDDEN);
+    throw new AppError("Ban khong co quyen thao tac voi yeu cau spa", "FORBIDDEN", httpStatus.FORBIDDEN);
   }
 }
 
-function getPricingCondition(weightKg: number): "UNDER_5KG" | "FROM_5KG" {
-  return weightKg < 5 ? "UNDER_5KG" : "FROM_5KG";
+function formatMoney(value: number): string {
+  return new Intl.NumberFormat("vi-VN").format(value);
+}
+
+function calculateGroomingPrice(basePrice: number, weightKg: number): number {
+  if (weightKg < largePetThresholdKg) {
+    return basePrice;
+  }
+
+  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg);
+
+  return basePrice + surchargeSteps * largePetSurchargeAmount;
+}
+
+function getAppliedPricingCondition(weightKg: number): "UNDER_5KG" | "FROM_5KG_INCREMENTAL" {
+  return weightKg < largePetThresholdKg ? "UNDER_5KG" : "FROM_5KG_INCREMENTAL";
+}
+
+function getAppliedPricingConditionLabel(weightKg: number): string {
+  if (weightKg < largePetThresholdKg) {
+    return "Duoi 5kg";
+  }
+
+  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg);
+
+  if (surchargeSteps === 0) {
+    return "Tu 5kg tro len";
+  }
+
+  return `Tu 5kg tro len (+${formatMoney(surchargeSteps * largePetSurchargeAmount)} VND)`;
+}
+
+function applyWeightBasedPrice(
+  service: GroomingBookingServicePriceBaseDto,
+  weightKg: number
+): GroomingBookingServiceDto {
+  const appliedPrice = calculateGroomingPrice(service.basePrice, weightKg);
+
+  return {
+    serviceId: service.serviceId,
+    serviceName: service.serviceName,
+    description: service.description,
+    estimatedDurationMinutes: service.estimatedDurationMinutes,
+    durationText: service.durationText,
+    appliedPrice,
+    appliedPricingCondition: getAppliedPricingCondition(weightKg),
+    appliedPricingConditionLabel: getAppliedPricingConditionLabel(weightKg),
+    priceText: `${formatMoney(appliedPrice)} VND`
+  };
 }
 
 function toVietnamDateString(value: Date): string {
@@ -63,7 +120,7 @@ function getVietnamTimeParts(value: Date): { hour: number; minute: number } {
 
 function assertSchedulableTime(scheduledAt: Date): void {
   if (scheduledAt.getTime() <= Date.now()) {
-    throw new AppError("Thời gian đặt dịch vụ phải ở tương lai", "INVALID_SCHEDULE_TIME", httpStatus.BAD_REQUEST);
+    throw new AppError("Thoi gian dat dich vu phai o tuong lai", "INVALID_SCHEDULE_TIME", httpStatus.BAD_REQUEST);
   }
 
   const { hour, minute } = getVietnamTimeParts(scheduledAt);
@@ -72,12 +129,16 @@ function assertSchedulableTime(scheduledAt: Date): void {
   const isAfterClosing = hour > lastSlotHour || (hour === lastSlotHour && minute > lastSlotMinute);
 
   if (!isValidMinute || isBeforeOpening || isAfterClosing) {
-    throw new AppError("Thời gian đặt dịch vụ phải nằm trong khung 08:00 - 17:30 và cách nhau 30 phút", "INVALID_SCHEDULE_TIME", httpStatus.BAD_REQUEST);
+    throw new AppError(
+      "Thoi gian dat dich vu phai nam trong khung 08:00 - 17:30 va cach nhau 30 phut",
+      "INVALID_SCHEDULE_TIME",
+      httpStatus.BAD_REQUEST
+    );
   }
 }
 
-export async function listAvailableServices(_authUser: AuthUser) {
-  assertOwner(_authUser);
+export async function listAvailableServices(authUser: AuthUser) {
+  assertOwner(authUser);
 
   return groomingRepository.findActiveGroomingServices();
 }
@@ -97,7 +158,7 @@ export async function getBookingOptions(authUser: AuthUser, query: BookingOption
     : pets[0] ?? null;
 
   if (query.petId && !selectedPet) {
-    throw new AppError("Không tìm thấy thú cưng phù hợp để đặt dịch vụ", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay thu cung phu hop de dat dich vu", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   if (!selectedPet) {
@@ -109,10 +170,11 @@ export async function getBookingOptions(authUser: AuthUser, query: BookingOption
   }
 
   if (selectedPet.weightKg === null) {
-    throw new AppError("Cần cập nhật cân nặng thú cưng để tính giá dịch vụ spa", "PET_WEIGHT_REQUIRED", httpStatus.UNPROCESSABLE_ENTITY);
+    throw new AppError("Can cap nhat can nang thu cung de tinh gia dich vu spa", "PET_WEIGHT_REQUIRED", httpStatus.UNPROCESSABLE_ENTITY);
   }
 
-  const services = await groomingRepository.findBookingServicesForCondition(getPricingCondition(selectedPet.weightKg));
+  const servicePriceBases = await groomingRepository.findBookingServicePriceBases();
+  const services = servicePriceBases.map((service) => applyWeightBasedPrice(service, selectedPet.weightKg!));
 
   return {
     pets,
@@ -133,6 +195,94 @@ export async function getStaffCounterAvailability(authUser: AuthUser, query: Ava
   return groomingRepository.getAvailability(toVietnamDateString(query.date));
 }
 
+export async function listBookedTickets(authUser: AuthUser, query: ListGroomingTicketsQuery) {
+  assertOwner(authUser);
+
+  const page = query.page;
+  const limit = query.limit;
+  const result = await groomingRepository.findBookedGroomingTickets({
+    ownerUserId: authUser.userId,
+    search: query.search,
+    petId: query.petId,
+    status: query.status,
+    timeRange: query.timeRange,
+    limit,
+    offset: (page - 1) * limit
+  });
+
+  return {
+    tickets: result.tickets,
+    pagination: {
+      page,
+      limit,
+      total: result.total,
+      totalPages: Math.ceil(result.total / limit)
+    }
+  };
+}
+
+export async function listTicketHistory(authUser: AuthUser, query: ListGroomingTicketHistoryQuery) {
+  assertOwner(authUser);
+
+  const page = query.page;
+  const limit = query.limit;
+  const result = await groomingRepository.findGroomingTicketHistory({
+    ownerUserId: authUser.userId,
+    search: query.search,
+    petId: query.petId,
+    status: query.status,
+    timeRange: query.timeRange,
+    limit,
+    offset: (page - 1) * limit
+  });
+
+  return {
+    tickets: result.tickets,
+    pagination: {
+      page,
+      limit,
+      total: result.total,
+      totalPages: Math.ceil(result.total / limit)
+    }
+  };
+}
+
+export async function getBookedTicket(authUser: AuthUser, ticketId: string) {
+  assertOwner(authUser);
+
+  const ticket = await groomingRepository.findBookedGroomingTicketById(authUser.userId, ticketId);
+
+  if (!ticket) {
+    throw new AppError("Khong tim thay yeu cau dich vu spa phu hop", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  return ticket;
+}
+
+export async function cancelBookedTicket(authUser: AuthUser, ticketId: string) {
+  assertOwner(authUser);
+
+  try {
+    const ticket = await groomingRepository.cancelBookedGroomingTicket(authUser.userId, ticketId);
+
+    if (!ticket) {
+      throw new AppError("Khong tim thay yeu cau dich vu spa phu hop", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+    }
+
+    return ticket;
+  } catch (error) {
+    if (error instanceof Error && error.message === "GROOMING_TICKET_CANCEL_NOT_ALLOWED") {
+      throw new AppError("Chi co the huy yeu cau dang cho tiep nhan", "GROOMING_TICKET_CANCEL_NOT_ALLOWED", httpStatus.CONFLICT);
+    }
+
+    if (error instanceof Error && error.message === "GROOMING_TICKET_PAID_CANCEL_NOT_ALLOWED") {
+      throw new AppError("Yeu cau da thanh toan chua ho tro huy o buoc nay", "GROOMING_TICKET_PAID_CANCEL_NOT_ALLOWED", httpStatus.CONFLICT);
+    }
+
+    throw error;
+  }
+}
+
 export async function createTicket(authUser: AuthUser, payload: CreateGroomingTicketPayload) {
   assertOwner(authUser);
   assertSchedulableTime(payload.scheduledAt);
@@ -140,19 +290,20 @@ export async function createTicket(authUser: AuthUser, payload: CreateGroomingTi
   const pet = await groomingRepository.findOwnerBookingPet(authUser.userId, payload.petId);
 
   if (!pet) {
-    throw new AppError("Không tìm thấy thú cưng phù hợp để đặt dịch vụ", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay thu cung phu hop de dat dich vu", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   if (pet.weightKg === null) {
-    throw new AppError("Cần cập nhật cân nặng thú cưng để tính giá dịch vụ spa", "PET_WEIGHT_REQUIRED", httpStatus.UNPROCESSABLE_ENTITY);
+    throw new AppError("Can cap nhat can nang thu cung de tinh gia dich vu spa", "PET_WEIGHT_REQUIRED", httpStatus.UNPROCESSABLE_ENTITY);
   }
 
-  const pricingCondition = getPricingCondition(pet.weightKg);
-  const service = await groomingRepository.findBookingServiceForCondition(payload.serviceId, pricingCondition);
+  const servicePriceBase = await groomingRepository.findBookingServicePriceBase(payload.serviceId);
 
-  if (!service) {
-    throw new AppError("Không tìm thấy dịch vụ spa hoặc bảng giá phù hợp", "GROOMING_SERVICE_NOT_FOUND", httpStatus.NOT_FOUND);
+  if (!servicePriceBase) {
+    throw new AppError("Khong tim thay dich vu spa hoac bang gia phu hop", "GROOMING_SERVICE_NOT_FOUND", httpStatus.NOT_FOUND);
   }
+
+  const service = applyWeightBasedPrice(servicePriceBase, pet.weightKg);
 
   try {
     return await groomingRepository.createGroomingBooking({
@@ -165,7 +316,7 @@ export async function createTicket(authUser: AuthUser, payload: CreateGroomingTi
     });
   } catch (error) {
     if (error instanceof Error && error.message === "GROOMING_SLOT_FULL") {
-      throw new AppError("Khung giờ này đã đầy, vui lòng chọn khung giờ khác", "GROOMING_SLOT_FULL", httpStatus.CONFLICT);
+      throw new AppError("Khung gio nay da day, vui long chon khung gio khac", "GROOMING_SLOT_FULL", httpStatus.CONFLICT);
     }
 
     throw error;
@@ -185,7 +336,7 @@ export async function getStaffCounterOptions(
   const selectedPet = query.petId ? await groomingRepository.findStaffCounterPet(query.petId) : pets[0] ?? null;
 
   if (query.petId && !selectedPet) {
-    throw new AppError("KhÃ´ng tÃ¬m tháº¥y thÃº cÆ°ng phÃ¹ há»£p Ä‘á»ƒ táº¡o yÃªu cáº§u spa", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay thu cung phu hop de tao yeu cau spa", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   if (!selectedPet || selectedPet.weightKg === null) {
@@ -196,7 +347,8 @@ export async function getStaffCounterOptions(
     };
   }
 
-  const services = await groomingRepository.findBookingServicesForCondition(getPricingCondition(selectedPet.weightKg));
+  const servicePriceBases = await groomingRepository.findBookingServicePriceBases();
+  const services = servicePriceBases.map((service) => applyWeightBasedPrice(service, selectedPet.weightKg!));
 
   return {
     pets,
@@ -215,21 +367,19 @@ export async function createStaffCounterTicket(
   const pet = await groomingRepository.findStaffCounterPet(payload.petId);
 
   if (!pet) {
-    throw new AppError("KhÃ´ng tÃ¬m tháº¥y thÃº cÆ°ng phÃ¹ há»£p Ä‘á»ƒ táº¡o yÃªu cáº§u spa", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay thu cung phu hop de tao yeu cau spa", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   if (pet.weightKg === null) {
-    throw new AppError("Cáº§n cáº­p nháº­t cÃ¢n náº·ng thÃº cÆ°ng Ä‘á»ƒ tÃ­nh giÃ¡ dá»‹ch vá»¥ spa", "PET_WEIGHT_REQUIRED", httpStatus.UNPROCESSABLE_ENTITY);
+    throw new AppError("Can cap nhat can nang thu cung de tinh gia dich vu spa", "PET_WEIGHT_REQUIRED", httpStatus.UNPROCESSABLE_ENTITY);
   }
 
-  const service = await groomingRepository.findBookingServiceForCondition(
-    payload.serviceId,
-    getPricingCondition(pet.weightKg)
-  );
+  const servicePriceBase = await groomingRepository.findBookingServicePriceBase(payload.serviceId);
 
-  if (!service) {
-    throw new AppError("KhÃ´ng tÃ¬m tháº¥y dá»‹ch vá»¥ spa hoáº·c báº£ng giÃ¡ phÃ¹ há»£p", "GROOMING_SERVICE_NOT_FOUND", httpStatus.NOT_FOUND);
+  if (!servicePriceBase) {
+    throw new AppError("Khong tim thay dich vu spa hoac bang gia phu hop", "GROOMING_SERVICE_NOT_FOUND", httpStatus.NOT_FOUND);
   }
+  const service = applyWeightBasedPrice(servicePriceBase, pet.weightKg);
 
   try {
     return await groomingRepository.createGroomingBooking({
@@ -244,7 +394,7 @@ export async function createStaffCounterTicket(
     });
   } catch (error) {
     if (error instanceof Error && error.message === "GROOMING_SLOT_FULL") {
-      throw new AppError("Khung giá» nÃ y Ä‘Ã£ Ä‘áº§y, vui lÃ²ng chá»n khung giá» khÃ¡c", "GROOMING_SLOT_FULL", httpStatus.CONFLICT);
+      throw new AppError("Khung gio nay da day, vui long chon khung gio khac", "GROOMING_SLOT_FULL", httpStatus.CONFLICT);
     }
 
     throw error;
@@ -263,17 +413,17 @@ export async function acceptStaffTicket(authUser: AuthUser, ticketId: string) {
   const currentStatus = await groomingRepository.findGroomingTicketStatus(ticketId);
 
   if (!currentStatus) {
-    throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   if (currentStatus !== "pending") {
-    throw new AppError("Chỉ yêu cầu đang chờ tiếp nhận mới có thể tiếp nhận", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
+    throw new AppError("Chi yeu cau dang cho tiep nhan moi co the tiep nhan", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
   }
 
   const ticket = await groomingRepository.updateGroomingTicketStatus(ticketId, "waiting");
 
   if (!ticket) {
-    throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   return ticket;
@@ -285,17 +435,17 @@ export async function completeStaffTicket(authUser: AuthUser, ticketId: string) 
   const currentStatus = await groomingRepository.findGroomingTicketStatus(ticketId);
 
   if (!currentStatus) {
-    throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   if (currentStatus !== "waiting" && currentStatus !== "in_progress") {
-    throw new AppError("Chỉ yêu cầu đã tiếp nhận mới có thể hoàn tất", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
+    throw new AppError("Chi yeu cau da tiep nhan moi co the hoan tat", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
   }
 
   const ticket = await groomingRepository.updateGroomingTicketStatus(ticketId, "completed");
 
   if (!ticket) {
-    throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   return ticket;
@@ -307,17 +457,17 @@ export async function cancelStaffTicket(authUser: AuthUser, ticketId: string) {
   const currentStatus = await groomingRepository.findGroomingTicketStatus(ticketId);
 
   if (!currentStatus) {
-    throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   if (currentStatus === "completed" || currentStatus === "cancelled") {
-    throw new AppError("Không thể hủy yêu cầu spa đã hoàn tất hoặc đã hủy", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
+    throw new AppError("Khong the huy yeu cau spa da hoan tat hoac da huy", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
   }
 
   const ticket = await groomingRepository.updateGroomingTicketStatus(ticketId, "cancelled");
 
   if (!ticket) {
-    throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   return ticket;

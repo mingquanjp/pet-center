@@ -4,7 +4,18 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as petsController from "./pets.controller.js";
-import { createPetSchema, listPetsQuerySchema, petParamsSchema, updatePetSchema } from "./pets.schema.js";
+import {
+  createPetSchema,
+  listPetsQuerySchema,
+  petMedicalExamParamsSchema,
+  petMedicalExamsQuerySchema,
+  petParamsSchema,
+  petVaccinationsQuerySchema,
+  staffCreateOwnerSchema,
+  staffCreatePetSchema,
+  staffOwnerSearchQuerySchema,
+  updatePetSchema
+} from "./pets.schema.js";
 
 export const petsRouter = Router();
 
@@ -281,6 +292,54 @@ export const petsRouter = Router();
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 petsRouter.get(
+  "/staff/pets",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ query: listPetsQuerySchema }),
+  asyncHandler(petsController.listStaffPets)
+);
+
+petsRouter.get(
+  "/staff/owners/search",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ query: staffOwnerSearchQuerySchema }),
+  asyncHandler(petsController.searchStaffOwners)
+);
+
+petsRouter.post(
+  "/staff/owners",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ body: staffCreateOwnerSchema }),
+  asyncHandler(petsController.createStaffOwner)
+);
+
+petsRouter.post(
+  "/staff/pets",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ body: staffCreatePetSchema }),
+  asyncHandler(petsController.createStaffPet)
+);
+
+petsRouter.patch(
+  "/staff/pets/:petId",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: petParamsSchema, body: updatePetSchema }),
+  asyncHandler(petsController.updateStaffPet)
+);
+
+petsRouter.get(
+  "/staff/pets/:petId",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: petParamsSchema }),
+  asyncHandler(petsController.getStaffPet)
+);
+
+petsRouter.get(
   "/pets",
   authMiddleware,
   requireRole("OWNER"),
@@ -402,6 +461,30 @@ petsRouter.post(
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
+petsRouter.get(
+  "/pets/:petId/medical-exams/:examId",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: petMedicalExamParamsSchema }),
+  asyncHandler(petsController.getPetMedicalExam)
+);
+
+petsRouter.get(
+  "/pets/:petId/medical-exams",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: petParamsSchema, query: petMedicalExamsQuerySchema }),
+  asyncHandler(petsController.listPetMedicalExams)
+);
+
+petsRouter.get(
+  "/pets/:petId/vaccinations",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: petParamsSchema, query: petVaccinationsQuerySchema }),
+  asyncHandler(petsController.listPetVaccinations)
+);
+
 petsRouter.get(
   "/pets/:petId",
   authMiddleware,

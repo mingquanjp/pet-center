@@ -6,6 +6,7 @@ import { Clock3, Droplets, Hand, RotateCcw, Scissors, Search, Sparkles } from "l
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LoadingState } from "@/components/ui/loading-state"
 import { cn } from "@/lib/utils"
 import { spaApi } from "../../api/spa.api"
 import { StaffSpaStatusBadge } from "../../components/staff/StaffSpaStatusBadge"
@@ -27,6 +28,12 @@ const defaultData: StaffGroomingTicketList = {
     completed: 0,
     cancelled: 0,
   },
+  pagination: {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  },
   tickets: [],
 }
 
@@ -37,9 +44,11 @@ type StaffSpaPageCache = {
   serviceId: string
   species: StaffGroomingTicketSpeciesFilter
   timeRange: StaffGroomingTicketTimeRangeFilter
+  page: number
 }
 
 const staffSpaPageCacheTtlMs = 30 * 1000
+const staffSpaPageSize = 10
 let staffSpaPageCache: StaffSpaPageCache | null = null
 let staffSpaPageCacheTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -192,13 +201,25 @@ export function StaffSpaListPage() {
   const [species, setSpecies] = React.useState<StaffGroomingTicketSpeciesFilter>(() => staffSpaPageCache?.species ?? "all")
   const [timeRange, setTimeRange] = React.useState<StaffGroomingTicketTimeRangeFilter>(() => staffSpaPageCache?.timeRange ?? "all")
   const [search, setSearch] = React.useState(() => staffSpaPageCache?.search ?? "")
+  const [, setPage] = React.useState(() => staffSpaPageCache?.page ?? 1)
   const [services, setServices] = React.useState<GroomingService[]>([])
   const [isLoading, setIsLoading] = React.useState(() => !staffSpaPageCache)
+  const [isFetchingNextPage, setIsFetchingNextPage] = React.useState(false)
   const [pendingTicketId, setPendingTicketId] = React.useState<string | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const loadMoreRef = React.useRef<HTMLDivElement | null>(null)
+  const dataRef = React.useRef(data)
 
-  const loadTickets = React.useCallback(async () => {
-    setIsLoading(true)
+  React.useEffect(() => {
+    dataRef.current = data
+  }, [data])
+
+  const loadTickets = React.useCallback(async (nextPage = 1, mode: "replace" | "append" = "replace") => {
+    if (mode === "append") {
+      setIsFetchingNextPage(true)
+    } else {
+      setIsLoading(true)
+    }
 
     try {
       const nextData = await spaApi.listStaffTickets({
@@ -207,23 +228,41 @@ export function StaffSpaListPage() {
         species,
         timeRange,
         search,
-        limit: 50,
+        page: nextPage,
+        limit: staffSpaPageSize,
       })
 
-      setData(nextData)
+      const cachedData =
+        mode === "replace"
+          ? nextData
+          : {
+              ...nextData,
+              tickets: [
+                ...dataRef.current.tickets,
+                ...nextData.tickets.filter(
+                  (ticket) => !new Set(dataRef.current.tickets.map((currentTicket) => currentTicket.groomingTicketId)).has(ticket.groomingTicketId)
+                ),
+              ],
+            }
+
+      dataRef.current = cachedData
+      setData(cachedData)
+      setPage(nextData.pagination.page)
       saveStaffSpaPageCache({
-        data: nextData,
+        data: cachedData,
         search,
         status,
         serviceId,
         species,
         timeRange,
+        page: nextData.pagination.page,
       })
       setErrorMessage(null)
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể tải danh sách dịch vụ spa")
     } finally {
       setIsLoading(false)
+      setIsFetchingNextPage(false)
     }
   }, [search, serviceId, species, status, timeRange])
 
@@ -274,15 +313,84 @@ export function StaffSpaListPage() {
     }
   }
 
+  async function handleCancelAction(ticket: StaffGroomingTicket) {
+    setPendingTicketId(ticket.groomingTicketId)
+
+    try {
+      await spaApi.cancelStaffTicket(ticket.groomingTicketId)
+      await loadTickets()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không thể hủy yêu cầu spa")
+    } finally {
+      setPendingTicketId(null)
+    }
+  }
+
   function resetFilters() {
     setSearch("")
     setStatus("all")
     setServiceId("all")
     setSpecies("all")
     setTimeRange("all")
+    setPage(1)
   }
 
-  const showLoadingCards = isLoading && data.tickets.length === 0
+  function handleSearchChange(value: string) {
+    setSearch(value)
+    setPage(1)
+  }
+
+  function handleServiceChange(value: string) {
+    setServiceId(value)
+    setPage(1)
+  }
+
+  function handleSpeciesChange(value: StaffGroomingTicketSpeciesFilter) {
+    setSpecies(value)
+    setPage(1)
+  }
+
+  function handleStatusChange(value: StaffGroomingTicketStatusFilter) {
+    setStatus(value)
+    setPage(1)
+  }
+
+  function handleTimeRangeChange(value: StaffGroomingTicketTimeRangeFilter) {
+    setTimeRange(value)
+    setPage(1)
+  }
+
+  const pagination = data.pagination
+  const hasMore = pagination.page < pagination.totalPages
+
+  const handleLoadMore = React.useCallback(() => {
+    if (!hasMore || isLoading || isFetchingNextPage) return
+
+    void loadTickets(pagination.page + 1, "append")
+  }, [hasMore, isFetchingNextPage, isLoading, loadTickets, pagination.page])
+
+  React.useEffect(() => {
+    if (!loadMoreRef.current) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0]
+
+        if (first.isIntersecting) {
+          handleLoadMore()
+        }
+      },
+      {
+        root: null,
+        rootMargin: "240px",
+        threshold: 0,
+      }
+    )
+
+    observer.observe(loadMoreRef.current)
+
+    return () => observer.disconnect()
+  }, [handleLoadMore])
 
   return (
     <div className="flex w-full flex-col gap-8 pb-12">
@@ -309,7 +417,7 @@ export function StaffSpaListPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-[#7a837f]" />
           <Input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => handleSearchChange(event.target.value)}
             placeholder="Tìm theo mã, thú cưng..."
             className="h-[44px] rounded-[12px] border-0 bg-[#f7f6ea] pl-[41px] pr-[17px] text-sm text-[#1f261f] shadow-none placeholder:text-[#7a837f] focus-visible:ring-0"
           />
@@ -321,7 +429,7 @@ export function StaffSpaListPage() {
             <span className="ml-auto text-[#52605c]">⌄</span>
             <select
               value={serviceId}
-              onChange={(event) => setServiceId(event.target.value)}
+              onChange={(event) => handleServiceChange(event.target.value)}
               className="absolute inset-0 cursor-pointer opacity-0"
               aria-label="Dịch vụ"
             >
@@ -339,7 +447,7 @@ export function StaffSpaListPage() {
             <span className="ml-auto text-[#52605c]">⌄</span>
             <select
               value={species}
-              onChange={(event) => setSpecies(event.target.value as StaffGroomingTicketSpeciesFilter)}
+              onChange={(event) => handleSpeciesChange(event.target.value as StaffGroomingTicketSpeciesFilter)}
               className="absolute inset-0 cursor-pointer opacity-0"
               aria-label="Loại thú cưng"
             >
@@ -356,7 +464,7 @@ export function StaffSpaListPage() {
             <span className="ml-auto text-[#52605c]">⌄</span>
             <select
               value={status}
-              onChange={(event) => setStatus(event.target.value as StaffGroomingTicketStatusFilter)}
+              onChange={(event) => handleStatusChange(event.target.value as StaffGroomingTicketStatusFilter)}
               className="absolute inset-0 cursor-pointer opacity-0"
               aria-label="Trạng thái"
             >
@@ -373,7 +481,7 @@ export function StaffSpaListPage() {
             <span className="ml-auto text-[#52605c]">⌄</span>
             <select
               value={timeRange}
-              onChange={(event) => setTimeRange(event.target.value as StaffGroomingTicketTimeRangeFilter)}
+              onChange={(event) => handleTimeRangeChange(event.target.value as StaffGroomingTicketTimeRangeFilter)}
               className="absolute inset-0 cursor-pointer opacity-0"
               aria-label="Thời gian"
             >
@@ -406,7 +514,7 @@ export function StaffSpaListPage() {
             <span className="ml-auto text-[#52605c]">⌄</span>
             <select
               value={status}
-              onChange={(event) => setStatus(event.target.value as StaffGroomingTicketStatusFilter)}
+              onChange={(event) => handleStatusChange(event.target.value as StaffGroomingTicketStatusFilter)}
               className="absolute inset-0 cursor-pointer opacity-0"
               aria-label="Trạng thái"
             >
@@ -442,21 +550,13 @@ export function StaffSpaListPage() {
         </div>
       ) : null}
 
-      <section className="flex w-full flex-col gap-4">
-        {showLoadingCards
-          ? [0, 1, 2].map((rowIndex) => (
-              <div
-                key={rowIndex}
-                className="h-[130px] w-full animate-pulse rounded-[16px] border border-[#e6e8dd] bg-white shadow-[0px_4px_16px_rgba(31,38,31,0.05)]"
-              />
-            ))
-          : null}
-
+      <section className="relative flex w-full flex-col gap-4">
         {data.tickets.map((ticket) => (
           <StaffSpaRequestCard
             key={ticket.groomingTicketId}
             ticket={ticket}
             isPending={pendingTicketId === ticket.groomingTicketId}
+            onCancelAction={handleCancelAction}
             onPrimaryAction={handlePrimaryAction}
           />
         ))}
@@ -466,7 +566,42 @@ export function StaffSpaListPage() {
             Chưa có yêu cầu spa phù hợp.
           </div>
         ) : null}
+
+        {isLoading ? (
+          <div
+            className={cn(
+              "z-10 flex items-center justify-center rounded-[16px] bg-white/70 backdrop-blur-[2px]",
+              data.tickets.length > 0
+                ? "absolute inset-0"
+                : "min-h-[360px] border border-[#e6e8dd] shadow-[0px_4px_16px_rgba(31,38,31,0.05)]"
+            )}
+          >
+            <LoadingState
+              className="py-12"
+              title="Dang tai du lieu..."
+              description="Vui long cho trong giay lat"
+            />
+          </div>
+        ) : null}
       </section>
+
+      {data.tickets.length > 0 ? (
+        <div ref={loadMoreRef} className="py-6 text-center">
+          {isFetchingNextPage ? (
+            <p className="text-sm text-[#52605c] animate-pulse">Dang tai them yeu cau spa...</p>
+          ) : hasMore ? (
+            <button
+              onClick={handleLoadMore}
+              className="rounded-[0.75rem] border border-[#e6e8dd] bg-[#f7f6ea] px-6 py-2 text-sm font-medium text-[#52605c] transition hover:border-[#cfd8d5] hover:text-[#1f261f]"
+              type="button"
+            >
+              Tai them
+            </button>
+          ) : (
+            <p className="text-sm text-[#7a837f]">Da hien thi tat ca yeu cau spa.</p>
+          )}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -474,10 +609,12 @@ export function StaffSpaListPage() {
 function StaffSpaRequestCard({
   ticket,
   isPending,
+  onCancelAction,
   onPrimaryAction,
 }: {
   ticket: StaffGroomingTicket
   isPending: boolean
+  onCancelAction: (ticket: StaffGroomingTicket) => Promise<void>
   onPrimaryAction: (ticket: StaffGroomingTicket) => Promise<void>
 }) {
   const visual = getServiceVisual(ticket.serviceName)
@@ -546,14 +683,29 @@ function StaffSpaRequestCard({
             <p className="text-lg font-bold leading-[26px] text-[#1f261f]">{ticket.totalAmountText.replace(" VNĐ", "đ")}</p>
           </div>
 
-          {actionLabel ? (
-            <Button
-              disabled={isPending}
-              onClick={() => void onPrimaryAction(ticket)}
-              className="h-9 rounded-[12px] bg-[#005e53] px-4 py-2 text-sm font-medium leading-5 text-white hover:bg-[#004940] disabled:opacity-60"
-            >
-              {isPending ? actionLabel : actionLabel}
-            </Button>
+          {actionLabel || ticket.canCancel ? (
+            <div className="flex items-center gap-2">
+              {ticket.canCancel ? (
+                <Button
+                  disabled={isPending}
+                  onClick={() => void onCancelAction(ticket)}
+                  variant="outline"
+                  className="h-9 rounded-[12px] border-[#f5b4b4] bg-white px-4 py-2 text-sm font-medium leading-5 text-[#b91c1c] hover:bg-[#fff1f1] disabled:opacity-60"
+                >
+                  Hủy
+                </Button>
+              ) : null}
+
+              {actionLabel ? (
+                <Button
+                  disabled={isPending}
+                  onClick={() => void onPrimaryAction(ticket)}
+                  className="h-9 rounded-[12px] bg-[#005e53] px-4 py-2 text-sm font-medium leading-5 text-white hover:bg-[#004940] disabled:opacity-60"
+                >
+                  {isPending ? actionLabel : actionLabel}
+                </Button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>

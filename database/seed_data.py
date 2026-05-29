@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import os
 import random
 from datetime import date, datetime, timedelta, timezone
@@ -19,6 +20,14 @@ PET_IMAGE_URLS = {
         "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=900&q=80",
         "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=900&q=80",
         "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1537151625747-768eb6cf92b2?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1598133894008-61f7fdb8cc3a?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1561037404-61cd46aa615b?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1529472119196-cb724127a98e?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=900&q=80",
     ],
     "Cat": [
         "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80",
@@ -26,10 +35,21 @@ PET_IMAGE_URLS = {
         "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=900&q=80",
         "https://images.unsplash.com/photo-1592194996308-7b43878e84a6?auto=format&fit=crop&w=900&q=80",
         "https://images.unsplash.com/photo-1548247416-ec66f4900b2e?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1561948955-570b270e7c36?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1494256997604-768d1f608cac?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1519052537078-e6302a4968d4?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1478098711619-5ab0b478d6e6?auto=format&fit=crop&w=900&q=80",
     ],
     "Other": [
         "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=900&q=80",
         "https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1452857297128-d9c29adba80b?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1520808663317-647b476a81b9?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1555169062-013468b47731?auto=format&fit=crop&w=900&q=80",
     ],
 }
 
@@ -99,7 +119,7 @@ def connect(database_url: str):
 def many(cur, table: str, columns: list[str], rows: list[tuple]) -> None:
     if not rows:
         return
-    placeholders = ", ".join(["%s"] * len(columns))
+    placeholders = ", ".join(["%s::jsonb" if table == "pet_activity_logs" and column == "metadata" else "%s" for column in columns])
     column_sql = ", ".join(columns)
     cur.executemany(f"INSERT INTO {SCHEMA}.{table} ({column_sql}) VALUES ({placeholders})", rows)
 
@@ -156,11 +176,11 @@ def build_seed() -> dict[str, list[tuple]]:
     data["users"] = users
 
     grooming_services = [
-        ("svc_groom_001_basic", "Tắm gội cơ bản", "grooming", 30, 100000),
-        ("svc_groom_002_trim", "Cắt tỉa lông", "grooming", 30, 100000),
-        ("svc_groom_003_combo", "Spa & Cắt tỉa", "grooming", 60, 100000),
-        ("svc_groom_004_nail", "Chăm sóc móng", "grooming", 30, 100000),
-        ("svc_groom_005_massage", "Massage thư giãn", "grooming", 30, 100000),
+        ("svc_groom_001_basic", "Tắm gội cơ bản", "grooming", 30, 120000),
+        ("svc_groom_002_trim", "Cắt tỉa lông", "grooming", 45, 180000),
+        ("svc_groom_003_combo", "Spa & Cắt tỉa", "grooming", 75, 280000),
+        ("svc_groom_004_nail", "Chăm sóc móng", "grooming", 20, 70000),
+        ("svc_groom_005_massage", "Massage thư giãn", "grooming", 30, 150000),
     ]
     medical_services = [
         ("svc_med_check", "Khám tổng quát", "medical", 30, 180000),
@@ -261,7 +281,20 @@ def build_seed() -> dict[str, list[tuple]]:
         "Cat": ["Anh lông ngắn", "Ba Tư", "Maine Coon", "Xiêm", "Mèo mướp", "Lai"],
         "Other": ["Thỏ", "Hamster", "Bọ ú", "Vẹt"],
     }
-    pet_names = ["Milo", "Luna", "Coco", "Bella", "Max", "Mochi", "Bông", "Bim", "Kem", "Nâu", "Đen", "Sữa"]
+    pet_name_prefixes = [
+        "Milo", "Luna", "Coco", "Bella", "Max", "Mochi", "Bông", "Bim", "Kem", "Nâu", "Đen", "Sữa",
+        "Lucky", "Daisy", "Oscar", "Ruby", "Kiki", "Mimi", "Simba", "Nala", "Toby", "Bento", "Miso", "Sushi",
+        "Mango", "Peanut", "Cookie", "Latte", "Mocha", "Pudding", "Bơ", "Mận", "Mít", "Xoài", "Gạo", "Bắp",
+        "Mun", "Sóc", "Nấm", "Bạc", "Mây", "Gấu", "Bé", "Rex", "Rocky", "Zoe", "Loki", "Choco",
+    ]
+    pet_name_suffixes = [
+        "Nắng", "Mây", "Gió", "Mưa", "Sao", "Trăng", "Bạc", "Mun", "Ú", "Nhỏ", "Tròn", "Xinh",
+        "Béo", "Lém", "Ngoan", "Khò", "Meo", "Gâu", "Tí", "Tồ", "Bự", "Mượt", "Mềm", "Ấm",
+        "Bông", "Kem", "Sữa", "Mật", "Quế", "Dừa", "Đậu", "Bắp", "Gạo", "Mochi", "Panda", "Tiger",
+        "Mini", "Happy", "Sunny", "Lucky", "Ruby", "Nâu", "Đốm", "Tuyết", "Cam", "Vàng", "Xám", "Đen",
+    ]
+    pet_names = [f"{prefix} {suffix}" for prefix in pet_name_prefixes for suffix in pet_name_suffixes if prefix != suffix]
+    random.shuffle(pet_names)
     pets = []
     health_profiles = []
     owner_for_pet: dict[str, str] = {}
@@ -281,7 +314,7 @@ def build_seed() -> dict[str, list[tuple]]:
             (
                 pet_id,
                 owner_id,
-                f"{random.choice(pet_names)} {index}",
+                pet_names[index - 1],
                 species,
                 random.choice(species_breeds[species]),
                 random.choice(["male", "female", "unknown"]),
@@ -519,8 +552,10 @@ def build_seed() -> dict[str, list[tuple]]:
         nights = random.randint(1, 14)
         end = start + timedelta(days=nights)
         status = random.choices(["pending_payment", "pending", "confirmed", "staying", "checked_out", "rejected", "cancelled"], [10, 12, 25, 8, 35, 5, 5])[0]
-        actual_in = datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc).replace(hour=9) if status in ["staying", "checked_out"] else None
-        actual_out = datetime.combine(end, datetime.min.time(), tzinfo=timezone.utc).replace(hour=17) if status == "checked_out" else None
+        planned_in = datetime.combine(start, datetime.min.time(), tzinfo=timezone.utc).replace(hour=random.randint(8, 11), minute=random.choice([0, 30]))
+        planned_out = datetime.combine(end, datetime.min.time(), tzinfo=timezone.utc).replace(hour=random.randint(15, 18), minute=random.choice([0, 30]))
+        actual_in = planned_in + timedelta(minutes=random.choice([-15, 0, 15, 30])) if status in ["staying", "checked_out"] else None
+        actual_out = planned_out + timedelta(minutes=random.choice([-30, -15, 0, 15, 30])) if status == "checked_out" else None
         record_id = f"bor{index:04d}"
         estimated_total = room_price[room_type_id] * nights
         boarding_records.append(
@@ -529,8 +564,8 @@ def build_seed() -> dict[str, list[tuple]]:
                 pet_id,
                 owner_id,
                 room_type_id,
-                start,
-                end,
+                planned_in,
+                planned_out,
                 actual_in,
                 actual_out,
                 random.choice(["Cho ăn theo lịch cố định", "Cho uống thuốc buổi tối", "Tăng thời gian chơi vận động", "Ưu tiên phòng yên tĩnh"]),
@@ -663,6 +698,159 @@ def build_seed() -> dict[str, list[tuple]]:
     data["payments"] = payments[:1100]
     data["notifications"] = notifications[:3000]
 
+    exam_by_id = {row[0]: row for row in data["medical_exams"]}
+    appointment_by_id = {row[0]: row for row in data["medical_appointments"]}
+    exam_type_name = {row[0]: row[2] for row in data["exam_types"]}
+    boarding_by_id = {row[0]: row for row in data["boarding_records"]}
+    pet_activity_logs = []
+
+    def activity_time(value: date | datetime) -> datetime:
+        if isinstance(value, datetime):
+            return value
+        return datetime.combine(value, datetime.min.time(), tzinfo=timezone.utc).replace(hour=9)
+
+    def append_activity(
+        pet_id: str,
+        owner_id: str,
+        actor_id: str | None,
+        category: str,
+        activity_type: str,
+        status: str,
+        occurred_at: date | datetime,
+        title: str,
+        summary: str | None,
+        source_type: str,
+        source_id: str,
+        metadata: dict | None = None,
+    ) -> None:
+        pet_activity_logs.append(
+            (
+                f"pal{len(pet_activity_logs) + 1:05d}",
+                pet_id,
+                owner_id,
+                actor_id,
+                category,
+                activity_type,
+                status,
+                activity_time(occurred_at),
+                title,
+                summary,
+                source_type,
+                source_id,
+                "visible",
+                json.dumps(metadata or {}, ensure_ascii=False),
+                datetime.now(timezone.utc),
+            )
+        )
+
+    for exam in data["medical_exams"][:420]:
+        exam_id, appointment_id, exam_type_id, diagnosis, conclusion, _health_note, exam_status, exam_date, vet_id = exam
+        appointment = appointment_by_id[appointment_id]
+        append_activity(
+            appointment[1],
+            appointment[2],
+            vet_id,
+            "medical",
+            "medical_exam_recorded",
+            "completed",
+            exam_date,
+            f"{exam_type_name.get(exam_type_id, 'Khám bệnh')} đã có kết quả",
+            conclusion,
+            "medical_exam",
+            exam_id,
+            {"diagnosis": diagnosis, "examStatus": exam_status},
+        )
+
+    for vaccination in data["vaccinations"][:360]:
+        vaccination_id, pet_id, exam_id, vaccine_name, vaccination_date, note = vaccination
+        exam = exam_by_id.get(exam_id)
+        appointment = appointment_by_id[exam[1]] if exam else None
+        append_activity(
+            pet_id,
+            owner_for_pet[pet_id],
+            exam[8] if exam else None,
+            "vaccination",
+            "vaccination_recorded",
+            "completed",
+            vaccination_date,
+            f"Đã tiêm {vaccine_name}",
+            note or "Mũi nhắc lại được tính sau 1 năm từ ngày tiêm.",
+            "vaccination",
+            vaccination_id,
+            {
+                "examId": exam_id,
+                "nextReminderPolicy": "vaccination_date_plus_1_year",
+                "appointmentId": appointment[0] if appointment else None,
+            },
+        )
+
+    for ticket in data["grooming_tickets"][:380]:
+        ticket_id, pet_id, owner_id, created_by_id, source_type, scheduled_at, _received_at, special_request, _total, ticket_status = ticket
+        if ticket_status == "pending_payment":
+            status = "pending"
+        elif ticket_status in ["waiting", "in_progress"]:
+            status = "confirmed"
+        elif ticket_status == "completed":
+            status = "completed"
+        elif ticket_status == "cancelled":
+            status = "cancelled"
+        else:
+            status = "pending"
+        append_activity(
+            pet_id,
+            owner_id,
+            created_by_id,
+            "grooming",
+            "grooming_completed" if ticket_status == "completed" else "grooming_booked",
+            status,
+            scheduled_at,
+            "Cập nhật dịch vụ spa",
+            special_request,
+            "grooming_ticket",
+            ticket_id,
+            {"ticketStatus": ticket_status, "sourceType": source_type},
+        )
+
+    for update in data["boarding_updates"][:260]:
+        update_id, boarding_record_id, created_by_id, updated_at, update_note, attachment_url, alert_level, visibility_status = update
+        if visibility_status != "published":
+            continue
+        boarding = boarding_by_id[boarding_record_id]
+        append_activity(
+            boarding[1],
+            boarding[2],
+            created_by_id,
+            "boarding",
+            "boarding_update_published",
+            "completed",
+            updated_at,
+            "Cập nhật lưu trú",
+            update_note,
+            "boarding_update",
+            update_id,
+            {"boardingRecordId": boarding_record_id, "alertLevel": alert_level, "attachmentUrl": attachment_url},
+        )
+
+    for invoice in data["invoices"][:320]:
+        invoice_id, owner_id, pet_id, issued_at, _subtotal, _discount, _surcharge, total, _payment_option, _due_at, invoice_status = invoice
+        append_activity(
+            pet_id,
+            owner_id,
+            None,
+            "invoice",
+            "invoice_issued",
+            "completed" if invoice_status in ["paid", "refunded"] else "pending",
+            issued_at,
+            "Hóa đơn đã được tạo",
+            f"Tổng thanh toán: {total} VND",
+            "invoice",
+            invoice_id,
+            {"invoiceStatus": invoice_status},
+        )
+
+    pet_activity_logs.sort(key=lambda row: row[7], reverse=True)
+    data["pet_activity_logs"] = pet_activity_logs[:1200]
+
     return data
 
 
@@ -687,12 +875,13 @@ def seed() -> None:
         ("grooming_tickets", ["grooming_ticket_id", "pet_id", "owner_user_id", "created_by_user_id", "source_type", "scheduled_at", "received_at", "special_request", "estimated_total", "ticket_status"]),
         ("grooming_ticket_items", ["grooming_ticket_item_id", "grooming_ticket_id", "service_id", "quantity", "applied_unit_price", "line_amount"]),
         ("room_types", ["room_type_id", "room_type_name", "capacity", "boarding_unit_price", "description", "room_type_status"]),
-        ("boarding_records", ["boarding_record_id", "pet_id", "owner_user_id", "room_type_id", "planned_check_in_date", "planned_check_out_date", "actual_check_in_at", "actual_check_out_at", "care_request", "estimated_total", "boarding_status", "rejection_reason", "handled_by_staff_id"]),
+        ("boarding_records", ["boarding_record_id", "pet_id", "owner_user_id", "room_type_id", "planned_check_in_at", "planned_check_out_at", "actual_check_in_at", "actual_check_out_at", "care_request", "estimated_total", "boarding_status", "rejection_reason", "handled_by_staff_id"]),
         ("boarding_updates", ["boarding_update_id", "boarding_record_id", "created_by_user_id", "updated_at", "update_note", "attachment_url", "alert_level", "visibility_status"]),
         ("invoices", ["invoice_id", "owner_user_id", "pet_id", "issued_at", "subtotal_amount", "discount_amount", "surcharge_amount", "total_amount", "payment_option", "payment_due_at", "invoice_status"]),
         ("invoice_lines", ["invoice_line_id", "invoice_id", "service_id", "source_type", "source_id", "description", "quantity", "unit_price", "line_discount_amount", "line_amount"]),
         ("payments", ["payment_id", "invoice_id", "payment_method", "payment_provider", "transaction_code", "paid_amount", "paid_at", "payment_status", "receipt_code", "receipt_url"]),
         ("notifications", ["notification_id", "receiver_user_id", "title", "message", "delivery_channel", "created_at", "notification_status", "related_object_type", "related_object_id"]),
+        ("pet_activity_logs", ["activity_log_id", "pet_id", "owner_user_id", "actor_user_id", "activity_category", "activity_type", "activity_status", "occurred_at", "title", "summary", "source_type", "source_id", "visibility_status", "metadata", "created_at"]),
     ]
     delete_order = [table for table, _columns in reversed(insert_order)]
 

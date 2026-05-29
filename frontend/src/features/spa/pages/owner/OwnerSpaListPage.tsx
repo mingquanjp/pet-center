@@ -2,27 +2,62 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { AlertCircle, ChevronDown, Plus, Search, Sparkles } from "lucide-react"
+import { AlertCircle, Plus, Search, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { spaApi } from "../../api/spa.api"
 import {
-  ownerBookedSpaRequests,
-  ownerSpaHistory,
   ownerSpaTabs,
   spaServiceIconById,
 } from "../../constants/spa.constants"
-import type { GroomingService, OwnerSpaTab, SpaService } from "../../types/spa.types"
+import type {
+  BookedGroomingTicketStatus,
+  GroomingBookingPet,
+  GroomingService,
+  GroomingTicketListItem,
+  GroomingTicketStatus,
+  OwnerSpaRequest,
+  OwnerSpaTab,
+  SpaBookingStatus,
+  SpaService,
+} from "../../types/spa.types"
 import { OwnerSpaRequestCard } from "../../components/owner/OwnerSpaRequestCard"
 import { OwnerSpaServiceCard } from "../../components/owner/OwnerSpaServiceCard"
 
 export function OwnerSpaListPage() {
   const [activeTab, setActiveTab] = React.useState<OwnerSpaTab>("available")
   const [availableServices, setAvailableServices] = React.useState<SpaService[]>([])
+  const [bookedRequests, setBookedRequests] = React.useState<OwnerSpaRequest[]>([])
+  const [historyRequests, setHistoryRequests] = React.useState<OwnerSpaRequest[]>([])
+  const [bookedPets, setBookedPets] = React.useState<GroomingBookingPet[]>([])
+  const [bookedFilters, setBookedFilters] = React.useState<BookedServiceFilterState>({
+    search: "",
+    pet: "all",
+    status: "all",
+    timeRange: "all",
+  })
+  const [bookedSearchQuery, setBookedSearchQuery] = React.useState("")
   const [isLoadingServices, setIsLoadingServices] = React.useState(true)
   const [hasLoadedServices, setHasLoadedServices] = React.useState(false)
   const [servicesError, setServicesError] = React.useState<string | null>(null)
+  const [isLoadingBookedRequests, setIsLoadingBookedRequests] = React.useState(false)
+  const [hasLoadedBookedRequests, setHasLoadedBookedRequests] = React.useState(false)
+  const [bookedRequestsError, setBookedRequestsError] = React.useState<string | null>(null)
+  const [isLoadingHistoryRequests, setIsLoadingHistoryRequests] = React.useState(false)
+  const [hasLoadedHistoryRequests, setHasLoadedHistoryRequests] = React.useState(false)
+  const [historyRequestsError, setHistoryRequestsError] = React.useState<string | null>(null)
   const shouldShowServiceSkeleton = isLoadingServices && !hasLoadedServices
+  const shouldShowBookedSkeleton = isLoadingBookedRequests && !hasLoadedBookedRequests
+  const shouldShowHistorySkeleton = isLoadingHistoryRequests && !hasLoadedHistoryRequests
+  const bookedPetOptions = React.useMemo(() => getBookedPetOptions(bookedPets), [bookedPets])
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setBookedSearchQuery(bookedFilters.search.trim())
+    }, 350)
+
+    return () => window.clearTimeout(timer)
+  }, [bookedFilters.search])
 
   React.useEffect(() => {
     const abortController = new AbortController()
@@ -59,6 +94,103 @@ export function OwnerSpaListPage() {
       abortController.abort()
     }
   }, [])
+
+  React.useEffect(() => {
+    if (activeTab !== "booked") return
+
+    const abortController = new AbortController()
+
+    async function loadBookedRequests() {
+      try {
+        setIsLoadingBookedRequests(true)
+        setBookedRequestsError(null)
+
+        const [ticketsResult, bookingOptions] = await Promise.all([
+          spaApi.listBookedTickets(
+            {
+              search: bookedSearchQuery || undefined,
+              petId: bookedFilters.pet === "all" ? undefined : bookedFilters.pet,
+              status: bookedFilters.status,
+              timeRange: bookedFilters.timeRange,
+              page: 1,
+              limit: 100,
+            },
+            { signal: abortController.signal }
+          ),
+          bookedPets.length === 0
+            ? spaApi.getBookingOptions(undefined, { signal: abortController.signal })
+            : Promise.resolve(null),
+        ])
+
+        if (!abortController.signal.aborted) {
+          setBookedRequests(ticketsResult.tickets.map(mapGroomingTicketToRequest))
+          setHasLoadedBookedRequests(true)
+
+          if (bookingOptions) {
+            setBookedPets(bookingOptions.pets)
+          }
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setBookedRequests([])
+          setHasLoadedBookedRequests(true)
+          setBookedRequestsError(error instanceof Error ? error.message : "Không thể tải dịch vụ đã đặt")
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoadingBookedRequests(false)
+        }
+      }
+    }
+
+    void loadBookedRequests()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [activeTab, bookedFilters.pet, bookedFilters.status, bookedFilters.timeRange, bookedPets.length, bookedSearchQuery])
+
+  React.useEffect(() => {
+    if (activeTab !== "history") return
+
+    const abortController = new AbortController()
+
+    async function loadHistoryRequests() {
+      try {
+        setIsLoadingHistoryRequests(true)
+        setHistoryRequestsError(null)
+
+        const result = await spaApi.listTicketHistory(
+          {
+            page: 1,
+            limit: 100,
+          },
+          { signal: abortController.signal }
+        )
+
+        if (!abortController.signal.aborted) {
+          setHistoryRequests(result.tickets.map(mapGroomingTicketToRequest))
+          setHasLoadedHistoryRequests(true)
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setHistoryRequests([])
+          setHasLoadedHistoryRequests(true)
+          setHistoryRequestsError(error instanceof Error ? error.message : "Không thể tải lịch sử dịch vụ spa")
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoadingHistoryRequests(false)
+        }
+      }
+    }
+
+    void loadHistoryRequests()
+
+    return () => {
+      abortController.abort()
+    }
+  }, [activeTab])
 
   return (
     <div className="space-y-6">
@@ -103,20 +235,35 @@ export function OwnerSpaListPage() {
         </TabsContent>
 
         <TabsContent value="booked" className="mt-0 flex-none space-y-4">
-          <BookedServiceFilters />
-          {ownerBookedSpaRequests.map((request) => (
-            <OwnerSpaRequestCard key={request.id} request={request} />
-          ))}
+          <BookedServiceFilters
+            filters={bookedFilters}
+            onFiltersChange={setBookedFilters}
+            petOptions={bookedPetOptions}
+          />
+          <BookedServicesTab
+            errorMessage={bookedRequestsError}
+            isLoading={shouldShowBookedSkeleton}
+            requests={bookedRequests}
+          />
         </TabsContent>
 
         <TabsContent value="history" className="mt-0 flex-none space-y-4">
-          {ownerSpaHistory.map((request) => (
-            <OwnerSpaRequestCard key={request.id} request={request} />
-          ))}
+          <HistoryServicesTab
+            errorMessage={historyRequestsError}
+            isLoading={shouldShowHistorySkeleton}
+            requests={historyRequests}
+          />
         </TabsContent>
       </Tabs>
     </div>
   )
+}
+
+type BookedServiceFilterState = {
+  search: string
+  pet: string
+  status: "all" | BookedGroomingTicketStatus
+  timeRange: "all" | "today" | "upcoming" | "past"
 }
 
 function mapGroomingServiceToCard(service: GroomingService): SpaService {
@@ -129,6 +276,53 @@ function mapGroomingServiceToCard(service: GroomingService): SpaService {
     icon: spaServiceIconById[service.serviceId] ?? Sparkles,
     featured: service.serviceId === "svc_groom_003_combo",
   }
+}
+
+function mapGroomingTicketToRequest(ticket: GroomingTicketListItem): OwnerSpaRequest {
+  return {
+    id: ticket.groomingTicketId,
+    bookingCode: ticket.bookingCode,
+    serviceName: ticket.serviceName,
+    petName: ticket.petName,
+    scheduledAt: `${ticket.scheduledDate} - ${ticket.scheduledTime}`,
+    status: mapTicketStatus(ticket.ticketStatus),
+    totalAmount: formatMoney(ticket.totalAmount),
+    paymentMethodLabel: ticket.paymentMethodLabel,
+    paymentStatusLabel: ticket.paymentStatusLabel,
+    paymentStatusTone: ticket.paymentStatusLabel === "Đã thanh toán" ? "paid" : "pending",
+    icon: getServiceIcon(ticket.serviceName),
+    specialRequest: ticket.specialRequest ?? undefined,
+    canCancel: ticket.canCancel,
+  }
+}
+
+function mapTicketStatus(status: GroomingTicketStatus): SpaBookingStatus {
+  if (status === "waiting") return "ACCEPTED"
+  if (status === "in_progress") return "IN_PROGRESS"
+  if (status === "completed") return "COMPLETED"
+  if (status === "cancelled") return "CANCELLED"
+
+  return "WAITING_ACCEPT"
+}
+
+function getServiceIcon(serviceName: string) {
+  const normalizedName = serviceName.toLocaleLowerCase("vi-VN")
+
+  if (normalizedName.includes("tắm")) return spaServiceIconById.svc_groom_001_basic ?? Sparkles
+  if (normalizedName.includes("móng")) return spaServiceIconById.svc_groom_004_nail ?? Sparkles
+  if (normalizedName.includes("massage")) return spaServiceIconById.svc_groom_005_massage ?? Sparkles
+  if (normalizedName.includes("cắt") && normalizedName.includes("tỉa") && normalizedName.includes("spa")) {
+    return spaServiceIconById.svc_groom_003_combo ?? Sparkles
+  }
+  if (normalizedName.includes("cắt") || normalizedName.includes("tỉa")) {
+    return spaServiceIconById.svc_groom_002_trim ?? Sparkles
+  }
+
+  return Sparkles
+}
+
+function formatMoney(value: number): string {
+  return `${new Intl.NumberFormat("vi-VN").format(value)} VNĐ`
 }
 
 function AvailableServicesTab({
@@ -205,42 +399,244 @@ function AvailableServicesError({ message }: { message: string }) {
   )
 }
 
-function BookedServiceFilters() {
-  const filters = ["Thú cưng: Tất cả", "Trạng thái: Tất cả", "Thời gian: Tất cả"]
+function BookedServicesTab({
+  errorMessage,
+  isLoading,
+  requests,
+}: {
+  errorMessage: string | null
+  isLoading: boolean
+  requests: OwnerSpaRequest[]
+}) {
+  if (errorMessage) {
+    return <AvailableServicesError message={errorMessage} />
+  }
+
+  if (isLoading) {
+    return (
+      <section className="space-y-4">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <BookedRequestSkeleton key={index} />
+        ))}
+      </section>
+    )
+  }
+
+  if (requests.length === 0) {
+    return (
+      <section className="rounded-[16px] border border-dashed border-[#BDC9C5] bg-white px-6 py-12 text-center">
+        <h2 className="text-lg font-bold leading-[26px] text-[#1B1C15]">Chưa có dịch vụ đã đặt</h2>
+        <p className="mt-2 text-sm leading-5 text-[#3E4946]">
+          Các yêu cầu spa đang chờ tiếp nhận hoặc đang xử lý sẽ hiển thị tại đây.
+        </p>
+      </section>
+    )
+  }
 
   return (
-    <section className="rounded-[16px] border border-[#E6E8DD] bg-white p-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
-        <label className="relative min-w-[240px] flex-1 xl:max-w-[320px]">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#3E4946]" aria-hidden="true" />
+    <>
+      {requests.map((request) => (
+        <OwnerSpaRequestCard key={request.id} request={request} />
+      ))}
+    </>
+  )
+}
+
+function HistoryServicesTab({
+  errorMessage,
+  isLoading,
+  requests,
+}: {
+  errorMessage: string | null
+  isLoading: boolean
+  requests: OwnerSpaRequest[]
+}) {
+  if (errorMessage) {
+    return <AvailableServicesError message={errorMessage} />
+  }
+
+  if (isLoading) {
+    return (
+      <section className="space-y-4">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <BookedRequestSkeleton key={index} />
+        ))}
+      </section>
+    )
+  }
+
+  if (requests.length === 0) {
+    return (
+      <section className="rounded-[16px] border border-dashed border-[#BDC9C5] bg-white px-6 py-12 text-center">
+        <h2 className="text-lg font-bold leading-[26px] text-[#1B1C15]">Chưa có lịch sử dịch vụ</h2>
+        <p className="mt-2 text-sm leading-5 text-[#3E4946]">
+          Các yêu cầu spa đã hoàn tất hoặc đã hủy sẽ hiển thị tại đây.
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <>
+      {requests.map((request) => (
+        <OwnerSpaRequestCard key={request.id} request={request} />
+      ))}
+    </>
+  )
+}
+
+function BookedRequestSkeleton() {
+  return (
+    <article className="flex min-h-[190px] animate-pulse flex-col rounded-[16px] border border-[#E6E8DD] bg-white p-[25px] shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="size-12 rounded-xl bg-[#E0F2F1]" />
+          <div className="space-y-2">
+            <div className="h-5 w-36 rounded bg-[#E4E3D7]" />
+            <div className="h-3 w-24 rounded bg-[#E4E3D7]" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div className="h-6 w-24 rounded-full bg-[#E4E3D7]" />
+          <div className="h-5 w-28 rounded bg-[#E4E3D7]" />
+        </div>
+      </div>
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="space-y-2">
+            <div className="h-3 w-20 rounded bg-[#E4E3D7]" />
+            <div className="h-4 w-32 rounded bg-[#E4E3D7]" />
+          </div>
+        ))}
+      </div>
+    </article>
+  )
+}
+
+function BookedServiceFilters({
+  filters,
+  onFiltersChange,
+  petOptions,
+}: {
+  filters: BookedServiceFilterState
+  onFiltersChange: React.Dispatch<React.SetStateAction<BookedServiceFilterState>>
+  petOptions: Array<{ label: string; value: string }>
+}) {
+  const hasActiveFilter =
+    filters.search.trim().length > 0 ||
+    filters.pet !== "all" ||
+    filters.status !== "all" ||
+    filters.timeRange !== "all"
+
+  function resetFilters() {
+    onFiltersChange({
+      search: "",
+      pet: "all",
+      status: "all",
+      timeRange: "all",
+    })
+  }
+
+  function updateFilter(key: keyof BookedServiceFilterState, value: string) {
+    onFiltersChange((currentFilters) => ({
+      ...currentFilters,
+      [key]: value,
+    }))
+  }
+
+  return (
+    <section className="rounded-[16px] border border-[#E6E8DD] bg-white p-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <label className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6E7774]" aria-hidden="true" />
           <span className="sr-only">Tìm dịch vụ đã đặt</span>
           <input
             type="search"
             placeholder="Tìm theo mã dịch vụ, thú cưng"
-            className="h-10 w-full rounded-xl border border-transparent bg-[#F5F4E8] pl-10 pr-4 text-base leading-6 text-[#1B1C15] outline-none placeholder:text-[#3E4946] focus:border-[#005E53]"
+            value={filters.search}
+            onChange={(event) => updateFilter("search", event.target.value)}
+            className="h-11 w-full rounded-full border border-[#CFD8D5] bg-white pl-14 pr-4 text-base leading-6 text-[#1B1C15] outline-none transition placeholder:text-[#8A918E] focus:border-[#005E53] focus:ring-4 focus:ring-[#005E53]/10"
           />
         </label>
 
-        <div className="flex flex-wrap gap-3">
-          {filters.map((filter) => (
-            <Button
-              key={filter}
-              variant="ghost"
-              className="h-10 rounded-xl bg-[#F5F4E8] px-4 text-base font-normal leading-6 text-[#3E4946] hover:bg-[#EDEBDE] hover:text-[#1B1C15]"
-            >
-              {filter}
-              <ChevronDown className="ml-2 size-4" aria-hidden="true" />
-            </Button>
-          ))}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:flex-nowrap">
+          <BookedFilterSelect
+            label="Thú cưng"
+            onChange={(value) => updateFilter("pet", value)}
+            options={petOptions}
+            value={filters.pet}
+          />
+          <BookedFilterSelect
+            label="Trạng thái"
+            onChange={(value) => updateFilter("status", value)}
+            options={[
+              { label: "Tất cả", value: "all" },
+              { label: "Chờ tiếp nhận", value: "pending" },
+              { label: "Đã tiếp nhận", value: "waiting" },
+              { label: "Đang thực hiện", value: "in_progress" },
+            ]}
+            value={filters.status}
+          />
+          <BookedFilterSelect
+            label="Thời gian"
+            onChange={(value) => updateFilter("timeRange", value)}
+            options={[
+              { label: "Tất cả", value: "all" },
+              { label: "Hôm nay", value: "today" },
+              { label: "Sắp tới", value: "upcoming" },
+              { label: "Đã qua", value: "past" },
+            ]}
+            value={filters.timeRange}
+          />
+          <Button
+            variant="ghost"
+            className="h-10 w-fit shrink-0 rounded-xl px-3 text-base font-normal leading-6 text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#004C43] disabled:pointer-events-none disabled:opacity-50"
+            disabled={!hasActiveFilter}
+            onClick={resetFilters}
+          >
+            Đặt lại bộ lọc
+          </Button>
         </div>
       </div>
-
-      <Button
-        variant="ghost"
-        className="mt-2 h-8 px-2 text-base font-normal leading-6 text-[#005E53] hover:bg-transparent hover:text-[#004C43]"
-      >
-        Đặt lại bộ lọc
-      </Button>
     </section>
+  )
+}
+
+function getBookedPetOptions(pets: GroomingBookingPet[]): Array<{ label: string; value: string }> {
+  return [
+    { label: "Tất cả", value: "all" },
+    ...pets.map((pet) => ({
+      label: pet.petName,
+      value: pet.petId,
+    })),
+  ]
+}
+
+function BookedFilterSelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string
+  onChange: (value: string) => void
+  options: Array<{ label: string; value: string }>
+  value: string
+}) {
+  return (
+    <label className="flex items-center gap-2">
+      <span className="whitespace-nowrap text-base font-normal leading-6 text-[#3E4946]">{label}:</span>
+      <select
+        className="h-11 min-w-[132px] rounded-[16px] border border-[#CFD8D5] bg-white px-4 pr-9 text-base leading-6 text-[#1B1C15] outline-none transition focus:border-[#005E53] focus:ring-4 focus:ring-[#005E53]/10"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   )
 }
