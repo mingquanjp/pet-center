@@ -12,3 +12,10 @@ dashboardRouter.get(
   requireRole("OWNER"),
   asyncHandler(dashboardController.getOwnerDashboard)
 );
+
+dashboardRouter.get(
+  "/owner/dashboard/activity-logs",
+  authMiddleware,
+  requireRole("OWNER"),
+  asyncHandler(dashboardController.listOwnerActivityLogs)
+);

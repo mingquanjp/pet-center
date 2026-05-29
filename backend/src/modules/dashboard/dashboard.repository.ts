@@ -39,6 +39,7 @@ type ActivityRow = QueryResultRow & {
   pet_id: string;
   pet_name: string;
   activity_category: OwnerDashboardActivity["activityCategory"];
+  activity_type: string;
   activity_status: OwnerDashboardActivity["activityStatus"];
   title: string;
   summary: string | null;
@@ -159,6 +160,7 @@ function mapActivity(row: ActivityRow): OwnerDashboardActivity {
     petId: row.pet_id,
     petName: row.pet_name,
     activityCategory: row.activity_category,
+    activityType: row.activity_type,
     activityStatus: row.activity_status,
     title: row.title,
     summary: row.summary,
@@ -187,7 +189,7 @@ export async function getOwnerDashboard(ownerUserId: string, ownerName: string):
     unpaidInvoiceCountResult,
     unreadNotificationCountResult,
     petsResult,
-    upcomingAppointmentResult,
+    upcomingAppointmentsResult,
     recentActivitiesResult,
     remindersResult,
   ] = await Promise.all([
@@ -261,7 +263,7 @@ export async function getOwnerDashboard(ownerUserId: string, ownerName: string):
          and ma.scheduled_at >= now()
          and ma.appointment_status in ('pending_payment', 'pending', 'confirmed')
        order by ma.scheduled_at asc, ma.appointment_id asc
-       limit 1`,
+       limit 10`,
       [ownerUserId]
     ),
     query<ActivityRow>(
@@ -270,6 +272,7 @@ export async function getOwnerDashboard(ownerUserId: string, ownerName: string):
          pal.pet_id,
          p.pet_name,
          pal.activity_category,
+         pal.activity_type,
          pal.activity_status,
          pal.title,
          pal.summary,
@@ -337,8 +340,47 @@ export async function getOwnerDashboard(ownerUserId: string, ownerName: string):
       unreadNotificationCount: Number(unreadNotificationCountResult.rows[0]?.total ?? 0),
     },
     pets: petsResult.rows.map(mapPet),
-    upcomingAppointment: upcomingAppointmentResult.rows[0] ? mapAppointment(upcomingAppointmentResult.rows[0]) : null,
+    upcomingAppointments: upcomingAppointmentsResult.rows.map(mapAppointment),
     recentActivities: recentActivitiesResult.rows.map(mapActivity),
     healthReminders: remindersResult.rows.map(mapReminder),
+  };
+}
+
+export async function findOwnerActivityLogs(
+  ownerUserId: string,
+  pagination: { limit: number; offset: number }
+): Promise<{ activities: OwnerDashboardActivity[]; total: number }> {
+  const [listResult, countResult] = await Promise.all([
+    query<ActivityRow>(
+      `select
+         pal.activity_log_id,
+         pal.pet_id,
+         p.pet_name,
+         pal.activity_category,
+         pal.activity_type,
+         pal.activity_status,
+         pal.title,
+         pal.summary,
+         pal.occurred_at::text as occurred_at,
+         pal.source_type,
+         pal.source_id
+       from pet_center.pet_activity_logs pal
+       inner join pet_center.pets p on p.pet_id = pal.pet_id
+       where pal.owner_user_id = $1 and pal.visibility_status = 'visible'
+       order by pal.occurred_at desc, pal.activity_log_id desc
+       limit $2 offset $3`,
+      [ownerUserId, pagination.limit, pagination.offset]
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.pet_activity_logs pal
+       where pal.owner_user_id = $1 and pal.visibility_status = 'visible'`,
+      [ownerUserId]
+    ),
+  ]);
+
+  return {
+    activities: listResult.rows.map(mapActivity),
+    total: Number(countResult.rows[0]?.total ?? 0),
   };
 }

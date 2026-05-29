@@ -24,6 +24,7 @@ export type OwnerDashboardActivity = {
   petId: string;
   petName: string;
   activityCategory: "medical" | "vaccination" | "grooming" | "boarding" | "invoice" | "payment" | "profile";
+  activityType: string;
   activityStatus: "scheduled" | "pending" | "confirmed" | "completed" | "cancelled" | "rejected" | "failed";
   title: string;
   summary: string | null;
@@ -51,7 +52,7 @@ export type OwnerDashboardDto = {
     unreadNotificationCount: number;
   };
   pets: OwnerDashboardPet[];
-  upcomingAppointment: OwnerDashboardAppointment | null;
+  upcomingAppointments: OwnerDashboardAppointment[];
   recentActivities: OwnerDashboardActivity[];
   healthReminders: OwnerDashboardReminder[];
 };

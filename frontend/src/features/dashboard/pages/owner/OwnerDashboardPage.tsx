@@ -4,11 +4,22 @@ import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+
+import {
   AlertCircle,
   BellRing,
   CalendarDays,
   CalendarPlus,
-  ChevronRight,
   Clock3,
   FileText,
   HeartPulse,
@@ -24,6 +35,7 @@ import { ownerDashboardApi } from "../../api/owner-dashboard.api"
 import type {
   OwnerDashboard,
   OwnerDashboardActivity,
+  OwnerDashboardAppointment,
   OwnerDashboardPet,
   OwnerDashboardReminder,
 } from "../../types/owner-dashboard.types"
@@ -55,10 +67,41 @@ const activityIconClassByCategory: Record<OwnerDashboardActivity["activityCatego
   profile: "bg-petcenter-primary/10 text-petcenter-primary",
 }
 
+const activityCategoryLabel: Record<OwnerDashboardActivity["activityCategory"], string> = {
+  medical: "Khám bệnh",
+  vaccination: "Tiêm phòng",
+  grooming: "Spa",
+  boarding: "Lưu trú",
+  invoice: "Hóa đơn",
+  payment: "Thanh toán",
+  profile: "Hồ sơ",
+}
+
+const activityStatusLabel: Record<OwnerDashboardActivity["activityStatus"], string> = {
+  scheduled: "Đã lên lịch",
+  pending: "Đang chờ",
+  confirmed: "Đã xác nhận",
+  completed: "Hoàn tất",
+  cancelled: "Đã hủy",
+  rejected: "Từ chối",
+  failed: "Thất bại",
+}
+
+const activityStatusClassName: Record<OwnerDashboardActivity["activityStatus"], string> = {
+  scheduled: "bg-petcenter-info-bg text-petcenter-info-text",
+  pending: "bg-petcenter-warning-bg text-petcenter-warning-text",
+  confirmed: "bg-petcenter-success-bg text-petcenter-success-text",
+  completed: "bg-petcenter-success-bg text-petcenter-success-text",
+  cancelled: "bg-petcenter-sidebar text-petcenter-text-secondary",
+  rejected: "bg-petcenter-danger-bg text-petcenter-danger-text",
+  failed: "bg-petcenter-danger-bg text-petcenter-danger-text",
+}
+
 export function OwnerDashboardPage() {
   const [dashboard, setDashboard] = React.useState<OwnerDashboard | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
 
   const loadDashboard = React.useCallback(async (signal?: AbortSignal) => {
     try {
@@ -173,9 +216,9 @@ export function OwnerDashboardPage() {
         ))}
       </section>
 
-      <section className="grid grid-cols-1 items-start gap-gutter xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+      <section className="grid grid-cols-1 gap-gutter xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="flex flex-col gap-section">
-          <section className="flex min-h-[340px] flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card sm:p-6">
+          <section className="flex min-h-[340px] flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card sm:p-6 xl:h-[390px]">
             <div className="mb-6 flex items-center justify-between gap-4">
               <h2 className="heading-sm text-petcenter-text">Thú cưng của tôi</h2>
               <Link className="label-md font-semibold text-petcenter-primary hover:underline" href="/owner/pets">
@@ -198,12 +241,16 @@ export function OwnerDashboardPage() {
             )}
           </section>
 
-          <section className="rounded-card border border-petcenter-border bg-white p-5 shadow-card sm:p-6">
+          <section className="flex flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card sm:p-6 xl:min-h-[340px]">
             <div className="mb-5 flex items-center justify-between gap-4">
-              <h2 className="heading-sm text-petcenter-text">Dịch vụ gần đây</h2>
-              <Link className="label-md font-semibold text-petcenter-primary hover:underline" href="/owner/spa">
-                Xem lịch sử dịch vụ
-              </Link>
+              <h2 className="heading-sm text-petcenter-text">Thay đổi gần đây</h2>
+              <button
+                className="label-md font-semibold text-petcenter-primary hover:underline"
+                onClick={() => setIsHistoryOpen(true)}
+                type="button"
+              >
+                Xem lịch sử
+              </button>
             </div>
 
             {dashboard.recentActivities.length > 0 ? (
@@ -216,15 +263,15 @@ export function OwnerDashboardPage() {
               <EmptyPanel
                 compact
                 icon={Sparkles}
-                title="Chưa có hoạt động gần đây"
-                description="Các dịch vụ, thanh toán và cập nhật hồ sơ sẽ xuất hiện khi có dữ liệu."
+                title="Chưa có thay đổi gần đây"
+                description="Các cập nhật từ log hoạt động sẽ xuất hiện khi có dữ liệu."
               />
             )}
           </section>
         </div>
 
         <div className="flex flex-col gap-section">
-          <section className="flex min-h-[340px] flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card sm:p-6">
+          <section className="flex min-h-[340px] flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card sm:p-6 xl:h-[390px]">
             <div className="mb-5 flex items-center justify-between gap-4">
               <h2 className="heading-sm text-petcenter-text">Lịch hẹn sắp tới</h2>
               <Link className="label-md font-semibold text-petcenter-primary hover:underline" href="/owner/appointments">
@@ -232,8 +279,12 @@ export function OwnerDashboardPage() {
               </Link>
             </div>
 
-            {dashboard.upcomingAppointment ? (
-              <UpcomingAppointment appointment={dashboard.upcomingAppointment} />
+            {dashboard.upcomingAppointments.length > 0 ? (
+              <div className="h-[270px] space-y-3 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+                {dashboard.upcomingAppointments.map((appointment) => (
+                  <UpcomingAppointment appointment={appointment} key={appointment.appointmentId} />
+                ))}
+              </div>
             ) : (
               <EmptyPanel
                 icon={CalendarDays}
@@ -243,7 +294,7 @@ export function OwnerDashboardPage() {
             )}
           </section>
 
-          <section className="rounded-card border border-petcenter-border bg-white p-5 shadow-card sm:p-6">
+          <section className="flex flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card sm:p-6 xl:min-h-[340px]">
             <h2 className="heading-sm text-petcenter-text">Nhắc nhở sức khỏe</h2>
 
             {dashboard.healthReminders.length > 0 ? (
@@ -263,6 +314,8 @@ export function OwnerDashboardPage() {
           </section>
         </div>
       </section>
+
+      <ActivityHistoryDialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen} />
     </div>
   )
 }
@@ -302,48 +355,189 @@ function ActivityRow({ activity }: { activity: OwnerDashboardActivity }) {
   const Icon = activityIconByCategory[activity.activityCategory]
 
   return (
-    <Link
-      className="flex items-center gap-4 rounded-control p-3 transition-colors hover:bg-petcenter-sidebar"
-      href={getActivityHref(activity)}
-    >
+    <div className="flex items-center gap-4 rounded-control p-3">
       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${activityIconClassByCategory[activity.activityCategory]}`}>
         <Icon className="h-5 w-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="body-md block text-petcenter-text">{activity.title}</span>
+        <span className="body-md block text-petcenter-text">{getActivityTitle(activity)}</span>
         <span className="label-md mt-0.5 block text-petcenter-text-secondary">{formatRelativeTime(activity.occurredAt)}</span>
       </span>
-      <ChevronRight className="h-5 w-5 shrink-0 text-petcenter-text-muted" />
-    </Link>
+    </div>
   )
 }
 
-function UpcomingAppointment({ appointment }: { appointment: NonNullable<OwnerDashboard["upcomingAppointment"]> }) {
+function ActivityHistoryDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const [activities, setActivities] = React.useState<OwnerDashboardActivity[]>([])
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!open) return
+
+    const abortController = new AbortController()
+
+    async function loadHistory() {
+      try {
+        setIsLoading(true)
+        setErrorMessage(null)
+        const result = await ownerDashboardApi.listActivityLogs(
+          { page: 1, limit: 30 },
+          { signal: abortController.signal }
+        )
+
+        if (!abortController.signal.aborted) {
+          setActivities(result.activities)
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setActivities([])
+          setErrorMessage(error instanceof Error ? error.message : "Không thể tải lịch sử thay đổi")
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadHistory()
+
+    return () => abortController.abort()
+  }, [open])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[calc(100vh-2rem)] gap-0 overflow-hidden rounded-card border border-petcenter-border bg-petcenter-card p-0 text-petcenter-text shadow-modal ring-0 sm:max-w-[820px]"
+      >
+        <DialogHeader className="border-b border-petcenter-border px-6 py-4">
+          <DialogTitle className="heading-sm text-petcenter-text">Lịch sử thay đổi</DialogTitle>
+          <DialogDescription className="body-md mt-1 text-petcenter-text-secondary">
+            Các cập nhật gần đây được ghi nhận từ log hoạt động của thú cưng.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[calc(100vh-13rem)] overflow-y-auto bg-petcenter-background/45 px-5 py-5 sm:px-6">
+          {isLoading ? (
+            <p className="body-md text-petcenter-text-secondary">Đang tải lịch sử thay đổi...</p>
+          ) : errorMessage ? (
+            <div className="rounded-control border border-petcenter-danger-text/20 bg-petcenter-danger-bg p-4 text-petcenter-danger-text">
+              <p className="body-md font-semibold">Không thể tải lịch sử</p>
+              <p className="body-sm mt-1">{errorMessage}</p>
+            </div>
+          ) : activities.length > 0 ? (
+            <div className="space-y-3">
+              {activities.map((activity) => (
+                <ActivityHistoryItem activity={activity} key={activity.activityLogId} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-control border border-dashed border-petcenter-border-strong bg-petcenter-filter px-6 py-10 text-center">
+              <p className="title-md text-petcenter-text">Chưa có lịch sử thay đổi</p>
+              <p className="body-md mt-1 text-petcenter-text-secondary">
+                Khi có log hoạt động, danh sách sẽ hiển thị tại đây.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="m-0 rounded-none border-t border-petcenter-border bg-petcenter-filter px-6 py-4">
+          <DialogClose asChild>
+            <Button
+              className="h-10 rounded-control border-petcenter-border-strong bg-petcenter-card px-8 text-petcenter-text hover:bg-petcenter-sidebar"
+              type="button"
+              variant="outline"
+            >
+              Đóng
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ActivityHistoryItem({ activity }: { activity: OwnerDashboardActivity }) {
+  const Icon = activityIconByCategory[activity.activityCategory]
+
+  return (
+    <article className="rounded-card border border-petcenter-border bg-white p-4 shadow-card">
+      <div className="flex gap-4">
+        <span className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${activityIconClassByCategory[activity.activityCategory]}`}>
+          <Icon className="h-5 w-5" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h3 className="body-lg font-semibold text-petcenter-text">{getActivityTitle(activity)}</h3>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="label-md rounded-full bg-petcenter-sidebar px-2.5 py-1 font-semibold text-petcenter-text-secondary">
+                  {activity.petName}
+                </span>
+                <span className="label-md rounded-full bg-petcenter-primary/10 px-2.5 py-1 font-semibold text-petcenter-primary">
+                  {activityCategoryLabel[activity.activityCategory]}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-row items-center gap-2 sm:flex-col sm:items-end">
+              <span
+                className={cn(
+                  "label-sm rounded-full px-2.5 py-1 font-bold uppercase",
+                  activityStatusClassName[activity.activityStatus] ?? "bg-petcenter-sidebar text-petcenter-text-secondary"
+                )}
+              >
+                {activityStatusLabel[activity.activityStatus]}
+              </span>
+              <span className="label-md whitespace-nowrap text-petcenter-text-secondary">
+                {formatDateTime(activity.occurredAt)}
+              </span>
+            </div>
+          </div>
+
+          {activity.summary ? (
+            <p className="body-sm mt-3 line-clamp-2 text-petcenter-text-secondary">{activity.summary}</p>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function UpcomingAppointment({ appointment }: { appointment: OwnerDashboardAppointment }) {
   const date = new Date(appointment.scheduledAt)
   const day = new Intl.DateTimeFormat("vi-VN", { day: "2-digit" }).format(date)
   const month = new Intl.DateTimeFormat("vi-VN", { month: "long" }).format(date)
 
   return (
-    <article className="rounded-card border border-sky-200 bg-sky-50 p-5">
-      <div className="flex gap-4">
-        <div className="flex h-[72px] w-[72px] shrink-0 flex-col items-center justify-center rounded-card bg-sky-100 text-sky-700">
-          <span className="text-[28px] font-bold leading-none">{day}</span>
-          <span className="label-sm mt-1 text-center uppercase">{month}</span>
+    <article className="rounded-card border border-sky-200 bg-sky-50 p-3">
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-card bg-sky-100 text-sky-700">
+          <span className="text-xl font-bold leading-none">{day}</span>
+          <span className="label-sm mt-0.5 text-center uppercase">{month}</span>
         </div>
-        <div className="flex min-w-0 flex-1 flex-col justify-center">
-          <h3 className="body-lg font-bold text-petcenter-text">{appointment.examTypeName}</h3>
+        <div className="min-w-0 flex-1">
+          <h3 className="body-lg truncate font-bold text-petcenter-text">{appointment.examTypeName}</h3>
           <p className="body-md mt-1 text-petcenter-text-secondary">Cho {appointment.petName}</p>
         </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <span className="label-md inline-flex items-center gap-1.5 text-petcenter-text-secondary">
-          <Clock3 className="h-4 w-4" />
-          {formatTime(appointment.scheduledAt)}
-        </span>
-        <span className="label-sm rounded-pill bg-emerald-100 px-3 py-1 font-bold uppercase text-emerald-700">
-          {appointment.appointmentStatusLabel}
-        </span>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <span className="label-md inline-flex items-center gap-1.5 text-petcenter-text-secondary">
+            <Clock3 className="h-4 w-4" />
+            {formatTime(appointment.scheduledAt)}
+          </span>
+          <span className="label-sm rounded-pill bg-emerald-100 px-2.5 py-1 font-bold uppercase text-emerald-700">
+            {appointment.appointmentStatusLabel}
+          </span>
+        </div>
       </div>
     </article>
   )
@@ -436,12 +630,36 @@ function DashboardSkeleton() {
   )
 }
 
-function getActivityHref(activity: OwnerDashboardActivity): string {
-  if (activity.activityCategory === "grooming") return "/owner/spa"
-  if (activity.activityCategory === "boarding") return "/owner/boarding"
-  if (activity.activityCategory === "invoice" || activity.activityCategory === "payment") return "/owner/invoices"
+function getActivityTitle(activity: OwnerDashboardActivity): string {
+  if (activity.activityCategory === "grooming") {
+    if (activity.activityStatus === "completed") return `Dịch vụ spa của ${activity.petName} đã hoàn tất`
+    if (activity.activityStatus === "cancelled") return `Dịch vụ spa của ${activity.petName} đã bị hủy`
+    if (activity.activityStatus === "confirmed") return `Dịch vụ spa của ${activity.petName} đã được xác nhận`
+    return `Dịch vụ spa của ${activity.petName} đã được đặt`
+  }
 
-  return `/owner/pets/${encodeURIComponent(activity.petId)}`
+  if (activity.activityCategory === "medical") {
+    if (activity.activityType === "medical_exam_recorded") return `Hồ sơ khám của ${activity.petName} đã có kết quả`
+    return `Hồ sơ y tế của ${activity.petName} có cập nhật`
+  }
+
+  if (activity.activityCategory === "vaccination") {
+    return `Lịch sử tiêm phòng của ${activity.petName} có cập nhật`
+  }
+
+  if (activity.activityCategory === "boarding") {
+    return `Lưu trú của ${activity.petName} có cập nhật`
+  }
+
+  if (activity.activityCategory === "invoice") {
+    return `Hóa đơn của ${activity.petName} có cập nhật`
+  }
+
+  if (activity.activityCategory === "payment") {
+    return `Thanh toán của ${activity.petName} có cập nhật`
+  }
+
+  return activity.title || `Hồ sơ của ${activity.petName} có cập nhật`
 }
 
 function formatTime(value: string): string {
@@ -459,10 +677,25 @@ function formatDate(value: string): string {
   }).format(new Date(value))
 }
 
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value))
+}
+
 function formatRelativeTime(value: string): string {
   const timestamp = new Date(value).getTime()
+  if (Number.isNaN(timestamp)) return ""
+
   const diffMs = Date.now() - timestamp
-  const diffMinutes = Math.max(1, Math.floor(diffMs / 60000))
+  if (diffMs < -60000) return formatDate(value)
+  if (Math.abs(diffMs) < 60000) return "Vừa xong"
+
+  const diffMinutes = Math.floor(diffMs / 60000)
 
   if (diffMinutes < 60) return `${diffMinutes} phút trước`
 
