@@ -86,7 +86,7 @@ export const createPetSchema = z
     identifyingMarks: optionalText(1000),
     healthProfile: petHealthProfileSchema
   })
-  .refine((value) => value.birthDate || value.estimatedAge !== undefined && value.estimatedAge !== null, {
+  .refine((value) => value.birthDate || (value.estimatedAge !== undefined && value.estimatedAge !== null), {
     path: ["estimatedAge"],
     message: "Cần nhập ngày sinh hoặc tuổi ước tính"
   });
@@ -108,6 +108,10 @@ export const updatePetSchema = z
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: "Cần có ít nhất một trường để cập nhật"
+  })
+  .refine((value) => !(value.birthDate === null && value.estimatedAge === null), {
+    path: ["estimatedAge"],
+    message: "Cần nhập ngày sinh hoặc tuổi ước tính"
   });
 
 export type ListPetsQuery = z.infer<typeof listPetsQuerySchema>;
