@@ -350,28 +350,17 @@ function MedicalHistoryTab({ petId, petName }: { petId: string; petName: string 
 
   function exportMedicalHistory() {
     const generatedAt = new Date()
-    const rows = [
-      ["Thú cưng", petName],
-      ["Ngày xuất", formatDateTime(generatedAt.toISOString())],
-      ["Bộ lọc loại khám", medicalExamTypeOptions.find((option) => option.value === examTypeFilter)?.label ?? "Tất cả"],
-      ["Bộ lọc thời gian", medicalTimeOptions.find((option) => option.value === timeFilter)?.label ?? "Tất cả thời gian"],
-      ["Từ khóa", searchValue.trim() || "Không có"],
-      [],
-      ["Mã phiếu", "Ngày khám", "Loại khám", "Bác sĩ", "Trạng thái", "Chẩn đoán", "Kết luận", "Có toa thuốc", "Tái khám"],
-      ...records.map((record) => [
-        record.examId,
-        formatDate(record.examDate),
-        record.examTypeName,
-        record.veterinarianName,
-        getExamStatusLabel(record.examStatus),
-        record.diagnosis || "",
-        record.conclusion || record.healthNote || "",
-        record.hasPrescription ? "Có" : "Không",
-        record.hasFollowUp ? formatDate(record.followUpDate) : "",
-      ]),
-    ]
 
-    downloadTextFile(`lich-su-kham-${toSafeFilename(petName)}-${formatFileDate(generatedAt)}.csv`, toCsv(rows), "text/csv;charset=utf-8")
+    exportMedicalHistoryExcel({
+      generatedAt,
+      petName,
+      records,
+      filters: [
+        { label: "Loại khám", value: medicalExamTypeOptions.find((option) => option.value === examTypeFilter)?.label ?? "Tất cả" },
+        { label: "Thời gian", value: medicalTimeOptions.find((option) => option.value === timeFilter)?.label ?? "Tất cả thời gian" },
+        { label: "Từ khóa", value: searchValue.trim() || "Không có" },
+      ],
+    })
   }
 
   return (
@@ -449,7 +438,7 @@ function MedicalHistoryTab({ petId, petName }: { petId: string; petName: string 
             onClick={exportMedicalHistory}
             type="button"
           >
-            Xuất lịch sử
+            Xuất Excel
             <Download className="h-4 w-4" />
           </button>
         </div>
@@ -769,6 +758,21 @@ function SpaHistoryTab({ petId, petName }: { petId: string; petName: string }) {
     setTimeFilter("all")
   }
 
+  function exportSpaHistory() {
+    const generatedAt = new Date()
+
+    exportSpaHistoryExcel({
+      generatedAt,
+      petName,
+      records,
+      filters: [
+        { label: "Loại dịch vụ", value: spaServiceTypeOptions.find((option) => option.value === serviceTypeFilter)?.label ?? "Tất cả" },
+        { label: "Thời gian", value: spaTimeOptions.find((option) => option.value === timeFilter)?.label ?? "Tất cả thời gian" },
+        { label: "Từ khóa", value: searchValue.trim() || "Không có" },
+      ],
+    })
+  }
+
   return (
     <div className="flex w-full flex-col gap-6">
       <section className="rounded-card border border-petcenter-border bg-white p-6 shadow-card">
@@ -837,8 +841,13 @@ function SpaHistoryTab({ petId, petName }: { petId: string; petName: string }) {
             </div>
           </div>
 
-          <button className="label-md inline-flex w-fit items-center gap-2 font-semibold text-petcenter-primary transition hover:underline">
-            Xuất lịch sử
+          <button
+            className="label-md inline-flex w-fit items-center gap-2 font-semibold text-petcenter-primary transition hover:underline disabled:cursor-not-allowed disabled:text-petcenter-text-muted disabled:no-underline"
+            disabled={isLoading || records.length === 0}
+            onClick={exportSpaHistory}
+            type="button"
+          >
+            Xuất Excel
             <Download className="h-4 w-4" />
           </button>
         </div>
@@ -1519,6 +1528,164 @@ function ErrorState({ message }: { message: string }) {
   )
 }
 
+type HistoryExportFilter = {
+  label: string
+  value: string
+}
+
+function exportMedicalHistoryExcel({
+  filters,
+  generatedAt,
+  petName,
+  records,
+}: {
+  filters: HistoryExportFilter[]
+  generatedAt: Date
+  petName: string
+  records: PetMedicalExam[]
+}) {
+  saveHistoryExcel({
+    filename: `lich-su-kham-${toSafeFilename(petName)}-${formatFileDate(generatedAt)}.xls`,
+    filters,
+    generatedAt,
+    petName,
+    title: "Lịch sử khám bệnh",
+    headers: ["STT", "Mã phiếu", "Ngày khám", "Loại khám", "Bác sĩ", "Trạng thái", "Chẩn đoán", "Kết luận / ghi chú", "Toa thuốc", "Tái khám"],
+    rows: records.map((record, index) => [
+      String(index + 1),
+      record.examId,
+      formatDate(record.examDate),
+      record.examTypeName,
+      record.veterinarianName,
+      getExamStatusLabel(record.examStatus),
+      record.diagnosis || "Chưa cập nhật",
+      record.conclusion || record.healthNote || "Chưa cập nhật",
+      record.hasPrescription ? "Có" : "Không",
+      record.hasFollowUp ? `${formatDate(record.followUpDate)}${record.followUpReason ? ` - ${record.followUpReason}` : ""}` : "Không có",
+    ]),
+  })
+}
+
+function exportSpaHistoryExcel({
+  filters,
+  generatedAt,
+  petName,
+  records,
+}: {
+  filters: HistoryExportFilter[]
+  generatedAt: Date
+  petName: string
+  records: PetSpaHistory[]
+}) {
+  saveHistoryExcel({
+    filename: `lich-su-spa-${toSafeFilename(petName)}-${formatFileDate(generatedAt)}.xls`,
+    filters,
+    generatedAt,
+    petName,
+    title: "Lịch sử spa",
+    headers: ["STT", "Mã phiếu spa", "Ngày hẹn", "Giờ", "Dịch vụ", "Gói dịch vụ", "Trạng thái", "Chi phí", "Dịch vụ bao gồm", "Yêu cầu đặc biệt"],
+    rows: records.map((record, index) => [
+      String(index + 1),
+      record.groomingTicketId,
+      record.scheduledDate,
+      record.scheduledTime,
+      record.serviceName,
+      record.serviceTypeName,
+      record.ticketStatusLabel,
+      formatMoney(record.totalAmount),
+      record.includedServices || "Không có",
+      record.specialRequest || "Không có",
+    ]),
+  })
+}
+
+function saveHistoryExcel({
+  filename,
+  filters,
+  generatedAt,
+  headers,
+  petName,
+  rows,
+  title,
+}: {
+  filename: string
+  filters: HistoryExportFilter[]
+  generatedAt: Date
+  headers: string[]
+  petName: string
+  rows: string[][]
+  title: string
+}) {
+  const filterHtml = filters
+    .map(
+      (filter) => `
+        <tr>
+          <td class="meta-label">${escapeHtml(filter.label)}</td>
+          <td>${escapeHtml(filter.value)}</td>
+        </tr>
+      `
+    )
+    .join("")
+  const headerHtml = headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")
+  const rowHtml = rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`).join("")
+  const html = `
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: Arial, Helvetica, sans-serif; color: #1f2a27; }
+          table { border-collapse: collapse; width: 100%; }
+          th { background: #005e53; color: #ffffff; font-weight: 700; }
+          th, td { border: 1px solid #cfd9d5; padding: 8px; mso-number-format: "\\@"; vertical-align: top; }
+          .title { color: #005e53; font-size: 22px; font-weight: 700; }
+          .section { background: #eef7f4; font-weight: 700; }
+          .meta-label { width: 180px; font-weight: 700; color: #4f625d; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr><td colspan="${headers.length}" class="title">PetCenter - ${escapeHtml(title)}</td></tr>
+          <tr><td class="meta-label">Thú cưng</td><td colspan="${Math.max(headers.length - 1, 1)}">${escapeHtml(petName)}</td></tr>
+          <tr><td class="meta-label">Ngày xuất</td><td colspan="${Math.max(headers.length - 1, 1)}">${escapeHtml(formatDateTime(generatedAt.toISOString()))}</td></tr>
+          <tr><td colspan="${headers.length}" class="section">Bộ lọc</td></tr>
+          ${filterHtml}
+          <tr><td colspan="${headers.length}" class="section">Dữ liệu</td></tr>
+          <tr>${headerHtml}</tr>
+          ${rowHtml}
+        </table>
+      </body>
+    </html>
+  `
+
+  downloadTextFile(filename, `\uFEFF${html}`, "application/vnd.ms-excel;charset=utf-8")
+}
+
+function escapeHtml(value: string | number | null | undefined) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;")
+}
+
+function formatMoney(value: number) {
+  return `${new Intl.NumberFormat("vi-VN").format(value)} VND`
+}
+
+function downloadTextFile(filename: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
 function formatDate(value: string | null) {
   if (!value) return "Chưa cập nhật"
 
@@ -1551,29 +1718,6 @@ function formatDateTime(value: string) {
   }).format(date)
 }
 
-function toCsv(rows: Array<Array<string | number | null | undefined>>) {
-  return `\uFEFF${rows.map((row) => row.map(escapeCsvCell).join(",")).join("\r\n")}`
-}
-
-function escapeCsvCell(value: string | number | null | undefined) {
-  const normalizedValue = value === null || value === undefined ? "" : String(value)
-
-  return `"${normalizedValue.replaceAll('"', '""')}"`
-}
-
-function downloadTextFile(filename: string, content: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
-}
-
 function toSafeFilename(value: string) {
   return normalizeSearchText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "thu-cung"
 }
@@ -1585,4 +1729,3 @@ function formatFileDate(value: Date) {
     year: "numeric",
   }).format(value)
 }
-
