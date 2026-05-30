@@ -128,7 +128,7 @@ export function OwnerPetsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-section">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-section">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <h1 className="heading-lg text-petcenter-text">Thú cưng của tôi</h1>
