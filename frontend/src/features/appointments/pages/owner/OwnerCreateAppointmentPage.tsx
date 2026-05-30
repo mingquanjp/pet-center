@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -49,6 +49,24 @@ const defaultFormValues: CreateOwnerAppointmentFormValues = {
 };
 
 export function OwnerCreateAppointmentPage() {
+  return (
+    <Suspense fallback={<OwnerCreateAppointmentLoading />}>
+      <OwnerCreateAppointmentContent />
+    </Suspense>
+  );
+}
+
+function OwnerCreateAppointmentLoading() {
+  return (
+    <div className="w-full max-w-[1280px]">
+      <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-text-secondary">
+        Đang tải dữ liệu tạo lịch hẹn...
+      </Card>
+    </div>
+  );
+}
+
+function OwnerCreateAppointmentContent() {
   const searchParams = useSearchParams();
   const requestedPetId = searchParams.get("petId") ?? "";
   const requestedExamTypeId = searchParams.get("examTypeId") ?? "";
