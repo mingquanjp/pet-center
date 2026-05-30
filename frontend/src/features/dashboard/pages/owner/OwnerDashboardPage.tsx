@@ -600,14 +600,18 @@ function UpcomingAppointment({ appointment }: { appointment: OwnerDashboardAppoi
 }
 
 function HealthReminder({ reminder }: { reminder: OwnerDashboardReminder }) {
+  const dueDateLabel = reminder.title.toLowerCase().includes("tiêm phòng") ? "Hạn tiêm phòng" : "Hạn tái khám"
+
   return (
     <div className="space-y-2.5 border-petcenter-border-strong first:border-t-0 first:pt-0 [&:not(:first-child)]:border-t [&:not(:first-child)]:pt-4">
       <p className="body-md font-semibold text-petcenter-text">{reminder.title}</p>
       <div className="flex flex-wrap items-center gap-2">
         <span className={`label-sm inline-block rounded px-2 py-1 font-bold uppercase ${reminder.tone === "overdue" ? "bg-petcenter-danger-bg text-petcenter-danger-text" : "bg-petcenter-warning-bg text-petcenter-warning-text"}`}>
-          {reminder.tone === "overdue" ? "Quá hạn" : "Sắp đến hạn"}
+          {reminder.tone === "overdue" ? "Quá hạn" : "Cần đặt lịch"}
         </span>
-        <span className="label-md text-petcenter-text-secondary">{formatDate(reminder.dueDate)}</span>
+        <span className="label-md text-petcenter-text-secondary">
+          {dueDateLabel}: <span className="font-semibold">{formatDate(reminder.dueDate)}</span>
+        </span>
       </div>
       <Link
         className="label-md flex h-9 w-full items-center justify-center rounded-control border border-petcenter-cta/25 bg-petcenter-cta/10 font-semibold text-petcenter-cta-hover transition-colors hover:bg-petcenter-cta/20"
