@@ -5,14 +5,23 @@ import type {
   AvailabilityQuery,
   BookingOptionsQuery,
   CreateGroomingTicketPayload,
+  CreateStaffCounterGroomingTicketPayload,
   GroomingTicketParams,
   ListGroomingTicketHistoryQuery,
-  ListGroomingTicketsQuery
+  ListGroomingTicketsQuery,
+  StaffCounterOptionsQuery,
+  StaffGroomingTicketQuery
 } from "./grooming.schema.js";
 import * as groomingService from "./grooming.service.js";
 
 export async function listAvailableServices(req: Request, res: Response): Promise<void> {
   const services = await groomingService.listAvailableServices(req.user!);
+
+  sendSuccess(res, services);
+}
+
+export async function listStaffAvailableServices(req: Request, res: Response): Promise<void> {
+  const services = await groomingService.listStaffAvailableServices(req.user!);
 
   sendSuccess(res, services);
 }
@@ -25,6 +34,12 @@ export async function getBookingOptions(req: Request, res: Response): Promise<vo
 
 export async function getAvailability(req: Request, res: Response): Promise<void> {
   const availability = await groomingService.getAvailability(req.user!, req.query as unknown as AvailabilityQuery);
+
+  sendSuccess(res, availability);
+}
+
+export async function getStaffCounterAvailability(req: Request, res: Response): Promise<void> {
+  const availability = await groomingService.getStaffCounterAvailability(req.user!, req.query as unknown as AvailabilityQuery);
 
   sendSuccess(res, availability);
 }
@@ -52,11 +67,60 @@ export async function cancelBookedTicket(req: Request, res: Response): Promise<v
   const { ticketId } = req.params as GroomingTicketParams;
   const ticket = await groomingService.cancelBookedTicket(req.user!, ticketId);
 
-  sendSuccess(res, ticket, "Hủy yêu cầu dịch vụ spa thành công");
+  sendSuccess(res, ticket, "Huy yeu cau dich vu spa thanh cong");
 }
 
 export async function createTicket(req: Request, res: Response): Promise<void> {
   const ticket = await groomingService.createTicket(req.user!, req.body as CreateGroomingTicketPayload);
 
-  sendSuccess(res, ticket, "Tạo yêu cầu dịch vụ spa thành công", httpStatus.CREATED);
+  sendSuccess(res, ticket, "Tao yeu cau dich vu spa thanh cong", httpStatus.CREATED);
+}
+
+export async function getStaffCounterOptions(req: Request, res: Response): Promise<void> {
+  const options = await groomingService.getStaffCounterOptions(req.user!, req.query as unknown as StaffCounterOptionsQuery);
+
+  sendSuccess(res, options);
+}
+
+export async function createStaffCounterTicket(req: Request, res: Response): Promise<void> {
+  const ticket = await groomingService.createStaffCounterTicket(
+    req.user!,
+    req.body as CreateStaffCounterGroomingTicketPayload
+  );
+
+  sendSuccess(res, ticket, "Tao yeu cau spa tai quay thanh cong", httpStatus.CREATED);
+}
+
+export async function listStaffTickets(req: Request, res: Response): Promise<void> {
+  const tickets = await groomingService.listStaffTickets(req.user!, req.query as unknown as StaffGroomingTicketQuery);
+
+  sendSuccess(res, tickets);
+}
+
+export async function acceptStaffTicket(req: Request, res: Response): Promise<void> {
+  const { ticketId } = req.params as GroomingTicketParams;
+  const ticket = await groomingService.acceptStaffTicket(req.user!, ticketId);
+
+  sendSuccess(res, ticket, "Tiep nhan yeu cau spa thanh cong");
+}
+
+export async function completeStaffTicket(req: Request, res: Response): Promise<void> {
+  const { ticketId } = req.params as GroomingTicketParams;
+  const ticket = await groomingService.completeStaffTicket(req.user!, ticketId);
+
+  sendSuccess(res, ticket, "Hoan tat yeu cau spa thanh cong");
+}
+
+export async function startStaffTicket(req: Request, res: Response): Promise<void> {
+  const { ticketId } = req.params as GroomingTicketParams;
+  const ticket = await groomingService.startStaffTicket(req.user!, ticketId);
+
+  sendSuccess(res, ticket, "Bat dau thuc hien yeu cau spa thanh cong");
+}
+
+export async function cancelStaffTicket(req: Request, res: Response): Promise<void> {
+  const { ticketId } = req.params as GroomingTicketParams;
+  const ticket = await groomingService.cancelStaffTicket(req.user!, ticketId);
+
+  sendSuccess(res, ticket, "Huy yeu cau spa thanh cong");
 }
