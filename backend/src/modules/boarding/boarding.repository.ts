@@ -15,14 +15,14 @@ import type {
   CreateBoardingRecordInput
 } from "./boarding.types.js";
 
-const activeBoardingStatuses = ["pending", "confirmed", "staying", "checked_out"] as const;
+const ownerVisibleBoardingStatuses = ["pending", "confirmed", "staying", "checked_out", "cancelled", "rejected"] as const;
 
 function buildBoardingRecordWhere(filters: BoardingRecordListFilters): { clauses: string[]; params: unknown[] } {
   const clauses = [
     "br.owner_user_id = $1",
     "br.boarding_status = ANY($2)"
   ];
-  const params: unknown[] = [filters.ownerUserId, activeBoardingStatuses];
+  const params: unknown[] = [filters.ownerUserId, ownerVisibleBoardingStatuses];
 
   if (filters.search) {
     params.push(`%${filters.search}%`);
@@ -203,7 +203,7 @@ export async function findOwnerBoardingRecordDetail(
         AND br.boarding_status = ANY($3)
       LIMIT 1
     `,
-    [ownerUserId, boardingRecordId, activeBoardingStatuses]
+    [ownerUserId, boardingRecordId, ownerVisibleBoardingStatuses]
   );
 
   return result.rows[0] ?? null;
