@@ -30,7 +30,10 @@ export const ownerAvailableSlotsQuerySchema = z.object({
 export const createOwnerAppointmentSchema = z.object({
   petId: z.string().min(1, "Pet is required"),
   examTypeId: z.string().min(1, "Exam type is required"),
-  scheduledAt: z.string().datetime("scheduledAt must be a valid ISO datetime"),
+  scheduledAt: z.string().datetime({
+    offset: true,
+    message: "scheduledAt must be a valid ISO datetime with timezone offset",
+  }),
   symptomDescription: z.string().max(500).optional(),
   note: z.string().max(500).optional(),
 });

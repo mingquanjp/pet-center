@@ -9,7 +9,7 @@ import {
 } from "../../types/appointment.types";
 import {
   buildScheduledAt,
-  formatAppointmentTimeWithPeriod,
+  formatAppointmentTimeUtc,
   formatAppointmentWeekdayDate,
 } from "../../utils/appointment-format";
 
@@ -42,7 +42,7 @@ export function OwnerAppointmentSummaryCard({
     appointmentDate && timeSlot ? buildScheduledAt(appointmentDate, timeSlot) : "";
 
   return (
-    <aside className="lg:sticky lg:top-24">
+    <aside className="lg:sticky lg:top-8 lg:self-start">
       <div className="rounded-2xl border border-petcenter-border bg-petcenter-card p-6 shadow-card">
         <h2 className="heading-sm mb-4 border-b border-petcenter-border pb-4 text-petcenter-text">
           Tóm tắt lịch hẹn
@@ -61,7 +61,7 @@ export function OwnerAppointmentSummaryCard({
           <SummaryRow
             highlight
             label="Giờ hẹn:"
-            value={scheduledAt ? formatAppointmentTimeWithPeriod(scheduledAt) : "Chưa chọn"}
+            value={scheduledAt ? formatAppointmentTimeUtc(scheduledAt) : "Chưa chọn"}
           />
           <div className="mt-2 flex items-center justify-between border-t border-petcenter-border pt-4">
             <span className="body-md text-petcenter-text-secondary">Trạng thái:</span>

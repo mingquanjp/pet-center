@@ -25,21 +25,21 @@ export function OwnerAppointmentTimeSlots({
     timeSlots[0];
 
   return (
-    <fieldset>
-      <legend className="title-md mb-4 text-petcenter-text">4. Giờ khám</legend>
+    <fieldset aria-label="Chọn giờ">
+      <legend className="mb-2 text-xs font-medium leading-4 text-[#3E4946]">Chọn giờ</legend>
       <div className="relative w-full">
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
           disabled={timeSlots.length === 0 || availableSlots.length === 0}
-          className="flex h-12 w-full items-center justify-between rounded-xl border border-petcenter-border bg-petcenter-filter px-[17px] text-left body-md text-petcenter-text transition-colors hover:bg-petcenter-background disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex h-11 w-full items-center justify-between rounded-lg border border-[#BDC9C5] bg-[#FBFAEE] px-[17px] text-left text-sm leading-5 text-[#1B1C15] transition-colors hover:bg-petcenter-background disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span>{availableSlots.length > 0 ? selectedSlot?.label ?? "Chọn giờ" : "Hết lịch"}</span>
           <ChevronDown className="size-4 text-petcenter-text-secondary" aria-hidden="true" />
         </button>
 
         {open ? (
-          <div className="absolute left-0 top-[78px] z-20 max-h-[300px] w-full overflow-y-auto rounded-2xl border border-petcenter-border-strong bg-petcenter-card p-1 shadow-modal">
+          <div className="absolute left-0 top-[50px] z-20 max-h-[300px] w-full overflow-y-auto rounded-xl border border-petcenter-border-strong bg-petcenter-card p-1 shadow-modal">
             {timeSlots.map((slot) => {
               const selected = slot.value === selectedTimeSlot;
               const availableUnits = slot.availableUnits ?? (slot.disabled ? 0 : 1);

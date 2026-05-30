@@ -15,9 +15,8 @@ export function OwnerExamTypeSelection({
   selectedExamTypeId,
 }: OwnerExamTypeSelectionProps) {
   return (
-    <fieldset>
-      <legend className="title-md mb-4 text-petcenter-text">2. Loại hình khám</legend>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <fieldset aria-label="Loại hình khám">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {examTypes.map((examType) => {
           const isSelected = selectedExamTypeId === examType.id;
 
@@ -26,7 +25,7 @@ export function OwnerExamTypeSelection({
               key={examType.id}
               type="button"
               className={cn(
-                "flex h-12 items-center gap-2 rounded-[0.75rem] border px-3 text-left transition-colors hover:bg-petcenter-background",
+                "flex h-11 min-w-0 items-center gap-2 rounded-[0.75rem] border px-2.5 text-left transition-colors hover:bg-petcenter-background",
                 isSelected
                   ? "border-petcenter-primary bg-petcenter-success-bg/40"
                   : "border-petcenter-border bg-petcenter-card"
@@ -41,7 +40,7 @@ export function OwnerExamTypeSelection({
                     : "border-petcenter-border bg-petcenter-card"
                 )}
               />
-              <span className="body-md text-petcenter-text">{examType.name}</span>
+              <span className="body-sm min-w-0 truncate text-petcenter-text">{examType.name}</span>
             </button>
           );
         })}

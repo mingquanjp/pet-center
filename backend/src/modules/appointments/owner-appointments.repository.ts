@@ -10,6 +10,7 @@ import type {
 } from "./owner-appointments.types.js";
 
 const effectiveStatusSql = "CASE WHEN me.exam_id IS NOT NULL THEN 'completed' ELSE ma.appointment_status END";
+const timeZone = "Asia/Ho_Chi_Minh";
 
 function buildOwnerAppointmentFilterClauses(ownerUserId: string, filters: OwnerAppointmentListQuery) {
   const params: unknown[] = [ownerUserId];
@@ -36,7 +37,7 @@ function buildOwnerAppointmentFilterClauses(ownerUserId: string, filters: OwnerA
 
   if (filters.date) {
     params.push(filters.date);
-    where += ` AND DATE(ma.scheduled_at AT TIME ZONE 'UTC') = $${params.length}::date`;
+    where += ` AND (ma.scheduled_at AT TIME ZONE '${timeZone}')::date = $${params.length}::date`;
   }
 
   return { params, where };
@@ -245,10 +246,10 @@ export async function findActiveExamTypeById(examTypeId: string, client?: PoolCl
 export async function listBusySlotsByDate(date: string, client?: PoolClient) {
   const sql = `
     SELECT
-      to_char(scheduled_at AT TIME ZONE 'UTC', 'HH24:MI') AS slot,
+      to_char(scheduled_at AT TIME ZONE '${timeZone}', 'HH24:MI') AS slot,
       COUNT(*)::int AS booked_count
     FROM pet_center.medical_appointments
-    WHERE DATE(scheduled_at AT TIME ZONE 'UTC') = $1::date
+    WHERE (scheduled_at AT TIME ZONE '${timeZone}')::date = $1::date
       AND appointment_status IN ('pending', 'confirmed')
     GROUP BY slot
   `;

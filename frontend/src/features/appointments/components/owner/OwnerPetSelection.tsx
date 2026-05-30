@@ -28,8 +28,7 @@ export function OwnerPetSelection({
   const selectedPet = pets.find((pet) => pet.id === selectedPetId) ?? pets[0];
 
   return (
-    <fieldset>
-      <legend className="title-md mb-4 text-petcenter-text">1. Chọn thú cưng</legend>
+    <fieldset aria-label="Chọn thú cưng">
       {selectedPet ? (
         <div className="relative w-full max-w-[448px]">
           <p className="mb-2 label-md text-petcenter-text-secondary">Thú cưng</p>

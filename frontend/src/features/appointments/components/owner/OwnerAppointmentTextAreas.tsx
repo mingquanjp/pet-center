@@ -15,30 +15,41 @@ export function OwnerAppointmentTextAreas({
 }: OwnerAppointmentTextAreasProps) {
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div>
-        <label className="title-md mb-2 block text-petcenter-text" htmlFor="symptom-description">
-          5. Triệu chứng (nếu có)
-        </label>
-        <Textarea
-          id="symptom-description"
-          value={symptomDescription}
-          onChange={(event) => onSymptomDescriptionChange(event.target.value)}
-          placeholder="Mô tả các dấu hiệu bất thường của thú cưng..."
-          className="body-md min-h-28 rounded-[0.75rem] border-petcenter-border bg-petcenter-card p-3 text-petcenter-text placeholder:text-petcenter-text-muted focus-visible:ring-petcenter-primary/20"
-        />
-      </div>
-      <div>
-        <label className="title-md mb-2 block text-petcenter-text" htmlFor="appointment-note">
-          6. Ghi chú thêm
-        </label>
-        <Textarea
-          id="appointment-note"
-          value={note}
-          onChange={(event) => onNoteChange(event.target.value)}
-          placeholder="Các yêu cầu đặc biệt khác..."
-          className="body-md min-h-24 rounded-[0.75rem] border-petcenter-border bg-petcenter-card p-3 text-petcenter-text placeholder:text-petcenter-text-muted focus-visible:ring-petcenter-primary/20"
-        />
-      </div>
+      <OwnerAppointmentSymptomBox
+        symptomDescription={symptomDescription}
+        onSymptomDescriptionChange={onSymptomDescriptionChange}
+      />
+      <OwnerAppointmentNoteBox note={note} onNoteChange={onNoteChange} />
     </div>
+  );
+}
+
+export function OwnerAppointmentSymptomBox({
+  onSymptomDescriptionChange,
+  symptomDescription,
+}: Pick<OwnerAppointmentTextAreasProps, "symptomDescription" | "onSymptomDescriptionChange">) {
+  return (
+    <Textarea
+      id="symptom-description"
+      value={symptomDescription}
+      onChange={(event) => onSymptomDescriptionChange(event.target.value)}
+      placeholder="Mô tả các dấu hiệu bất thường của thú cưng..."
+      className="min-h-[86px] resize-none rounded-lg border-[#BDC9C5] bg-[#FBFAEE] px-[13px] py-[13px] text-sm leading-5 text-[#1B1C15] placeholder:text-[#6B7280] focus-visible:ring-0"
+    />
+  );
+}
+
+export function OwnerAppointmentNoteBox({
+  note,
+  onNoteChange,
+}: Pick<OwnerAppointmentTextAreasProps, "note" | "onNoteChange">) {
+  return (
+    <Textarea
+      id="appointment-note"
+      value={note}
+      onChange={(event) => onNoteChange(event.target.value)}
+      placeholder="Các yêu cầu đặc biệt khác..."
+      className="min-h-[86px] resize-none rounded-lg border-[#BDC9C5] bg-[#FBFAEE] px-[13px] py-[13px] text-sm leading-5 text-[#1B1C15] placeholder:text-[#6B7280] focus-visible:ring-0"
+    />
   );
 }

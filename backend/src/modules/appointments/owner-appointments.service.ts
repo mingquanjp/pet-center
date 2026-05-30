@@ -33,6 +33,20 @@ const FIXED_TIME_SLOTS = [
   "16:00",
   "17:00",
 ];
+const timeZone = "Asia/Ho_Chi_Minh";
+
+function getVietnamDateInputValue(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
 
 function mapDbStatus(row: Pick<OwnerAppointmentListRow, "appointment_status" | "completed_exam_id">): OwnerAppointmentStatusDto {
   if (row.completed_exam_id) {
@@ -280,7 +294,7 @@ export async function getOwnerAppointmentCreateOptions(ownerUserId: string) {
   const [pets, examTypes, timeSlots] = await Promise.all([
     repo.listOwnerPetOptions(ownerUserId),
     repo.listActiveExamTypes(),
-    buildTimeSlots(new Date().toISOString().slice(0, 10)),
+    buildTimeSlots(getVietnamDateInputValue()),
   ]);
 
   return {

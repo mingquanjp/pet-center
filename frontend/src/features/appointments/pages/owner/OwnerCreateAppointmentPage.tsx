@@ -7,7 +7,10 @@ import { ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { OwnerAppointmentDatePicker } from "../../components/owner/OwnerAppointmentDatePicker";
 import { OwnerAppointmentSummaryCard } from "../../components/owner/OwnerAppointmentSummaryCard";
-import { OwnerAppointmentTextAreas } from "../../components/owner/OwnerAppointmentTextAreas";
+import {
+  OwnerAppointmentNoteBox,
+  OwnerAppointmentSymptomBox,
+} from "../../components/owner/OwnerAppointmentTextAreas";
 import { OwnerAppointmentTimeSlots } from "../../components/owner/OwnerAppointmentTimeSlots";
 import { OwnerCreateAppointmentSuccessModal } from "../../components/owner/OwnerCreateAppointmentSuccessModal";
 import { OwnerExamTypeSelection } from "../../components/owner/OwnerExamTypeSelection";
@@ -19,12 +22,12 @@ import {
   CreateOwnerAppointmentFormValues,
   CreateOwnerAppointmentResult,
 } from "../../types/appointment.types";
-import { buildScheduledAt } from "../../utils/appointment-format";
+import { buildScheduledAt, getVietnamDateInputValue } from "../../utils/appointment-format";
 
 function getDefaultAppointmentDate() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
-  return date.toISOString().slice(0, 10);
+  return getVietnamDateInputValue(date);
 }
 
 const defaultFormValues: CreateOwnerAppointmentFormValues = {
@@ -132,7 +135,7 @@ export function OwnerCreateAppointmentPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto w-full max-w-[1440px] p-6 md:p-8">
+      <div className="w-full max-w-[1280px]">
         <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-text-secondary">
           Đang tải dữ liệu tạo lịch hẹn...
         </Card>
@@ -142,7 +145,7 @@ export function OwnerCreateAppointmentPage() {
 
   if (isError) {
     return (
-      <div className="mx-auto w-full max-w-[1440px] p-6 md:p-8">
+      <div className="w-full max-w-[1280px]">
         <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-danger-text">
           Không thể tải dữ liệu tạo lịch hẹn.
         </Card>
@@ -151,7 +154,7 @@ export function OwnerCreateAppointmentPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] p-6 md:p-8">
+    <div className="w-full max-w-[1280px]">
       <Breadcrumb />
 
       <div className="mb-8">
@@ -162,21 +165,25 @@ export function OwnerCreateAppointmentPage() {
       </div>
 
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <Card className="gap-0 rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 md:p-8">
-          <div className="flex flex-col gap-6">
+        <div className="space-y-6">
+          <BookingSection number="1" title="Chọn thú cưng">
             <OwnerPetSelection
               pets={pets}
               selectedPetId={formValues.petId}
               onSelect={(petId) => updateFormValues({ petId })}
             />
-            <Divider />
+          </BookingSection>
+
+          <BookingSection number="2" title="Loại hình khám">
             <OwnerExamTypeSelection
               examTypes={examTypes}
               selectedExamTypeId={formValues.examTypeId}
               onSelect={(examTypeId) => updateFormValues({ examTypeId })}
             />
-            <Divider />
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          </BookingSection>
+
+          <BookingSection number="3" title="Thời gian khám">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <OwnerAppointmentDatePicker
                 value={formValues.appointmentDate}
                 onChange={(appointmentDate) => updateFormValues({ appointmentDate })}
@@ -187,22 +194,30 @@ export function OwnerCreateAppointmentPage() {
                 onSelect={(timeSlot) => updateFormValues({ timeSlot })}
               />
             </div>
-            <Divider />
-            <OwnerAppointmentTextAreas
-              note={formValues.note}
+          </BookingSection>
+
+          <BookingSection number="4" title="Triệu chứng (nếu có)">
+            <OwnerAppointmentSymptomBox
               symptomDescription={formValues.symptomDescription}
-              onNoteChange={(note) => updateFormValues({ note })}
               onSymptomDescriptionChange={(symptomDescription) =>
                 updateFormValues({ symptomDescription })
               }
             />
-            {validationMessage ? (
-              <p className="body-sm rounded-[0.75rem] bg-petcenter-danger-bg p-3 text-petcenter-danger-text">
-                {validationMessage}
-              </p>
-            ) : null}
-          </div>
-        </Card>
+          </BookingSection>
+
+          <BookingSection number="5" title="Ghi chú thêm">
+            <OwnerAppointmentNoteBox
+              note={formValues.note}
+              onNoteChange={(note) => updateFormValues({ note })}
+            />
+          </BookingSection>
+
+          {validationMessage ? (
+            <p className="body-sm rounded-[0.75rem] bg-petcenter-danger-bg p-3 text-petcenter-danger-text">
+              {validationMessage}
+            </p>
+          ) : null}
+        </div>
 
         <OwnerAppointmentSummaryCard
           appointmentDate={formValues.appointmentDate}
@@ -224,6 +239,28 @@ export function OwnerCreateAppointmentPage() {
   );
 }
 
+function BookingSection({
+  children,
+  number,
+  title,
+}: {
+  children: React.ReactNode;
+  number: string;
+  title: string;
+}) {
+  return (
+    <section className="rounded-xl border border-[rgba(189,201,197,0.3)] bg-white p-[25px] shadow-[0_4px_16px_-4px_rgba(0,0,0,0.05)]">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[rgba(0,94,83,0.1)] px-2 text-[11px] font-semibold leading-[14px] tracking-[0.02em] text-[#005E53]">
+          {number}
+        </span>
+        <h2 className="text-lg font-semibold leading-[26px] text-[#1B1C15]">{title}</h2>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
 function Breadcrumb() {
   return (
     <nav aria-label="Breadcrumb" className="label-md mb-6 text-petcenter-text-secondary">
@@ -240,8 +277,4 @@ function Breadcrumb() {
       </ol>
     </nav>
   );
-}
-
-function Divider() {
-  return <hr className="border-petcenter-border" />;
 }

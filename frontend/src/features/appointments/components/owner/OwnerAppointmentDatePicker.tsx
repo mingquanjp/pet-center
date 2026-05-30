@@ -3,6 +3,8 @@
 import { useRef } from "react";
 import { CalendarDays } from "lucide-react";
 
+import { getVietnamDateInputValue } from "../../utils/appointment-format";
+
 interface OwnerAppointmentDatePickerProps {
   value: string;
   onChange: (value: string) => void;
@@ -16,8 +18,8 @@ export function OwnerAppointmentDatePicker({
 
   return (
     <div>
-      <label className="title-md mb-4 block text-petcenter-text" htmlFor="appointment-date">
-        3. Ngày khám
+      <label className="mb-2 block text-xs font-medium leading-4 text-[#3E4946]" htmlFor="appointment-date">
+        Chọn ngày
       </label>
       <div className="relative w-full">
         <CalendarDays
@@ -34,7 +36,7 @@ export function OwnerAppointmentDatePicker({
 
             dateInputRef.current?.focus();
           }}
-          className="h-12 w-full rounded-xl border border-petcenter-border bg-petcenter-filter py-[11px] pl-[41px] pr-[17px] text-left body-md text-petcenter-text transition-colors hover:bg-petcenter-background"
+          className="h-11 w-full rounded-lg border border-[#BDC9C5] bg-[#FBFAEE] py-[11px] pl-[41px] pr-[17px] text-left text-sm leading-5 text-[#1B1C15] transition-colors hover:bg-petcenter-background"
         >
           {formatDateLabel(value)}
         </button>
@@ -45,7 +47,7 @@ export function OwnerAppointmentDatePicker({
           min={getTodayDateInputValue()}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="pointer-events-none absolute inset-0 h-12 w-full opacity-0"
+          className="pointer-events-none absolute inset-0 h-11 w-full opacity-0"
           aria-label="Chọn ngày khám"
         />
       </div>
@@ -59,9 +61,5 @@ function formatDateLabel(value: string) {
 }
 
 function getTodayDateInputValue() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return getVietnamDateInputValue();
 }

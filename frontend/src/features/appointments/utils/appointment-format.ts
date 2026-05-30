@@ -1,19 +1,24 @@
 import { StaffAppointment } from "../types/appointment.types";
 
+const APPOINTMENT_TIME_ZONE = "Asia/Ho_Chi_Minh";
+const VI_LOCALE = "vi-VN";
+
 export function formatAppointmentDate(dateString: string): string {
   const date = new Date(dateString);
-  return date.toLocaleDateString("vi-VN", {
+  return date.toLocaleDateString(VI_LOCALE, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: APPOINTMENT_TIME_ZONE,
   });
 }
 
 export function formatAppointmentTime(dateString: string): string {
   const date = new Date(dateString);
-  return date.toLocaleTimeString("vi-VN", {
+  return date.toLocaleTimeString(VI_LOCALE, {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: APPOINTMENT_TIME_ZONE,
   });
 }
 
@@ -68,34 +73,55 @@ export function getPetHealthStatusClassName(status: "HEALTHY" | "NEED_MONITORING
 }
 
 export function getAppointmentDateInputValue(dateString: string): string {
-  const date = new Date(dateString);
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
+  const parts = getVietnamDateParts(dateString);
+  const year = parts.year;
+  const month = `${parts.month}`.padStart(2, "0");
+  const day = `${parts.day}`.padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
 
-function getUtcDateParts(dateString: string) {
+function getVietnamDateParts(dateString: string) {
   const date = new Date(dateString);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APPOINTMENT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    weekday: "short",
+    hour12: false,
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  const weekdayMap: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
 
   return {
-    day: date.getUTCDate(),
-    month: date.getUTCMonth() + 1,
-    year: date.getUTCFullYear(),
-    weekday: date.getUTCDay(),
-    hour: date.getUTCHours(),
-    minute: date.getUTCMinutes(),
+    day: Number(value("day")),
+    month: Number(value("month")),
+    year: Number(value("year")),
+    weekday: weekdayMap[value("weekday")] ?? 0,
+    hour: Number(value("hour")),
+    minute: Number(value("minute")),
   };
 }
 
 export function formatAppointmentDateUtc(dateString: string): string {
-  const { day, month, year } = getUtcDateParts(dateString);
+  const { day, month, year } = getVietnamDateParts(dateString);
   return `${`${day}`.padStart(2, "0")}/${`${month}`.padStart(2, "0")}/${year}`;
 }
 
 export function formatAppointmentTimeUtc(dateString: string): string {
-  const { hour, minute } = getUtcDateParts(dateString);
+  const { hour, minute } = getVietnamDateParts(dateString);
   return `${`${hour}`.padStart(2, "0")}:${`${minute}`.padStart(2, "0")}`;
 }
 
@@ -104,7 +130,7 @@ export function formatAppointmentDateTimeUtc(dateString: string): string {
 }
 
 export function formatAppointmentWeekdayDate(dateString: string): string {
-  const { day, month, year, weekday } = getUtcDateParts(dateString);
+  const { day, month, year, weekday } = getVietnamDateParts(dateString);
   const weekdayLabels = [
     "Chủ nhật",
     "Thứ 2",
@@ -119,7 +145,7 @@ export function formatAppointmentWeekdayDate(dateString: string): string {
 }
 
 export function formatAppointmentTimeWithPeriod(dateString: string): string {
-  const { hour, minute } = getUtcDateParts(dateString);
+  const { hour, minute } = getVietnamDateParts(dateString);
   const period = hour < 12 ? "SA" : "CH";
   const displayHour = hour % 12 === 0 ? 12 : hour % 12;
 
@@ -130,6 +156,19 @@ export function formatAppointmentDateTimeWithPeriod(dateString: string): string 
   return `${formatAppointmentDate(dateString)} - ${formatAppointmentTimeWithPeriod(dateString)}`;
 }
 
+export function getVietnamDateInputValue(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APPOINTMENT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
 export function buildScheduledAt(date: string, timeSlot: string): string {
-  return `${date}T${timeSlot}:00.000Z`;
+  return `${date}T${timeSlot}:00+07:00`;
 }
