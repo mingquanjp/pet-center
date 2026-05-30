@@ -377,6 +377,7 @@ export async function createBoardingRecord(input: CreateBoardingRecordInput): Pr
           invoiceId,
           amount: totalAmount,
           orderInfo: `Thanh toan luu tru ${boardingRecordId}`,
+          orderType: "170003",
           clientIp: input.clientIp
         })
       : null;

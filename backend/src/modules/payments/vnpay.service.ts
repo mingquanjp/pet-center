@@ -24,6 +24,7 @@ type VnpayConfig = {
 export type VnpayCallbackParams = Record<string, string>;
 
 const timeZone = "Asia/Ho_Chi_Minh";
+const defaultVnpayOrderType = "250006";
 
 function getVnpayConfig(): VnpayConfig {
   const config = {
@@ -193,7 +194,7 @@ export function buildVnpayPaymentUrl(input: VnpayPaymentUrlInput): {
     vnp_CurrCode: "VND",
     vnp_TxnRef: input.txnRef,
     vnp_OrderInfo: normalizeOrderInfo(input.orderInfo),
-    vnp_OrderType: input.orderType ?? "billpayment",
+    vnp_OrderType: input.orderType ?? defaultVnpayOrderType,
     vnp_Locale: "vn",
     vnp_ReturnUrl: config.returnUrl,
     vnp_IpAddr: normalizeClientIp(input.clientIp),

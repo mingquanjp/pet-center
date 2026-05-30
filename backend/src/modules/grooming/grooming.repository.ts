@@ -1004,6 +1004,7 @@ export async function createGroomingBooking(input: CreateBookingInput): Promise<
           invoiceId,
           amount: input.service.appliedPrice,
           orderInfo: `Thanh toan dich vu spa ${groomingTicketId}`,
+          orderType: "210000",
           clientIp: input.clientIp
         })
       : null;

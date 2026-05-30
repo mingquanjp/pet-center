@@ -8,6 +8,7 @@ export type CreatePendingVnpayAttemptInput = {
   invoiceId: string;
   amount: number;
   orderInfo: string;
+  orderType?: string;
   clientIp: string;
 };
 
@@ -21,6 +22,7 @@ export async function createPendingVnpayAttempt(
     txnRef: providerTxnRef,
     amount: input.amount,
     orderInfo: input.orderInfo,
+    orderType: input.orderType,
     clientIp: input.clientIp
   });
 
