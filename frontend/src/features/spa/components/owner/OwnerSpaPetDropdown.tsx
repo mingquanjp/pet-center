@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Check, ChevronDown, Search } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { OwnerSpaPet } from "../../types/spa.types"
@@ -21,6 +22,7 @@ export function OwnerSpaPetDropdown({
   onOpenChange,
   onSelect,
 }: OwnerSpaPetDropdownProps) {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const selectedPet = pets.find((pet) => pet.id === selectedPetId) ?? pets[0]
 
@@ -106,7 +108,7 @@ export function OwnerSpaPetDropdown({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => handleOpenChange(false)}
+            onClick={() => router.push("/owner/pets/add")}
             className="h-[42px] w-full justify-start rounded-none border-t border-[#BDC9C5] px-3 text-[13px] font-normal leading-[18px] text-[#3E4946] hover:bg-[#FBFAEE]"
           >
             + Thêm hồ sơ thú cưng
