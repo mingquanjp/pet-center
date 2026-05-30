@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { Card } from "@/components/ui/card";
 import { OwnerAppointmentDatePicker } from "../../components/owner/OwnerAppointmentDatePicker";
@@ -29,6 +30,15 @@ function getDefaultAppointmentDate() {
   return getVietnamDateInputValue(date);
 }
 
+function normalizeRequestedAppointmentDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return "";
+  }
+
+  const today = getVietnamDateInputValue();
+  return value >= today ? value : "";
+}
+
 const defaultFormValues: CreateOwnerAppointmentFormValues = {
   petId: "",
   examTypeId: "",
@@ -39,8 +49,17 @@ const defaultFormValues: CreateOwnerAppointmentFormValues = {
 };
 
 export function OwnerCreateAppointmentPage() {
+  const searchParams = useSearchParams();
+  const requestedPetId = searchParams.get("petId") ?? "";
+  const requestedExamTypeId = searchParams.get("examTypeId") ?? "";
+  const requestedDate = normalizeRequestedAppointmentDate(searchParams.get("date") ?? "");
   const [formValues, setFormValues] =
-    useState<CreateOwnerAppointmentFormValues>(defaultFormValues);
+    useState<CreateOwnerAppointmentFormValues>(() => ({
+      ...defaultFormValues,
+      petId: requestedPetId,
+      examTypeId: requestedExamTypeId,
+      appointmentDate: requestedDate || defaultFormValues.appointmentDate,
+    }));
   const [createdAppointment, setCreatedAppointment] =
     useState<CreateOwnerAppointmentResult | null>(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -65,15 +84,23 @@ export function OwnerCreateAppointmentPage() {
     !formValues.timeSlot;
 
   useEffect(() => {
-    if (!formValues.petId && pets[0]) {
+    if (!formValues.petId && !requestedPetId && pets[0]) {
       void Promise.resolve().then(() => {
         setFormValues((currentValues) => ({ ...currentValues, petId: pets[0].id }));
+      });
+    }
+  }, [formValues.petId, pets, requestedPetId]);
+
+  useEffect(() => {
+    if (formValues.petId && pets.length > 0 && !pets.some((pet) => pet.id === formValues.petId)) {
+      void Promise.resolve().then(() => {
+        setFormValues((currentValues) => ({ ...currentValues, petId: pets[0]?.id ?? "" }));
       });
     }
   }, [formValues.petId, pets]);
 
   useEffect(() => {
-    if (!formValues.examTypeId && examTypes[0]) {
+    if (!formValues.examTypeId && !requestedExamTypeId && examTypes[0]) {
       void Promise.resolve().then(() => {
         setFormValues((currentValues) => ({
           ...currentValues,
@@ -81,7 +108,16 @@ export function OwnerCreateAppointmentPage() {
         }));
       });
     }
-  }, [examTypes, formValues.examTypeId]);
+  }, [examTypes, formValues.examTypeId, requestedExamTypeId]);
+
+  useEffect(() => {
+    setFormValues((currentValues) => ({
+      ...currentValues,
+      petId: requestedPetId || currentValues.petId,
+      examTypeId: requestedExamTypeId || currentValues.examTypeId,
+      appointmentDate: requestedDate || currentValues.appointmentDate,
+    }));
+  }, [requestedDate, requestedExamTypeId, requestedPetId]);
 
   useEffect(() => {
     const selectedSlot = timeSlots.find((slot) => slot.value === formValues.timeSlot);
