@@ -2,6 +2,8 @@ import { StaffAppointment } from "../types/appointment.types";
 
 const APPOINTMENT_TIME_ZONE = "Asia/Ho_Chi_Minh";
 const VI_LOCALE = "vi-VN";
+const LAST_APPOINTMENT_SLOT_HOUR = 17;
+const MIN_BOOKING_LEAD_TIME_HOURS = 1;
 
 export function formatAppointmentDate(dateString: string): string {
   const date = new Date(dateString);
@@ -167,6 +169,27 @@ export function getVietnamDateInputValue(date = new Date()): string {
     parts.find((part) => part.type === type)?.value ?? "";
 
   return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+export function getMinAppointmentDateInputValue(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APPOINTMENT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  const minimumDate = new Date(date);
+  const currentHour = Number(value("hour"));
+
+  if (currentHour >= LAST_APPOINTMENT_SLOT_HOUR - MIN_BOOKING_LEAD_TIME_HOURS) {
+    minimumDate.setDate(minimumDate.getDate() + 1);
+  }
+
+  return getVietnamDateInputValue(minimumDate);
 }
 
 export function buildScheduledAt(date: string, timeSlot: string): string {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -56,13 +57,14 @@ export function OwnerAppointmentDetailPage({
   }
 
   const appointment = localStatus ? { ...data, status: localStatus } : data;
-  const canCancel = appointment.status === "PENDING" || appointment.status === "CONFIRMED";
+  const canCancel = appointment.status === "PENDING";
 
   async function handleCancelConfirm(reason?: string) {
     try {
       await cancelAppointment({ appointmentId: appointment.id, reason });
       setLocalStatus("CANCELLED");
       setIsCancelModalOpen(false);
+      toast.success("Hủy lịch hẹn thành công");
       void refetch();
     } catch {
       setIsCancelModalOpen(false);

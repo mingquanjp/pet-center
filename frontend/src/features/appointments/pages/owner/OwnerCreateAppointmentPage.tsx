@@ -21,7 +21,11 @@ import {
   CreateOwnerAppointmentFormValues,
   CreateOwnerAppointmentResult,
 } from "../../types/appointment.types";
-import { buildScheduledAt, getVietnamDateInputValue } from "../../utils/appointment-format";
+import {
+  buildScheduledAt,
+  getMinAppointmentDateInputValue,
+  getVietnamDateInputValue,
+} from "../../utils/appointment-format";
 
 function getDefaultAppointmentDate() {
   const date = new Date();
@@ -97,8 +101,32 @@ export function OwnerCreateAppointmentPage() {
           timeSlot: firstAvailableSlot.value,
         }));
       });
+      return;
+    }
+
+    if (formValues.timeSlot) {
+      void Promise.resolve().then(() => {
+        setFormValues((currentValues) => ({
+          ...currentValues,
+          timeSlot: "",
+        }));
+      });
     }
   }, [formValues.timeSlot, timeSlots]);
+
+  useEffect(() => {
+    const minAppointmentDate = getMinAppointmentDateInputValue();
+    if (formValues.appointmentDate >= minAppointmentDate) {
+      return;
+    }
+
+    void Promise.resolve().then(() => {
+      setFormValues((currentValues) => ({
+        ...currentValues,
+        appointmentDate: minAppointmentDate,
+      }));
+    });
+  }, [formValues.appointmentDate]);
 
   function updateFormValues(nextValues: Partial<CreateOwnerAppointmentFormValues>) {
     setValidationMessage("");

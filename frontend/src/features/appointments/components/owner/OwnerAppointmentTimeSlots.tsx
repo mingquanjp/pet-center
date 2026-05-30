@@ -20,7 +20,7 @@ export function OwnerAppointmentTimeSlots({
   const [open, setOpen] = useState(false);
   const availableSlots = timeSlots.filter((slot) => !slot.disabled);
   const selectedSlot =
-    timeSlots.find((slot) => slot.value === selectedTimeSlot) ??
+    timeSlots.find((slot) => slot.value === selectedTimeSlot && !slot.disabled) ??
     availableSlots[0] ??
     timeSlots[0];
 
@@ -43,6 +43,11 @@ export function OwnerAppointmentTimeSlots({
             {timeSlots.map((slot) => {
               const selected = slot.value === selectedTimeSlot;
               const availableUnits = slot.availableUnits ?? (slot.disabled ? 0 : 1);
+              const slotStatus = slot.disabledReason === "past"
+                ? "Quá hạn đặt"
+                : availableUnits > 0
+                  ? `Còn ${availableUnits} Slot`
+                  : "Đầy";
 
               return (
                 <button
@@ -60,7 +65,7 @@ export function OwnerAppointmentTimeSlots({
                 >
                   <span>{slot.label}</span>
                   <span className="flex items-center gap-2 body-sm text-petcenter-text-secondary">
-                    {availableUnits > 0 ? `Còn ${availableUnits} Slot` : "Đầy"}
+                    {slotStatus}
                     {selected ? (
                       <Check className="size-4 text-petcenter-primary" aria-hidden="true" />
                     ) : null}

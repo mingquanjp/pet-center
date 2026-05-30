@@ -57,6 +57,7 @@ export interface OwnerPetOptionRow {
   breed: string | null;
   birth_date: Date | null;
   estimated_age: string | null;
+  weight_kg: string | null;
   profile_image_url: string | null;
 }
 
@@ -132,6 +133,7 @@ export interface OwnerAppointmentPetOptionDto {
   species: "Dog" | "Cat" | "Other";
   breed?: string;
   ageText?: string;
+  weightText?: string;
   imageUrl?: string;
 }
 
@@ -146,6 +148,7 @@ export interface OwnerAppointmentTimeSlotDto {
   value: string;
   label: string;
   disabled?: boolean;
+  disabledReason?: "past" | "full";
   availableUnits: number;
 }
 

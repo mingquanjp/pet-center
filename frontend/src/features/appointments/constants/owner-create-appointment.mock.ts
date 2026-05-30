@@ -11,6 +11,7 @@ export const MOCK_OWNER_PETS: OwnerAppointmentPetOption[] = [
     species: "Dog",
     breed: "Golden Retriever",
     ageText: "2 tuổi",
+    weightText: "18 kg",
     imageUrl:
       "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=160&q=80",
   },
@@ -19,6 +20,7 @@ export const MOCK_OWNER_PETS: OwnerAppointmentPetOption[] = [
     name: "Milo",
     species: "Cat",
     ageText: "1.5 tuổi",
+    weightText: "4.5 kg",
     imageUrl:
       "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=160&q=80",
   },
@@ -27,6 +29,7 @@ export const MOCK_OWNER_PETS: OwnerAppointmentPetOption[] = [
     name: "Bé Bông",
     species: "Other",
     ageText: "8 tháng",
+    weightText: "1.2 kg",
   },
 ];
 
