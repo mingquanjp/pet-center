@@ -21,6 +21,8 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
+import { toast } from "sonner"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -278,8 +280,10 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
             await boardingApi.cancelRecord(record.boardingRecordId)
             setRecord((prev) => (prev ? { ...prev, status: "cancelled" } : null))
             setIsCancelDialogOpen(false)
+            toast.success("Hủy lưu trú thành công")
           } catch (error) {
-            alert(error instanceof Error ? error.message : "Không thể hủy lịch lưu trú")
+            const errorMessage = error instanceof Error ? error.message : "Không thể hủy lịch lưu trú"
+            toast.error(errorMessage)
           } finally {
             setIsCanceling(false)
           }

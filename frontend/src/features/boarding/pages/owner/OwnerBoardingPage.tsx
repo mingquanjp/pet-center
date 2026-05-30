@@ -16,6 +16,8 @@ import {
   ShieldPlus,
 } from "lucide-react"
 
+import { toast } from "sonner"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AppPagination } from "@/components/ui/app-pagination"
 import { Button } from "@/components/ui/button"
@@ -216,8 +218,11 @@ export function OwnerBoardingPage() {
             : record
         )
       )
+      toast.success("Hủy lưu trú thành công")
     } catch (error) {
-      setRecordsError(error instanceof Error ? error.message : "Không thể hủy lịch lưu trú")
+      const errorMessage = error instanceof Error ? error.message : "Không thể hủy lịch lưu trú"
+      setRecordsError(errorMessage)
+      toast.error(errorMessage)
     } finally {
       setIsCanceling(false)
       setCancelRecordId(null)
