@@ -167,24 +167,6 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
             <span className={cn("size-2 rounded-full", meta.dotClassName)} aria-hidden="true" />
             {meta.label}
           </span>
-          <Button
-            asChild={Boolean(record.payment.receiptUrl)}
-            variant="outline"
-            disabled={!record.payment.receiptUrl}
-            className="h-9 rounded-lg border-[#005E53] bg-white px-4 text-xs font-medium text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#005E53] disabled:cursor-not-allowed disabled:border-[#BDC9C5] disabled:text-[#6E7A76]"
-          >
-            {record.payment.receiptUrl ? (
-              <a href={record.payment.receiptUrl} target="_blank" rel="noreferrer">
-                <ReceiptText className="mr-2 size-4" aria-hidden="true" />
-                Tải hóa đơn
-              </a>
-            ) : (
-              <>
-                <ReceiptText className="mr-2 size-4" aria-hidden="true" />
-                Tải hóa đơn
-              </>
-            )}
-          </Button>
           <Button asChild className="h-9 rounded-lg bg-[#005E53] px-4 text-xs font-medium text-white hover:bg-[#004C43]">
             <Link href="/owner/boarding/booking">
               <RotateCcw className="mr-2 size-4" aria-hidden="true" />
