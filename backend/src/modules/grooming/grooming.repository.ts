@@ -1106,6 +1106,26 @@ export async function getAvailability(date: string): Promise<GroomingAvailabilit
   };
 }
 
+async function hasOverlappingActiveGroomingForPet(
+  client: PoolClient,
+  petId: string,
+  scheduledAt: Date
+): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    `select exists (
+       select 1
+       from pet_center.grooming_tickets gt
+       where gt.pet_id = $1
+         and gt.ticket_status in ('pending', 'waiting', 'in_progress')
+         and gt.scheduled_at < $2::timestamptz + interval '30 minutes'
+         and gt.scheduled_at + interval '30 minutes' > $2::timestamptz
+     ) as "exists"`,
+    [petId, scheduledAt]
+  );
+
+  return result.rows[0]?.exists ?? false;
+}
+
 export async function createGroomingBooking(input: CreateBookingInput): Promise<GroomingTicketCreatedDto> {
   return withTransaction(async (client) => {
     await client.query("lock table pet_center.grooming_tickets in share row exclusive mode");
@@ -1123,6 +1143,12 @@ export async function createGroomingBooking(input: CreateBookingInput): Promise<
 
     if (capacity <= 0 || bookedUnits >= capacity) {
       throw new Error("GROOMING_SLOT_FULL");
+    }
+
+    const petHasOverlappingBooking = await hasOverlappingActiveGroomingForPet(client, input.pet.petId, input.scheduledAt);
+
+    if (petHasOverlappingBooking) {
+      throw new Error("GROOMING_PET_TIME_CONFLICT");
     }
 
     const groomingTicketId = createBookingCode(input.scheduledAt);
