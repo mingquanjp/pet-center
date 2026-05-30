@@ -438,6 +438,14 @@ export async function createBoardingRecord(
       throw new AppError("Loại phòng này đã hết chỗ trong khoảng thời gian đã chọn", "BOARDING_ROOM_FULL", httpStatus.CONFLICT);
     }
 
+    if (error instanceof Error && error.message === "BOARDING_PET_TIME_CONFLICT") {
+      throw new AppError(
+        "Thú cưng này đã có lịch lưu trú trong khoảng thời gian đã chọn",
+        "BOARDING_PET_TIME_CONFLICT",
+        httpStatus.CONFLICT
+      );
+    }
+
     throw error;
   }
 }

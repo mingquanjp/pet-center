@@ -308,6 +308,27 @@ export async function findActiveRoomTypesWithAvailability(
   return result.rows;
 }
 
+async function hasOverlappingActiveBoardingForPet(
+  client: PoolClient,
+  petId: string,
+  plannedCheckInAt: Date,
+  plannedCheckOutAt: Date
+): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM pet_center.boarding_records br
+       WHERE br.pet_id = $1
+         AND br.boarding_status IN ('pending', 'confirmed', 'staying')
+         AND br.planned_check_in_at < $2
+         AND br.planned_check_out_at > $3
+     ) AS "exists"`,
+    [petId, plannedCheckOutAt, plannedCheckInAt]
+  );
+
+  return result.rows[0]?.exists ?? false;
+}
+
 function createBoardingCode(date: Date): string {
   const datePart = date.toISOString().slice(0, 10).replaceAll("-", "");
 
@@ -327,6 +348,17 @@ export async function createBoardingRecord(input: CreateBoardingRecordInput): Pr
 
     if (!roomType || Number(roomType.booked_units) >= Number(roomType.capacity)) {
       throw new Error("BOARDING_ROOM_FULL");
+    }
+
+    const petHasOverlappingBooking = await hasOverlappingActiveBoardingForPet(
+      client,
+      input.pet.petId,
+      input.plannedCheckInAt,
+      input.plannedCheckOutAt
+    );
+
+    if (petHasOverlappingBooking) {
+      throw new Error("BOARDING_PET_TIME_CONFLICT");
     }
 
     const boardingRecordId = createBoardingCode(input.plannedCheckInAt);
@@ -903,4 +935,3 @@ export async function updateBoardingToCheckedOut(params: { boardingRecordId: str
   const result = await query(sql, [params.boardingRecordId, params.handledByStaffId ?? params.userId, params.actualCheckOutAt ?? null]);
   return result.rows[0];
 }
-

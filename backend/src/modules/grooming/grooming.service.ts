@@ -319,6 +319,14 @@ export async function createTicket(authUser: AuthUser, payload: CreateGroomingTi
       throw new AppError("Khung gio nay da day, vui long chon khung gio khac", "GROOMING_SLOT_FULL", httpStatus.CONFLICT);
     }
 
+    if (error instanceof Error && error.message === "GROOMING_PET_TIME_CONFLICT") {
+      throw new AppError(
+        "Thu cung nay da co lich spa trong khung gio da chon",
+        "GROOMING_PET_TIME_CONFLICT",
+        httpStatus.CONFLICT
+      );
+    }
+
     throw error;
   }
 }
@@ -395,6 +403,14 @@ export async function createStaffCounterTicket(
   } catch (error) {
     if (error instanceof Error && error.message === "GROOMING_SLOT_FULL") {
       throw new AppError("Khung gio nay da day, vui long chon khung gio khac", "GROOMING_SLOT_FULL", httpStatus.CONFLICT);
+    }
+
+    if (error instanceof Error && error.message === "GROOMING_PET_TIME_CONFLICT") {
+      throw new AppError(
+        "Thu cung nay da co lich spa trong khung gio da chon",
+        "GROOMING_PET_TIME_CONFLICT",
+        httpStatus.CONFLICT
+      );
     }
 
     throw error;
