@@ -199,7 +199,7 @@ export function OwnerDashboardPage() {
           </Link>
           <Link
             className="label-md inline-flex h-10 items-center justify-center gap-2 rounded-pill bg-petcenter-cta px-5 font-semibold text-white shadow-card transition-colors hover:bg-petcenter-cta-hover"
-            href="/owner/appointments"
+            href="/owner/appointments/create"
           >
             <CalendarPlus className="h-4 w-4" />
             Đặt lịch khám

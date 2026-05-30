@@ -212,7 +212,7 @@ function mapReminder(row: ReminderRow): OwnerDashboardReminder {
     title: row.title,
     dueDate: row.due_date,
     tone: row.tone,
-    actionHref: "/owner/appointments",
+    actionHref: `/owner/appointments/create?petId=${encodeURIComponent(row.pet_id)}&date=${encodeURIComponent(row.due_date)}`,
   };
 }
 

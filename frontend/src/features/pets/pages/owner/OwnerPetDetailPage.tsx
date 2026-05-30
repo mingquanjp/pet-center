@@ -216,10 +216,13 @@ export function OwnerPetDetailPage({ petId }: { petId: string }) {
               <Edit3 className="h-4 w-4" />
               Chỉnh sửa hồ sơ
             </Link>
-            <button className="label-md inline-flex h-11 items-center justify-center gap-2 rounded-control bg-petcenter-cta px-5 font-semibold text-white shadow-card transition hover:bg-petcenter-cta-hover">
+            <Link
+              className="label-md inline-flex h-11 items-center justify-center gap-2 rounded-control bg-petcenter-cta px-5 font-semibold text-white shadow-card transition hover:bg-petcenter-cta-hover"
+              href={`/owner/appointments/create?petId=${encodeURIComponent(pet.petId)}`}
+            >
               <CalendarPlus className="h-4 w-4" />
               Đặt lịch khám
-            </button>
+            </Link>
           </div>
         </div>
       </section>
