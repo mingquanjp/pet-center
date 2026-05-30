@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -72,7 +72,6 @@ export function OwnerAppointmentDetailPage({
   return (
     <div className="flex w-full max-w-[1280px] flex-col gap-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <Breadcrumb />
         <Button
           asChild
           variant="outline"
@@ -130,29 +129,5 @@ export function OwnerAppointmentDetailPage({
         onOpenChange={setIsCancelModalOpen}
       />
     </div>
-  );
-}
-
-function Breadcrumb() {
-  return (
-    <nav aria-label="Breadcrumb" className="body-sm text-petcenter-text-secondary">
-      <ol className="flex flex-wrap items-center gap-1">
-        <li>
-          <Link className="transition hover:text-petcenter-primary" href="/owner/appointments">
-            Lịch hẹn
-          </Link>
-        </li>
-        <li className="flex items-center gap-1">
-          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          <Link className="transition hover:text-petcenter-primary" href="/owner/appointments">
-            Danh sách lịch hẹn
-          </Link>
-        </li>
-        <li className="flex items-center gap-1 text-petcenter-text" aria-current="page">
-          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          Chi tiết lịch hẹn
-        </li>
-      </ol>
-    </nav>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { OwnerAppointmentDatePicker } from "../../components/owner/OwnerAppointmentDatePicker";
@@ -155,8 +154,6 @@ export function OwnerCreateAppointmentPage() {
 
   return (
     <div className="w-full max-w-[1280px]">
-      <Breadcrumb />
-
       <div className="mb-8">
         <h1 className="heading-lg text-petcenter-text">Tạo lịch hẹn khám</h1>
         <p className="body-lg mt-2 text-petcenter-text-secondary">
@@ -258,23 +255,5 @@ function BookingSection({
       </div>
       <div className="space-y-4">{children}</div>
     </section>
-  );
-}
-
-function Breadcrumb() {
-  return (
-    <nav aria-label="Breadcrumb" className="label-md mb-6 text-petcenter-text-secondary">
-      <ol className="flex flex-wrap items-center gap-2">
-        <li>
-          <Link href="/owner/appointments" className="transition hover:text-petcenter-primary">
-            Lịch hẹn
-          </Link>
-        </li>
-        <li className="flex items-center gap-2 text-petcenter-text">
-          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          Tạo lịch hẹn
-        </li>
-      </ol>
-    </nav>
   );
 }
