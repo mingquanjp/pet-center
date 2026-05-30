@@ -1,4 +1,4 @@
-import { Calendar, RotateCcw, Search, SlidersHorizontal } from "lucide-react";
+import { Calendar, RotateCcw, Search } from "lucide-react";
 
 import { ownerAppointmentStatusFilterOptions } from "../../constants/appointment.constants";
 import {
@@ -96,11 +96,6 @@ export function OwnerAppointmentFilterBar({
           <RotateCcw className="h-4 w-4" aria-hidden="true" />
           <span className="hidden sm:inline">Đặt lại</span>
         </button>
-
-        <div className="label-md ml-auto flex min-w-[170px] items-center justify-start gap-2 text-petcenter-text-secondary">
-          <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-          Hiển thị {resultCount}/{totalCount} lịch hẹn
-        </div>
       </div>
     </div>
   );
