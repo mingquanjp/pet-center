@@ -227,6 +227,18 @@ export async function findPublishedBoardingUpdates(boardingRecordId: string): Pr
   return result.rows;
 }
 
+export async function updateBoardingRecordStatus(
+  boardingRecordId: string,
+  status: string
+): Promise<void> {
+  await query(
+    `UPDATE pet_center.boarding_records
+     SET boarding_status = $1, updated_at = NOW()
+     WHERE boarding_record_id = $2`,
+    [status, boardingRecordId]
+  );
+}
+
 export async function findOwnerBookingPets(ownerUserId: string): Promise<BoardingBookingPetRow[]> {
   const result = await query<BoardingBookingPetRow>(
     `SELECT pet_id, pet_name, species, weight_kg, profile_image_url

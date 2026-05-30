@@ -41,7 +41,9 @@ function getStatusLabel(status: BoardingRecordStatus): string {
     pending: "Chờ xác nhận",
     confirmed: "Chờ check-in",
     staying: "Đang lưu trú",
-    checked_out: "Hoàn tất"
+    checked_out: "Hoàn tất",
+    cancelled: "Đã hủy",
+    rejected: "Từ chối"
   };
 
   return labels[status];
@@ -458,6 +460,33 @@ export async function getOwnerBoardingRecordDetail(
   const updates = await boardingRepository.findPublishedBoardingUpdates(record.boarding_record_id);
 
   return mapBoardingRecordDetail(record, updates);
+}
+
+export async function cancelOwnerBoardingRecord(
+  authUser: AuthUser,
+  params: BoardingRecordParams
+): Promise<void> {
+  assertOwner(authUser);
+
+  const record = await boardingRepository.findOwnerBoardingRecordDetail(
+    authUser.userId,
+    params.boardingRecordId
+  );
+
+  if (!record) {
+    throw new AppError("Không tìm thấy lịch lưu trú phù hợp", "BOARDING_RECORD_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  if (record.boarding_status !== "pending") {
+    throw new AppError("Chỉ có thể hủy lịch lưu trú đang chờ xác nhận", "INVALID_BOARDING_STATUS", httpStatus.BAD_REQUEST);
+  }
+
+  // Double check if payment is somewhat completed or not
+  if (record.invoice_status === "paid") {
+    throw new AppError("Lịch này đã được thanh toán. Vui lòng liên hệ nhân viên để được hỗ trợ hủy.", "INVALID_BOARDING_STATUS", httpStatus.BAD_REQUEST);
+  }
+
+  await boardingRepository.updateBoardingRecordStatus(params.boardingRecordId, "cancelled");
 }
 
 export async function listOwnerBoardingRecords(authUser: AuthUser, query: ListBoardingRecordsQuery) {

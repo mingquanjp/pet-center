@@ -81,6 +81,14 @@ boardingRouter.get(
   asyncHandler(boardingController.getOwnerBoardingRecordDetail)
 );
 
+boardingRouter.patch(
+  "/boarding/records/:boardingRecordId/cancel",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: boardingRecordParamsSchema }),
+  asyncHandler(boardingController.cancelOwnerBoardingRecord)
+);
+
 boardingRouter.post(
   "/boarding/records",
   authMiddleware,

@@ -28,6 +28,7 @@ import type {
   BoardingTimeRange,
   Pagination,
 } from "../../types/boarding.types"
+import { OwnerBoardingCancelDialog } from "../../components/owner/OwnerBoardingCancelDialog"
 
 type BoardingFilters = {
   search: string
@@ -50,6 +51,8 @@ const statusOptions: Array<{ label: string; value: BoardingFilters["status"] }> 
   { label: "Chờ check-in", value: "confirmed" },
   { label: "Đang lưu trú", value: "staying" },
   { label: "Hoàn tất", value: "checked_out" },
+  { label: "Đã hủy", value: "cancelled" },
+  { label: "Từ chối", value: "rejected" },
 ]
 
 const timeRangeOptions: Array<{ label: string; value: BoardingTimeRange }> = [
@@ -72,6 +75,12 @@ const statusMeta: Record<BoardingRecordStatus, { className: string }> = {
   checked_out: {
     className: "bg-[#D8F3EE] text-[#00796B]",
   },
+  cancelled: {
+    className: "bg-[#FDE2E4] text-[#C62828]",
+  },
+  rejected: {
+    className: "bg-[#FDE2E4] text-[#C62828]",
+  },
 }
 
 export function OwnerBoardingPage() {
@@ -91,6 +100,8 @@ export function OwnerBoardingPage() {
   const [isLoadingRecords, setIsLoadingRecords] = React.useState(true)
   const [hasLoadedRecords, setHasLoadedRecords] = React.useState(false)
   const [recordsError, setRecordsError] = React.useState<string | null>(null)
+  const [cancelRecordId, setCancelRecordId] = React.useState<string | null>(null)
+  const [isCanceling, setIsCanceling] = React.useState(false)
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -191,6 +202,32 @@ export function OwnerBoardingPage() {
     setPage(1)
   }
 
+  async function proceedCancelRecord() {
+    if (!cancelRecordId) return
+
+    setIsCanceling(true)
+    try {
+      await boardingApi.cancelRecord(cancelRecordId)
+      // Cập nhật state nội bộ để thấy ngay sự thay đổi
+      setRecords((prev) =>
+        prev.map((record) =>
+          record.boardingRecordId === cancelRecordId
+            ? { ...record, status: "cancelled", statusLabel: "Đã hủy" }
+            : record
+        )
+      )
+    } catch (error) {
+      setRecordsError(error instanceof Error ? error.message : "Không thể hủy lịch lưu trú")
+    } finally {
+      setIsCanceling(false)
+      setCancelRecordId(null)
+    }
+  }
+
+  function handleCancelRecord(boardingRecordId: string) {
+    setCancelRecordId(boardingRecordId)
+  }
+
   return (
     <div className="flex w-full flex-col gap-6">
       <section className="flex flex-col gap-4 pb-2 lg:flex-row lg:items-end lg:justify-between">
@@ -220,7 +257,7 @@ export function OwnerBoardingPage() {
       ) : records.length > 0 ? (
         <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {records.map((record) => (
-            <BoardingBookingCard booking={record} key={record.boardingRecordId} />
+            <BoardingBookingCard booking={record} key={record.boardingRecordId} onCancel={handleCancelRecord} />
           ))}
         </section>
       ) : (
@@ -240,6 +277,15 @@ export function OwnerBoardingPage() {
         isLoading={isLoadingRecords}
         onPageChange={setPage}
         totalPages={totalPages}
+      />
+
+      <OwnerBoardingCancelDialog
+        isOpen={Boolean(cancelRecordId)}
+        isPending={isCanceling}
+        onOpenChange={(open) => {
+          if (!open) setCancelRecordId(null)
+        }}
+        onSubmit={proceedCancelRecord}
       />
     </div>
   )
@@ -349,9 +395,10 @@ function BoardingFilterSelect({
   )
 }
 
-function BoardingBookingCard({ booking }: { booking: BoardingRecordListItem }) {
+function BoardingBookingCard({ booking, onCancel }: { booking: BoardingRecordListItem, onCancel: (id: string) => void }) {
   const status = statusMeta[booking.status]
   const isStaying = booking.status === "staying"
+  const canCancel = booking.status === "pending" && booking.payment.paymentStatus === "unpaid"
 
   return (
     <article className="flex min-h-[258px] flex-col justify-between rounded-[16px] border border-transparent bg-white p-5 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
@@ -425,14 +472,34 @@ function BoardingBookingCard({ booking }: { booking: BoardingRecordListItem }) {
         </div>
       </div>
 
-      <Button
-        asChild
-        className="h-10 w-full rounded-xl bg-[#00796B] text-base font-normal leading-6 text-white hover:bg-[#00695C]"
-      >
-        <Link href={`/owner/boarding/${encodeURIComponent(booking.boardingRecordId)}`}>
-          {isStaying ? "Theo dõi chi tiết" : "Xem chi tiết"}
-        </Link>
-      </Button>
+      {canCancel ? (
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            className="h-10 flex-1 rounded-xl border-[#C62828] text-base font-normal leading-6 text-[#C62828] hover:bg-[#FDE2E4] hover:text-[#C62828]"
+            onClick={() => onCancel(booking.boardingRecordId)}
+          >
+            Hủy
+          </Button>
+          <Button
+            asChild
+            className="h-10 flex-1 rounded-xl bg-[#00796B] text-base font-normal leading-6 text-white hover:bg-[#00695C]"
+          >
+            <Link href={`/owner/boarding/${encodeURIComponent(booking.boardingRecordId)}`}>
+              Xem chi tiết
+            </Link>
+          </Button>
+        </div>
+      ) : (
+        <Button
+          asChild
+          className="h-10 w-full rounded-xl bg-[#00796B] text-base font-normal leading-6 text-white hover:bg-[#00695C]"
+        >
+          <Link href={`/owner/boarding/${encodeURIComponent(booking.boardingRecordId)}`}>
+            {isStaying ? "Theo dõi chi tiết" : "Xem chi tiết"}
+          </Link>
+        </Button>
+      )}
     </article>
   )
 }
