@@ -8,6 +8,8 @@ import type {
   StaffAppointmentCountRow,
 } from "./appointments.types.js";
 
+const timeZone = "Asia/Ho_Chi_Minh";
+
 /**
  * Build reusable WHERE clauses for search/status/serviceType/date/tab filters.
  * Returns { whereClause, params } to be appended to the base SQL.
@@ -42,7 +44,7 @@ function buildFilterClauses(filters: any) {
   // Date filter
   if (filters.date) {
     params.push(filters.date);
-    where += ` AND DATE(ma.scheduled_at) = $${params.length}::date`;
+    where += ` AND (ma.scheduled_at AT TIME ZONE '${timeZone}')::date = $${params.length}::date`;
   }
 
   // Tab filter (overrides status if both exist conceptually, but FE sends tab separately)
@@ -129,7 +131,7 @@ export async function getStaffAppointmentsStats(filters: any) {
       COUNT(*) FILTER (WHERE ma.appointment_status = 'confirmed')::text  AS confirmed_count,
       COUNT(*) FILTER (WHERE ma.appointment_status = 'rejected')::text   AS rejected_count,
       COUNT(*) FILTER (WHERE ma.appointment_status = 'cancelled')::text  AS cancelled_count,
-      COUNT(*) FILTER (WHERE DATE(ma.scheduled_at) = CURRENT_DATE)::text AS today_total_count
+      COUNT(*) FILTER (WHERE (ma.scheduled_at AT TIME ZONE '${timeZone}')::date = (now() AT TIME ZONE '${timeZone}')::date)::text AS today_total_count
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.users u ON ma.owner_user_id = u.user_id
@@ -256,7 +258,7 @@ export async function findAvailableDoctorsForAppointment(
     LEFT JOIN pet_center.medical_appointments day_appt
       ON day_appt.veterinarian_user_id = u.user_id
       AND day_appt.appointment_status = 'confirmed'
-      AND DATE(day_appt.scheduled_at) = DATE($1)
+      AND (day_appt.scheduled_at AT TIME ZONE '${timeZone}')::date = ($1 AT TIME ZONE '${timeZone}')::date
     WHERE u.role = 'Doctor'
       AND u.account_status = 'active'
     GROUP BY u.user_id, u.full_name, u.phone_number, u.email
