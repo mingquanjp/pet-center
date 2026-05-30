@@ -28,6 +28,13 @@ export type GroomingBookingPetDto = {
   profileImageUrl: string | null;
 };
 
+export type StaffCounterGroomingPetDto = GroomingBookingPetDto & {
+  breed: string | null;
+  ownerUserId: string;
+  ownerName: string;
+  ownerPhoneNumber: string | null;
+};
+
 export type GroomingBookingServiceDto = {
   serviceId: string;
   serviceName: string;
@@ -57,6 +64,12 @@ export type GroomingBookingOptionsDto = {
   services: GroomingBookingServiceDto[];
 };
 
+export type StaffCounterGroomingOptionsDto = {
+  pets: StaffCounterGroomingPetDto[];
+  selectedPet: StaffCounterGroomingPetDto | null;
+  services: GroomingBookingServiceDto[];
+};
+
 export type GroomingAvailabilitySlotDto = {
   time: string;
   capacity: number;
@@ -73,6 +86,8 @@ export type GroomingAvailabilityDto = {
 export type GroomingTicketStatus = "pending_payment" | "pending" | "waiting" | "in_progress" | "completed" | "cancelled";
 export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled" | "refunded";
 export type GroomingPaymentOption = "counter" | "online";
+export type StaffGroomingTicketStatusFilter = GroomingTicketStatus | "all";
+export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" | "inProgress" | "completed" | "cancelled";
 
 export type BookedGroomingTicketStatus = Extract<GroomingTicketStatus, "pending" | "waiting" | "in_progress">;
 export type GroomingTicketHistoryStatus = Extract<GroomingTicketStatus, "completed" | "cancelled">;
@@ -171,4 +186,49 @@ export type GroomingTicketCreatedDto = {
   petName: string;
   serviceName: string;
   scheduledAt: string;
+};
+
+export type StaffGroomingTicketDto = {
+  groomingTicketId: string;
+  bookingCode: string;
+  petName: string;
+  petDescription: string;
+  ownerName: string;
+  serviceName: string;
+  serviceCount: number;
+  scheduledAt: string;
+  sourceType: "online" | "counter";
+  sourceLabel: string;
+  paymentMethodLabel: string;
+  paymentStatusLabel: string;
+  paymentStatusTone: "pending" | "paid";
+  specialRequest: string | null;
+  totalAmount: number;
+  totalAmountText: string;
+  status: GroomingTicketStatus;
+  statusLabel: string;
+  statusTone: StaffGroomingTicketStatusTone;
+  canAccept: boolean;
+  canStart: boolean;
+  canComplete: boolean;
+  canCancel: boolean;
+};
+
+export type StaffGroomingTicketSummaryDto = {
+  total: number;
+  waitingAccept: number;
+  accepted: number;
+  completed: number;
+  cancelled: number;
+};
+
+export type StaffGroomingTicketListDto = {
+  summary: StaffGroomingTicketSummaryDto;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  tickets: StaffGroomingTicketDto[];
 };

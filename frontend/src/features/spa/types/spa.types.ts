@@ -50,6 +50,13 @@ export interface GroomingBookingPet {
   profileImageUrl: string | null
 }
 
+export interface StaffCounterGroomingPet extends GroomingBookingPet {
+  breed: string | null
+  ownerUserId: string
+  ownerName: string
+  ownerPhoneNumber: string | null
+}
+
 export interface GroomingBookingService {
   serviceId: string
   serviceName: string
@@ -65,6 +72,12 @@ export interface GroomingBookingService {
 export interface GroomingBookingOptions {
   pets: GroomingBookingPet[]
   selectedPet: GroomingBookingPet | null
+  services: GroomingBookingService[]
+}
+
+export interface StaffCounterGroomingOptions {
+  pets: StaffCounterGroomingPet[]
+  selectedPet: StaffCounterGroomingPet | null
   services: GroomingBookingService[]
 }
 
@@ -89,6 +102,13 @@ export interface CreateGroomingTicketPayload {
   paymentOption: SpaPaymentMethod
 }
 
+export interface CreateStaffCounterGroomingTicketPayload {
+  petId: string
+  serviceId: string
+  scheduledAt: string
+  specialRequest?: string | null
+}
+
 export type GroomingTicketStatus =
   | "pending_payment"
   | "pending"
@@ -96,6 +116,11 @@ export type GroomingTicketStatus =
   | "in_progress"
   | "completed"
   | "cancelled"
+
+export type StaffGroomingTicketStatusFilter = GroomingTicketStatus | "all"
+export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" | "inProgress" | "completed" | "cancelled"
+export type StaffGroomingTicketSpeciesFilter = "all" | "Dog" | "Cat" | "Other"
+export type StaffGroomingTicketTimeRangeFilter = "all" | "today" | "upcoming" | "past"
 
 export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled" | "refunded"
 
@@ -119,6 +144,56 @@ export interface GroomingTicketCancelled {
   ticketStatus: "cancelled"
   ticketStatusLabel: string
   invoiceStatus: InvoiceStatus | null
+}
+
+export interface StaffGroomingTicket {
+  groomingTicketId: string
+  bookingCode: string
+  petName: string
+  petDescription: string
+  ownerName: string
+  serviceName: string
+  serviceCount: number
+  scheduledAt: string
+  sourceType: "online" | "counter"
+  sourceLabel: string
+  paymentMethodLabel: string
+  paymentStatusLabel: string
+  paymentStatusTone: "pending" | "paid"
+  specialRequest: string | null
+  totalAmount: number
+  totalAmountText: string
+  status: GroomingTicketStatus
+  statusLabel: string
+  statusTone: StaffGroomingTicketStatusTone
+  canAccept: boolean
+  canStart: boolean
+  canComplete: boolean
+  canCancel: boolean
+}
+
+export interface StaffGroomingTicketSummary {
+  total: number
+  waitingAccept: number
+  accepted: number
+  completed: number
+  cancelled: number
+}
+
+export interface StaffGroomingTicketList {
+  summary: StaffGroomingTicketSummary
+  pagination: Pagination
+  tickets: StaffGroomingTicket[]
+}
+
+export interface StaffGroomingTicketQuery {
+  status?: StaffGroomingTicketStatusFilter
+  serviceId?: string
+  species?: StaffGroomingTicketSpeciesFilter
+  timeRange?: StaffGroomingTicketTimeRangeFilter
+  search?: string
+  page?: number
+  limit?: number
 }
 
 export type BookedGroomingTicketStatus = "pending" | "waiting" | "in_progress"

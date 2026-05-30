@@ -22,6 +22,40 @@ export type Pet = {
   displayStatusLabel: string;
 };
 
+export type StaffPet = Pet & {
+  owner: {
+    userId: string;
+    fullName: string;
+    phoneNumber: string | null;
+  };
+};
+
+export type StaffPetDetail = PetDetail & {
+  owner: {
+    userId: string;
+    fullName: string;
+    phoneNumber: string | null;
+    email: string | null;
+    address: string | null;
+  };
+};
+
+export type StaffOwnerCandidate = {
+  userId: string;
+  fullName: string;
+  email: string | null;
+  phoneNumber: string | null;
+  address: string | null;
+};
+
+export type StaffCreateOwnerInput = {
+  fullName: string;
+  phoneNumber: string;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+};
+
 export type PetHealthProfile = {
   medicalHistory: string | null;
   allergyNotes: string | null;
@@ -211,6 +245,12 @@ export type CreatePetInput = {
   healthProfile?: PetHealthProfileInput;
 };
 
+export type StaffCreatePetInput = CreatePetInput & {
+  ownerUserId: string;
+};
+
+export type StaffUpdatePetInput = Partial<CreatePetInput>;
+
 export type UpdatePetInput = Partial<CreatePetInput> & {
   petStatus?: "active" | "inactive" | "deceased";
 };
@@ -218,6 +258,8 @@ export type UpdatePetInput = Partial<CreatePetInput> & {
 export type PetsListParams = {
   q?: string;
   species?: "all" | PetSpecies;
+  gender?: "all" | PetGender;
+  petStatus?: "all" | Pet["petStatus"];
   page?: number;
   limit?: number;
   sort?: "petName:asc" | "petName:desc";

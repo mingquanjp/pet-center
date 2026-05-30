@@ -24,7 +24,11 @@ import type {
   PetSpaHistoryFilters,
   PetVaccinationDto,
   PetVaccinationFilters,
-  PetVaccinationStatus
+  PetVaccinationStatus,
+  StaffOwnerCandidateDto,
+  StaffPetDetailDto,
+  StaffPetDto,
+  StaffPetListFilters
 } from "./pets.types.js";
 
 type PetRow = QueryResultRow & {
@@ -52,6 +56,28 @@ type PetDetailRow = PetRow & {
   feeding_portion: string | null;
   special_care_notes: string | null;
   health_profile_updated_at: string | null;
+};
+
+type StaffPetRow = PetRow & {
+  owner_user_id: string;
+  owner_name: string;
+  owner_phone_number: string | null;
+};
+
+type StaffPetDetailRow = PetDetailRow & {
+  owner_user_id: string;
+  owner_name: string;
+  owner_phone_number: string | null;
+  owner_email: string | null;
+  owner_address: string | null;
+};
+
+type StaffOwnerCandidateRow = QueryResultRow & {
+  user_id: string;
+  full_name: string;
+  email: string | null;
+  phone_number: string | null;
+  address: string | null;
 };
 
 type PetActivityLogRow = QueryResultRow & {
@@ -257,6 +283,40 @@ function mapPet(row: PetRow): PetDto {
   };
 }
 
+function mapStaffPet(row: StaffPetRow): StaffPetDto {
+  return {
+    ...mapPet(row),
+    owner: {
+      userId: row.owner_user_id,
+      fullName: row.owner_name,
+      phoneNumber: row.owner_phone_number
+    }
+  };
+}
+
+function mapStaffPetDetail(row: StaffPetDetailRow, recentActivities: PetActivityLogDto[] = []): StaffPetDetailDto {
+  return {
+    ...mapPetDetail(row, recentActivities),
+    owner: {
+      userId: row.owner_user_id,
+      fullName: row.owner_name,
+      phoneNumber: row.owner_phone_number,
+      email: row.owner_email,
+      address: row.owner_address
+    }
+  };
+}
+
+function mapStaffOwnerCandidate(row: StaffOwnerCandidateRow): StaffOwnerCandidateDto {
+  return {
+    userId: row.user_id,
+    fullName: row.full_name,
+    email: row.email,
+    phoneNumber: row.phone_number,
+    address: row.address
+  };
+}
+
 function mapPetDetail(row: PetDetailRow, recentActivities: PetActivityLogDto[] = []): PetDetailDto {
   return {
     ...mapPet(row),
@@ -414,6 +474,54 @@ function buildListWhere(filters: PetListFilters): { whereSql: string; params: un
     conditions.push(`p.species = $${params.length}`);
   }
 
+  if (filters.gender) {
+    params.push(filters.gender);
+    conditions.push(`p.gender = $${params.length}`);
+  }
+
+  if (filters.petStatus) {
+    params.push(filters.petStatus);
+    conditions.push(`p.pet_status = $${params.length}`);
+  }
+
+  return {
+    whereSql: conditions.join(" and "),
+    params
+  };
+}
+
+function buildStaffListWhere(filters: StaffPetListFilters): { whereSql: string; params: unknown[] } {
+  const params: unknown[] = [];
+  const conditions = ["true"];
+
+  if (filters.q) {
+    params.push(`%${normalizeSearchText(filters.q)}%`);
+    const paramIndex = params.length;
+    conditions.push(`(
+      ${normalizedSql("p.pet_id")} like $${paramIndex}
+      or ${normalizedSql("p.pet_name")} like $${paramIndex}
+      or ${normalizedSql("p.breed")} like $${paramIndex}
+      or ${normalizedSql("u.user_id")} like $${paramIndex}
+      or ${normalizedSql("u.full_name")} like $${paramIndex}
+      or ${normalizedSql("u.phone_number")} like $${paramIndex}
+    )`);
+  }
+
+  if (filters.species) {
+    params.push(filters.species);
+    conditions.push(`p.species = $${params.length}`);
+  }
+
+  if (filters.gender) {
+    params.push(filters.gender);
+    conditions.push(`p.gender = $${params.length}`);
+  }
+
+  if (filters.petStatus) {
+    params.push(filters.petStatus);
+    conditions.push(`p.pet_status = $${params.length}`);
+  }
+
   return {
     whereSql: conditions.join(" and "),
     params
@@ -482,6 +590,165 @@ export async function findPets(filters: PetListFilters): Promise<{ pets: PetDto[
     pets: listResult.rows.map(mapPet),
     total: Number(countResult.rows[0]?.total ?? 0)
   };
+}
+
+export async function findOwnerCandidates(q: string, limit = 5): Promise<StaffOwnerCandidateDto[]> {
+  const normalizedQuery = `%${normalizeSearchText(q)}%`;
+  const result = await query<StaffOwnerCandidateRow>(
+    `select u.user_id,
+       u.full_name,
+       u.email::text as email,
+       u.phone_number,
+       u.address
+     from pet_center.users u
+     where u.role = 'Owner'
+       and u.account_status = 'active'
+       and (
+         ${normalizedSql("u.user_id")} like $1
+         or ${normalizedSql("u.full_name")} like $1
+         or ${normalizedSql("u.email::text")} like $1
+         or ${normalizedSql("u.phone_number")} like $1
+       )
+     order by u.full_name asc, u.user_id asc
+     limit $2`,
+    [normalizedQuery, limit]
+  );
+
+  return result.rows.map(mapStaffOwnerCandidate);
+}
+
+export async function findOwnerById(ownerUserId: string): Promise<StaffOwnerCandidateDto | null> {
+  const result = await query<StaffOwnerCandidateRow>(
+    `select u.user_id,
+       u.full_name,
+       u.email::text as email,
+       u.phone_number,
+       u.address
+     from pet_center.users u
+     where u.user_id = $1
+       and u.role = 'Owner'
+       and u.account_status = 'active'
+     limit 1`,
+    [ownerUserId]
+  );
+
+  return result.rows[0] ? mapStaffOwnerCandidate(result.rows[0]) : null;
+}
+
+export async function findOwnerByEmail(email: string): Promise<StaffOwnerCandidateDto | null> {
+  const result = await query<StaffOwnerCandidateRow>(
+    `select u.user_id,
+       u.full_name,
+       u.email::text as email,
+       u.phone_number,
+       u.address
+     from pet_center.users u
+     where u.email = $1
+     limit 1`,
+    [email]
+  );
+
+  return result.rows[0] ? mapStaffOwnerCandidate(result.rows[0]) : null;
+}
+
+export async function findOwnerByPhoneNumber(phoneNumber: string): Promise<StaffOwnerCandidateDto | null> {
+  const result = await query<StaffOwnerCandidateRow>(
+    `select u.user_id,
+       u.full_name,
+       u.email::text as email,
+       u.phone_number,
+       u.address
+     from pet_center.users u
+     where u.phone_number = $1
+       and u.role = 'Owner'
+     limit 1`,
+    [phoneNumber]
+  );
+
+  return result.rows[0] ? mapStaffOwnerCandidate(result.rows[0]) : null;
+}
+
+export async function createStaffOwner(input: {
+  userId: string;
+  fullName: string;
+  email: string;
+  passwordHash: string;
+  phoneNumber: string;
+  address?: string | null;
+}): Promise<StaffOwnerCandidateDto> {
+  const result = await query<StaffOwnerCandidateRow>(
+    `insert into pet_center.users (user_id, full_name, email, password_hash, phone_number, address, role)
+     values ($1, $2, $3, $4, $5, $6, 'Owner')
+     returning user_id, full_name, email::text as email, phone_number, address`,
+    [input.userId, input.fullName, input.email, input.passwordHash, input.phoneNumber, input.address ?? null]
+  );
+
+  return mapStaffOwnerCandidate(result.rows[0]);
+}
+
+export async function findStaffPets(filters: StaffPetListFilters): Promise<{ pets: StaffPetDto[]; total: number }> {
+  const { whereSql, params } = buildStaffListWhere(filters);
+  const orderSql = filters.sort === "petName:desc" ? "p.pet_name desc, p.pet_id desc" : "p.pet_name asc, p.pet_id asc";
+  const listParams = [...params, filters.limit, filters.offset];
+
+  const [listResult, countResult] = await Promise.all([
+    query<StaffPetRow>(
+      `select ${petSelectSql},
+         u.user_id as owner_user_id,
+         u.full_name as owner_name,
+         u.phone_number as owner_phone_number
+       from pet_center.pets p
+       inner join pet_center.users u on u.user_id = p.owner_user_id
+       where ${whereSql}
+       order by ${orderSql}
+       limit $${params.length + 1} offset $${params.length + 2}`,
+      listParams
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.pets p
+       inner join pet_center.users u on u.user_id = p.owner_user_id
+       where ${whereSql}`,
+      params
+    )
+  ]);
+
+  return {
+    pets: listResult.rows.map(mapStaffPet),
+    total: Number(countResult.rows[0]?.total ?? 0)
+  };
+}
+
+export async function findStaffPetById(petId: string): Promise<StaffPetDetailDto | null> {
+  const petResult = await query<StaffPetDetailRow>(
+    `select ${petSelectSql},
+       php.medical_history,
+       php.allergy_notes,
+       php.chronic_condition_notes,
+       php.food_type,
+       php.feeding_portion,
+       php.special_care_notes,
+       php.updated_at::text as health_profile_updated_at,
+       u.user_id as owner_user_id,
+       u.full_name as owner_name,
+       u.phone_number as owner_phone_number,
+       u.email::text as owner_email,
+       u.address as owner_address
+     from pet_center.pets p
+     inner join pet_center.users u on u.user_id = p.owner_user_id
+     left join pet_center.pet_health_profiles php on php.pet_id = p.pet_id
+     where p.pet_id = $1
+     limit 1`,
+    [petId]
+  );
+
+  const petRow = petResult.rows[0];
+
+  if (!petRow) return null;
+
+  const activities = await findRecentPetActivities(petRow.owner_user_id, petId, 4);
+
+  return mapStaffPetDetail(petRow, activities);
 }
 
 export async function findPetById(ownerUserId: string, petId: string): Promise<PetDetailDto | null> {

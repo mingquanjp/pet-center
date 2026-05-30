@@ -12,6 +12,9 @@ import {
   petParamsSchema,
   petSpaHistoryQuerySchema,
   petVaccinationsQuerySchema,
+  staffCreateOwnerSchema,
+  staffCreatePetSchema,
+  staffOwnerSearchQuerySchema,
   updatePetSchema
 } from "./pets.schema.js";
 
@@ -289,6 +292,54 @@ export const petsRouter = Router();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
+petsRouter.get(
+  "/staff/pets",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ query: listPetsQuerySchema }),
+  asyncHandler(petsController.listStaffPets)
+);
+
+petsRouter.get(
+  "/staff/owners/search",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ query: staffOwnerSearchQuerySchema }),
+  asyncHandler(petsController.searchStaffOwners)
+);
+
+petsRouter.post(
+  "/staff/owners",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ body: staffCreateOwnerSchema }),
+  asyncHandler(petsController.createStaffOwner)
+);
+
+petsRouter.post(
+  "/staff/pets",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ body: staffCreatePetSchema }),
+  asyncHandler(petsController.createStaffPet)
+);
+
+petsRouter.patch(
+  "/staff/pets/:petId",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: petParamsSchema, body: updatePetSchema }),
+  asyncHandler(petsController.updateStaffPet)
+);
+
+petsRouter.get(
+  "/staff/pets/:petId",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: petParamsSchema }),
+  asyncHandler(petsController.getStaffPet)
+);
+
 petsRouter.get(
   "/pets",
   authMiddleware,
