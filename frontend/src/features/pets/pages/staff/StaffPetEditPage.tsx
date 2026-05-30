@@ -3,14 +3,26 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowLeft, ChevronRight, Loader2, PawPrint, Save, Upload } from "lucide-react";
-import { toast } from "sonner";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CalendarDays,
+  Camera,
+  Cat,
+  CheckCircle2,
+  CircleHelp,
+  Dog,
+  Loader2,
+  Mars,
+  PawPrint,
+  Venus,
+  Weight,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/ui/loading-state";
-import { Textarea } from "@/components/ui/textarea";
 import { uploadsApi } from "@/features/uploads/api/uploads.api";
+import { cn } from "@/lib/utils";
 import { petsApi } from "../../api/pets.api";
 import type { PetGender, PetSpecies, StaffPetDetail, StaffUpdatePetInput } from "../../types/pet.types";
 
@@ -31,23 +43,34 @@ type FormState = {
   profileImageUrl: string | null;
 };
 
+type SegmentOption = {
+  icon: React.ElementType<{ className?: string }>;
+  label: string;
+  value: string;
+};
+
 const text = {
   list: "Hồ sơ thú cưng",
-  edit: "Chỉnh sửa",
+  edit: "Chỉnh sửa hồ sơ",
   title: "Chỉnh sửa hồ sơ thú cưng",
-  subtitlePrefix: "Cập nhật thông tin cơ bản và ghi chú chăm sóc của",
-  back: "Quay lại chi tiết",
-  basicInfo: "Thông tin cơ bản",
-  changePhoto: "Thay ảnh",
-  photoHint: "Hỗ trợ JPG, PNG. Tối đa 5MB.",
+  subtitlePrefix: "Cập nhật thông tin nhận diện, phân loại và các chỉ số cơ bản của",
+  back: "Quay lại hồ sơ",
+  avatarTitle: "Ảnh đại diện",
+  avatarHint: "Định dạng JPG, PNG. Tối đa 5MB.",
+  uploadAvatar: "Tải ảnh lên",
+  removeAvatar: "Xóa",
+  category: "Phân loại",
+  detailInfo: "Thông tin chi tiết",
+  detailHint: "Nếu không biết ngày sinh, hãy để trống ngày sinh và nhập tuổi ước tính theo năm.",
   petName: "Tên thú cưng",
   species: "Loài",
   gender: "Giới tính",
   breed: "Giống",
-  birthOrAge: "Ngày sinh / Tuổi",
-  weight: "Cân nặng (kg)",
+  birthDate: "Ngày sinh (dự kiến)",
+  estimatedAge: "Tuổi ước tính",
+  weight: "Cân nặng",
   furColor: "Màu lông",
-  marks: "Đặc điểm nhận dạng",
+  marks: "Đặc điểm nhận diện",
   cancel: "Hủy",
   save: "Lưu thay đổi",
   loadingTitle: "Đang tải hồ sơ thú cưng...",
@@ -56,24 +79,27 @@ const text = {
   retry: "Thử lại",
 };
 
-const speciesOptions: Array<{ value: PetSpecies; label: string }> = [
-  { value: "Dog", label: "Chó" },
-  { value: "Cat", label: "Mèo" },
-  { value: "Other", label: "Khác" },
+const speciesOptions: Array<{ icon: React.ElementType<{ className?: string }>; label: string; value: PetSpecies }> = [
+  { icon: Dog, label: "Chó", value: "Dog" },
+  { icon: Cat, label: "Mèo", value: "Cat" },
+  { icon: PawPrint, label: "Khác", value: "Other" },
 ];
 
-const genderOptions: Array<{ value: PetGender; label: string }> = [
-  { value: "male", label: "Đực" },
-  { value: "female", label: "Cái" },
-  { value: "unknown", label: "Chưa rõ" },
+const genderOptions: Array<{ icon: React.ElementType<{ className?: string }>; label: string; value: PetGender }> = [
+  { icon: Mars, label: "Đực", value: "male" },
+  { icon: Venus, label: "Cái", value: "female" },
+  { icon: CircleHelp, label: "Khác", value: "unknown" },
 ];
-
-function formatPetCode(petId: string): string {
-  return petId.includes("-") ? petId.toUpperCase() : petId.replace(/^pet_?/i, "PET-").toUpperCase();
-}
 
 function toInputDate(value: string | null): string {
-  return value ? value.slice(0, 10) : "";
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.slice(0, 10);
+  }
+
+  return date.toISOString().slice(0, 10);
 }
 
 function optionalText(value: string): string | null {
@@ -87,6 +113,14 @@ function optionalNumber(value: string): number | null {
 
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024 * 1024) {
+    return `${Math.max(1, Math.round(size / 1024))} KB`;
+  }
+
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function createFormState(pet: StaffPetDetail): FormState {
@@ -132,6 +166,7 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isError, setIsError] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSaved, setIsSaved] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [refreshKey, setRefreshKey] = React.useState(0);
 
@@ -180,6 +215,18 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
     setForm((current) => (current ? { ...current, [field]: value } : current));
   };
 
+  const handleBirthDateChange = (value: string) => {
+    setForm((current) =>
+      current
+        ? {
+            ...current,
+            birthDate: value,
+            estimatedAge: value ? "" : current.estimatedAge,
+          }
+        : current
+    );
+  };
+
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -191,7 +238,7 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage("Ảnh thú cưng không được vượt quá 5MB.");
+      setErrorMessage("Ảnh đại diện không được vượt quá 5MB.");
       event.target.value = "";
       return;
     }
@@ -207,11 +254,35 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
     setErrorMessage(null);
   };
 
+  const clearAvatar = () => {
+    if (avatarPreviewRef.current) {
+      URL.revokeObjectURL(avatarPreviewRef.current);
+      avatarPreviewRef.current = null;
+    }
+
+    setAvatarFile(null);
+    setAvatarPreviewUrl(null);
+
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = "";
+    }
+  };
+
   const validateForm = (): boolean => {
     if (!form) return false;
 
     if (!form.petName.trim()) {
       setErrorMessage("Vui lòng nhập tên thú cưng.");
+      return false;
+    }
+
+    if (!form.breed.trim()) {
+      setErrorMessage("Vui lòng nhập giống thú cưng.");
+      return false;
+    }
+
+    if (!form.birthDate && !form.estimatedAge.trim()) {
+      setErrorMessage("Vui lòng nhập ngày sinh dự kiến hoặc tuổi ước tính theo năm.");
       return false;
     }
 
@@ -240,8 +311,11 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
       const nextProfileImageUrl = uploadedAvatar?.secureUrl ?? form.profileImageUrl;
       const updatedPet = await petsApi.updateStaff(petId, buildPayload(form, nextProfileImageUrl));
 
-      toast.success("Đã cập nhật hồ sơ thú cưng");
-      router.push(`/staff/pets/${encodeURIComponent(updatedPet.petId)}`);
+      setPet(updatedPet);
+      setForm(createFormState(updatedPet));
+      setAvatarFile(null);
+      setAvatarPreviewUrl(null);
+      setIsSaved(true);
       router.refresh();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể cập nhật hồ sơ thú cưng.");
@@ -256,12 +330,12 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
 
   if (isError || !pet || !form) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-[16px] border border-petcenter-border bg-white px-4 py-20 shadow-card">
+      <div className="flex flex-col items-center justify-center gap-4 rounded-card border border-petcenter-border bg-white px-4 py-20 shadow-card">
         <AlertCircle className="h-12 w-12 text-petcenter-danger-text" />
         <p className="font-medium text-petcenter-text-secondary">{text.loadError}</p>
         <Button
           variant="outline"
-          className="rounded-xl border-petcenter-primary text-petcenter-primary hover:bg-[#D8F3EE]"
+          className="rounded-control border-petcenter-primary text-petcenter-primary hover:bg-petcenter-sidebar"
           onClick={() => setRefreshKey((value) => value + 1)}
         >
           {text.retry}
@@ -270,244 +344,423 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
     );
   }
 
-  const petCode = formatPetCode(pet.petId);
   const avatarUrl = avatarPreviewUrl ?? form.profileImageUrl;
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] pb-10">
-      <header className="mb-8">
-        <div className="mb-4 flex items-center justify-between gap-4">
-          <nav className="flex flex-wrap items-center gap-1 text-[12px] font-medium text-petcenter-text-secondary">
-            <Link className="transition-colors hover:text-petcenter-primary" href="/staff/pets">
-              {text.list}
-            </Link>
-            <ChevronRight className="h-4 w-4 opacity-60" />
-            <Link className="transition-colors hover:text-petcenter-primary" href={`/staff/pets/${encodeURIComponent(pet.petId)}`}>
-              {petCode}
-            </Link>
-            <ChevronRight className="h-4 w-4 opacity-60" />
-            <span className="text-petcenter-text">{text.edit}</span>
-          </nav>
-
-          <Button
-            asChild
-            className="h-9 rounded-lg border border-petcenter-border-strong bg-white px-3 text-[12px] font-medium text-petcenter-primary transition hover:bg-petcenter-sidebar"
-            variant="outline"
-          >
-            <Link href={`/staff/pets/${encodeURIComponent(pet.petId)}`}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {text.back}
-            </Link>
-          </Button>
+    <div className="mx-auto w-full max-w-[1180px] pb-10">
+      <nav className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="body-md text-petcenter-text-secondary">
+          <Link className="transition hover:text-petcenter-primary" href="/staff/pets">
+            {text.list}
+          </Link>{" "}
+          &gt;{" "}
+          <Link className="font-semibold text-petcenter-primary hover:underline" href={`/staff/pets/${encodeURIComponent(pet.petId)}`}>
+            {pet.petName}
+          </Link>{" "}
+          &gt; <span className="font-semibold text-petcenter-primary">{text.edit}</span>
         </div>
+        <Link
+          className="label-md inline-flex h-10 items-center justify-center gap-2 rounded-control border border-petcenter-primary bg-white px-4 font-semibold text-petcenter-primary shadow-card transition hover:bg-petcenter-sidebar sm:w-auto"
+          href={`/staff/pets/${encodeURIComponent(pet.petId)}`}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {text.back}
+        </Link>
+      </nav>
 
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-[32px] font-bold leading-10 tracking-[-0.02em] text-petcenter-text">{text.title}</h1>
-              <span className="rounded-full border border-[#B2E5DB] bg-[#D8F3EE] px-3 py-1 text-[12px] font-semibold text-petcenter-primary">
-                {petCode}
-              </span>
-            </div>
-            <p className="mt-2 text-[14px] leading-5 text-petcenter-text-secondary">
-              {text.subtitlePrefix} {pet.petName}.
-            </p>
-          </div>
-        </div>
+      <header className="mb-6">
+        <h1 className="heading-lg text-petcenter-text">{text.title}</h1>
+        <p className="body-md mt-1 max-w-2xl text-petcenter-text-secondary">
+          {text.subtitlePrefix} {pet.petName}.
+        </p>
       </header>
 
       {errorMessage ? (
-        <section className="mb-4 flex items-start gap-3 rounded-[16px] border border-petcenter-danger-text/20 bg-petcenter-danger-bg p-4 text-petcenter-danger-text">
+        <section className="mb-4 flex items-start gap-3 rounded-card border border-petcenter-danger-text/20 bg-petcenter-danger-bg p-4 text-petcenter-danger-text">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-          <p className="text-sm leading-5">{errorMessage}</p>
+          <p className="body-md">{errorMessage}</p>
         </section>
       ) : null}
 
-      <section className="overflow-hidden rounded-[16px] border border-petcenter-border bg-white shadow-card">
-        <div className="border-b border-petcenter-border bg-[#FAFAF7] p-6">
-          <h2 className="text-[20px] font-semibold leading-7 tracking-[-0.01em] text-petcenter-text">{text.basicInfo}</h2>
-        </div>
-
-        <form className="space-y-8 p-6" onSubmit={handleSubmit}>
-          <div className="flex items-start gap-6 border-b border-dashed border-petcenter-border pb-6">
-            <div className="group relative h-24 w-24 shrink-0 overflow-hidden rounded-full border-2 border-petcenter-border bg-petcenter-sidebar">
-              {avatarUrl ? (
-                <div
-                  aria-label={pet.petName}
-                  className="h-full w-full bg-cover bg-center"
-                  role="img"
-                  style={{ backgroundImage: `url(${avatarUrl})` }}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-petcenter-primary/40">
-                  <PawPrint className="h-10 w-10" />
-                </div>
-              )}
-              <label
-                className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/40 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                htmlFor={fileInputId}
-              >
-                <Upload className="h-5 w-5" />
-              </label>
-            </div>
-
-            <div className="pt-2">
-              <input
-                accept="image/png,image/jpeg"
-                className="sr-only"
-                id={fileInputId}
-                onChange={handleAvatarChange}
-                ref={avatarInputRef}
-                type="file"
-              />
-              <Button
-                asChild
-                className="mb-2 h-10 cursor-pointer rounded-xl border border-petcenter-primary bg-white px-4 text-[12px] font-medium text-petcenter-primary transition hover:bg-[#D8F3EE]"
-                variant="outline"
-              >
-                <label htmlFor={fileInputId}>
-                  <Upload className="mr-2 h-[18px] w-[18px]" />
-                  {text.changePhoto}
-                </label>
-              </Button>
-              <p className="text-[12px] text-petcenter-text-muted">{text.photoHint}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            <label className="space-y-2">
-              <span className="block text-[12px] font-medium text-petcenter-text-secondary">
-                {text.petName} <span className="text-petcenter-danger-text">*</span>
-              </span>
-              <Input
-                className="h-11 rounded-xl border-petcenter-border-strong bg-white px-4 text-[14px] text-petcenter-text shadow-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                value={form.petName}
-                onChange={(event) => updateField("petName", event.target.value)}
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="block text-[12px] font-medium text-petcenter-text-secondary">
-                {text.species} <span className="text-petcenter-danger-text">*</span>
-              </span>
-              <select
-                className="h-11 w-full rounded-xl border border-petcenter-border-strong bg-white px-4 text-[14px] text-petcenter-text shadow-sm outline-none transition focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20"
-                value={form.species}
-                onChange={(event) => updateField("species", event.target.value as PetSpecies)}
-              >
-                {speciesOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="space-y-2">
-              <span className="block text-[12px] font-medium text-petcenter-text-secondary">
-                {text.gender} <span className="text-petcenter-danger-text">*</span>
-              </span>
-              <div className="flex h-11 items-center gap-6">
-                {genderOptions.map((option) => (
-                  <label className="flex cursor-pointer items-center gap-2" key={option.value}>
-                    <input
-                      checked={form.gender === option.value}
-                      className="h-4 w-4 border-petcenter-border-strong text-petcenter-primary focus:ring-petcenter-primary"
-                      name="gender"
-                      onChange={() => updateField("gender", option.value)}
-                      type="radio"
-                    />
-                    <span className="text-[14px] text-petcenter-text">{option.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <label className="space-y-2">
-              <span className="block text-[12px] font-medium text-petcenter-text-secondary">{text.breed}</span>
-              <Input
-                className="h-11 rounded-xl border-petcenter-border-strong bg-white px-4 text-[14px] shadow-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                value={form.breed}
-                onChange={(event) => updateField("breed", event.target.value)}
-              />
-            </label>
-
-            <div className="space-y-2">
-              <span className="block text-[12px] font-medium text-petcenter-text-secondary">{text.birthOrAge}</span>
-              <div className="grid grid-cols-[minmax(0,1fr)_104px] gap-2">
-                <Input
-                  className="h-11 rounded-xl border-petcenter-border-strong bg-white px-4 text-[14px] shadow-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                  max={new Date().toISOString().slice(0, 10)}
-                  type="date"
-                  value={form.birthDate}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setForm((current) => (current ? { ...current, birthDate: value, estimatedAge: value ? "" : current.estimatedAge } : current));
-                  }}
-                />
-                <Input
-                  className="h-11 rounded-xl border-petcenter-border-strong bg-white px-3 text-[14px] shadow-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                  disabled={Boolean(form.birthDate)}
-                  min="0"
-                  placeholder="Tuổi"
-                  step="0.1"
-                  type="number"
-                  value={form.estimatedAge}
-                  onChange={(event) => updateField("estimatedAge", event.target.value)}
-                />
-              </div>
-            </div>
-
-            <label className="space-y-2">
-              <span className="block text-[12px] font-medium text-petcenter-text-secondary">{text.weight}</span>
-              <Input
-                className="h-11 rounded-xl border-petcenter-border-strong bg-white px-4 text-[14px] shadow-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                min="0"
-                step="0.1"
-                type="number"
-                value={form.weightKg}
-                onChange={(event) => updateField("weightKg", event.target.value)}
-              />
-            </label>
-
-            <label className="space-y-2">
-              <span className="block text-[12px] font-medium text-petcenter-text-secondary">{text.furColor}</span>
-              <Input
-                className="h-11 rounded-xl border-petcenter-border-strong bg-white px-4 text-[14px] shadow-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                value={form.furColor}
-                onChange={(event) => updateField("furColor", event.target.value)}
-              />
-            </label>
-          </div>
-
-          <label className="block space-y-2">
-            <span className="block text-[12px] font-medium text-petcenter-text-secondary">{text.marks}</span>
-            <Textarea
-              className="min-h-[88px] resize-none rounded-xl border-petcenter-border-strong bg-white px-4 py-3 text-[14px] shadow-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-              value={form.identifyingMarks}
-              onChange={(event) => updateField("identifyingMarks", event.target.value)}
+      <form
+        className="grid grid-cols-1 overflow-hidden rounded-card border border-petcenter-border bg-white shadow-card lg:grid-cols-[330px_minmax(0,1fr)]"
+        onSubmit={handleSubmit}
+      >
+        <aside className="border-b border-petcenter-border bg-petcenter-filter p-5 lg:border-b-0 lg:border-r">
+          <section className="rounded-card border border-petcenter-border bg-white p-5 text-center shadow-card">
+            <input
+              accept="image/png,image/jpeg"
+              className="sr-only"
+              id={fileInputId}
+              onChange={handleAvatarChange}
+              ref={avatarInputRef}
+              type="file"
             />
-          </label>
-
-          <div className="flex items-center justify-end gap-3 border-t border-petcenter-border pt-6">
-            <Button
-              asChild
-              className="h-10 rounded-xl bg-transparent px-6 text-[12px] font-medium text-petcenter-text-secondary transition hover:bg-petcenter-sidebar"
-              variant="ghost"
+            <label
+              className="group relative mx-auto mb-4 flex h-32 w-32 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-petcenter-border-strong bg-petcenter-sidebar text-petcenter-text-muted transition hover:border-petcenter-primary hover:bg-petcenter-filter hover:text-petcenter-primary"
+              htmlFor={fileInputId}
             >
-              <Link href={`/staff/pets/${encodeURIComponent(pet.petId)}`}>{text.cancel}</Link>
-            </Button>
-            <Button
-              className="h-10 rounded-xl bg-petcenter-primary px-6 text-[12px] font-medium text-white shadow-sm transition hover:bg-petcenter-primary-hover active:bg-petcenter-primary-active"
+              {avatarUrl ? (
+                <>
+                  <span
+                    aria-label="Ảnh đại diện thú cưng"
+                    className="h-full w-full bg-cover bg-center"
+                    role="img"
+                    style={{ backgroundImage: `url(${avatarUrl})` }}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 transition group-hover:opacity-100">
+                    <Camera className="h-6 w-6" />
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Camera className="h-8 w-8 transition-transform group-hover:scale-110" />
+                  <span className="label-md mt-1">{text.uploadAvatar}</span>
+                </>
+              )}
+            </label>
+            <h2 className="title-md mb-1 text-petcenter-text">{text.avatarTitle}</h2>
+            <p className="label-md text-petcenter-text-secondary">{text.avatarHint}</p>
+            {avatarFile ? (
+              <div className="mt-4 rounded-control border border-petcenter-border bg-petcenter-filter p-3 text-left">
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="body-sm truncate font-medium text-petcenter-text">{avatarFile.name}</p>
+                    <p className="label-md mt-0.5 text-petcenter-text-muted">{formatFileSize(avatarFile.size)}</p>
+                  </div>
+                  <button
+                    className="label-md shrink-0 rounded-control border border-petcenter-border-strong bg-white px-3 py-2 font-semibold text-petcenter-text-secondary transition hover:bg-petcenter-sidebar"
+                    onClick={clearAvatar}
+                    type="button"
+                  >
+                    {text.removeAvatar}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </section>
+
+          <section className="mt-4 rounded-card border border-petcenter-border bg-white p-5 shadow-card">
+            <h2 className="title-md mb-4 text-petcenter-text">{text.category}</h2>
+            <SegmentGroup
+              label={text.species}
+              onChange={(value) => updateField("species", value as FormState["species"])}
+              options={speciesOptions}
+              required
+              value={form.species}
+            />
+
+            <div className="mt-4">
+              <SegmentGroup
+                label={text.gender}
+                onChange={(value) => updateField("gender", value as PetGender)}
+                options={genderOptions}
+                required
+                value={form.gender}
+              />
+            </div>
+
+            <div className="mt-4">
+              <TextField
+                label={text.breed}
+                name="breed"
+                onChange={(value) => updateField("breed", value)}
+                placeholder="VD: Poodle, Golden Retriever..."
+                required
+                value={form.breed}
+              />
+            </div>
+          </section>
+        </aside>
+
+        <section className="min-w-0 p-5 sm:p-6">
+          <div className="mb-6 flex flex-col gap-1 border-b border-petcenter-border pb-4">
+            <h2 className="title-md text-petcenter-text">{text.detailInfo}</h2>
+            <p className="body-sm text-petcenter-text-secondary">{text.detailHint}</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <TextField
+                label={text.petName}
+                name="petName"
+                onChange={(value) => updateField("petName", value)}
+                placeholder="Nhập tên gọi ở nhà"
+                required
+                value={form.petName}
+              />
+            </div>
+
+            <DateField label={text.birthDate} name="birthDate" onChange={handleBirthDateChange} value={form.birthDate} />
+
+            <NumberWithSuffixField
+              disabled={Boolean(form.birthDate)}
+              label={text.estimatedAge}
+              name="estimatedAge"
+              onChange={(value) => updateField("estimatedAge", value)}
+              placeholder="VD: 2"
+              suffix="năm"
+              value={form.estimatedAge}
+            />
+
+            <NumberWithSuffixField
+              icon={Weight}
+              label={text.weight}
+              name="weightKg"
+              onChange={(value) => updateField("weightKg", value)}
+              placeholder="VD: 12.5"
+              step="0.1"
+              suffix="kg"
+              value={form.weightKg}
+            />
+
+            <TextField
+              label={text.furColor}
+              name="furColor"
+              onChange={(value) => updateField("furColor", value)}
+              placeholder="VD: Vàng rơm, Nhị thể..."
+              value={form.furColor}
+            />
+
+            <div className="md:col-span-2">
+              <TextAreaField
+                label={text.marks}
+                name="identifyingMarks"
+                onChange={(value) => updateField("identifyingMarks", value)}
+                placeholder="Ghi chú các vết sẹo, đốm lông đặc biệt để dễ nhận biết..."
+                value={form.identifyingMarks}
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-petcenter-border pt-4 sm:flex-row sm:justify-end">
+            <Link
+              className="label-md inline-flex h-10 items-center justify-center rounded-control border border-petcenter-border-strong bg-white px-5 font-semibold text-petcenter-primary transition hover:bg-petcenter-sidebar"
+              href={`/staff/pets/${encodeURIComponent(pet.petId)}`}
+            >
+              {text.cancel}
+            </Link>
+            <button
+              className="label-md inline-flex h-10 items-center justify-center gap-2 rounded-control bg-petcenter-cta px-5 font-semibold text-white shadow-card transition hover:-translate-y-px hover:bg-petcenter-cta-hover disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-70"
               disabled={isSubmitting}
               type="submit"
             >
-              {isSubmitting ? <Loader2 className="mr-2 h-[18px] w-[18px] animate-spin" /> : <Save className="mr-2 h-[18px] w-[18px]" />}
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {text.save}
-            </Button>
+            </button>
           </div>
-        </form>
-      </section>
+        </section>
+      </form>
+
+      {isSaved ? (
+        <SuccessModal
+          onClose={() => router.push(`/staff/pets/${encodeURIComponent(pet.petId)}`)}
+          onManage={() => setIsSaved(false)}
+          petName={pet.petName}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function SegmentGroup({
+  label,
+  onChange,
+  options,
+  required,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  options: SegmentOption[];
+  required?: boolean;
+  value: string;
+}) {
+  return (
+    <fieldset>
+      <legend className="label-md mb-2 block text-petcenter-text-secondary">
+        {label}
+        {required ? <span className="text-petcenter-danger-text"> *</span> : null}
+      </legend>
+      <div className="grid grid-cols-3 gap-2 rounded-control border border-petcenter-border bg-petcenter-sidebar p-1">
+        {options.map((option) => {
+          const Icon = option.icon;
+          const isSelected = option.value === value;
+
+          return (
+            <button
+              aria-pressed={isSelected}
+              className={cn(
+                "label-md flex min-h-11 items-center justify-center gap-2 rounded-[0.6rem] px-2 font-semibold transition",
+                isSelected
+                  ? "bg-white text-petcenter-primary shadow-card ring-1 ring-petcenter-primary/15"
+                  : "text-petcenter-text-secondary hover:bg-white/60"
+              )}
+              key={option.value}
+              onClick={() => onChange(option.value)}
+              type="button"
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+type TextFieldProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "name" | "onChange" | "value"> & {
+  label: string;
+  name: string;
+  onChange: (value: string) => void;
+  value: string;
+};
+
+function TextField({ label, name, onChange, required, value, ...props }: TextFieldProps) {
+  return (
+    <label className="block" htmlFor={name}>
+      <span className="label-md mb-1 block text-petcenter-text-secondary">
+        {label}
+        {required ? <span className="text-petcenter-danger-text"> *</span> : null}
+      </span>
+      <input
+        {...props}
+        className="body-md h-11 w-full rounded-control border border-petcenter-border-strong bg-petcenter-filter px-3 text-petcenter-text outline-none transition placeholder:text-petcenter-text-muted/60 focus:border-petcenter-primary focus:bg-white focus:ring-4 focus:ring-petcenter-primary/10"
+        id={name}
+        name={name}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        value={value}
+      />
+    </label>
+  );
+}
+
+function DateField({ label, name, onChange, value }: TextFieldProps) {
+  return (
+    <label className="block" htmlFor={name}>
+      <span className="label-md mb-1 block text-petcenter-text-secondary">{label}</span>
+      <span className="relative block">
+        <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+        <input
+          className="body-md h-11 w-full rounded-control border border-petcenter-border-strong bg-petcenter-filter pl-10 pr-3 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:bg-white focus:ring-4 focus:ring-petcenter-primary/10"
+          id={name}
+          max={new Date().toISOString().slice(0, 10)}
+          name={name}
+          onChange={(event) => onChange(event.target.value)}
+          type="date"
+          value={value}
+        />
+      </span>
+    </label>
+  );
+}
+
+type NumberWithSuffixFieldProps = TextFieldProps & {
+  icon?: React.ElementType<{ className?: string }>;
+  suffix: string;
+};
+
+function NumberWithSuffixField({
+  disabled,
+  icon: Icon,
+  label,
+  name,
+  onChange,
+  required,
+  suffix,
+  value,
+  ...props
+}: NumberWithSuffixFieldProps) {
+  return (
+    <label className="block" htmlFor={name}>
+      <span className="label-md mb-1 block text-petcenter-text-secondary">
+        {label}
+        {required ? <span className="text-petcenter-danger-text"> *</span> : null}
+      </span>
+      <span className="relative block">
+        {Icon ? (
+          <Icon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+        ) : null}
+        <input
+          {...props}
+          className={cn(
+            "body-md h-11 w-full rounded-control border border-petcenter-border-strong bg-petcenter-filter pr-14 text-petcenter-text outline-none transition placeholder:text-petcenter-text-muted/60 focus:border-petcenter-primary focus:bg-white focus:ring-4 focus:ring-petcenter-primary/10",
+            Icon ? "pl-10" : "pl-3",
+            disabled && "cursor-not-allowed bg-petcenter-sidebar text-petcenter-text-muted"
+          )}
+          disabled={disabled}
+          id={name}
+          min="0"
+          name={name}
+          onChange={(event) => onChange(event.target.value)}
+          type="number"
+          value={value}
+        />
+        <span className="label-md pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-petcenter-text-muted">
+          {suffix}
+        </span>
+      </span>
+      {disabled ? (
+        <span className="body-sm mt-1 block text-petcenter-text-muted">Đã có ngày sinh, không cần nhập tuổi ước tính.</span>
+      ) : null}
+    </label>
+  );
+}
+
+type TextAreaFieldProps = Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, "name" | "onChange" | "value"> & {
+  label: string;
+  name: string;
+  onChange: (value: string) => void;
+  value: string;
+};
+
+function TextAreaField({ label, name, onChange, value, ...props }: TextAreaFieldProps) {
+  return (
+    <label className="block" htmlFor={name}>
+      <span className="label-md mb-1 block text-petcenter-text-secondary">{label}</span>
+      <textarea
+        {...props}
+        className="body-md min-h-28 w-full resize-none rounded-control border border-petcenter-border-strong bg-petcenter-filter px-3 py-3 text-petcenter-text outline-none transition placeholder:text-petcenter-text-muted/60 focus:border-petcenter-primary focus:bg-white focus:ring-4 focus:ring-petcenter-primary/10"
+        id={name}
+        name={name}
+        onChange={(event) => onChange(event.target.value)}
+        rows={3}
+        value={value}
+      />
+    </label>
+  );
+}
+
+function SuccessModal({ onClose, onManage, petName }: { onClose: () => void; onManage: () => void; petName: string }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-md rounded-card bg-white p-8 text-center shadow-modal">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-petcenter-primary/10">
+          <CheckCircle2 className="h-10 w-10 text-petcenter-primary" />
+        </div>
+        <h2 className="heading-sm mb-2 text-petcenter-text">Cập nhật hồ sơ thú cưng thành công</h2>
+        <p className="body-md mb-6 text-petcenter-text-secondary">
+          Hồ sơ của {petName} đã được cập nhật. Bạn có thể quay lại hồ sơ hoặc tiếp tục chỉnh sửa.
+        </p>
+        <div className="flex flex-col gap-3">
+          <button
+            className="label-md h-12 rounded-control bg-petcenter-primary px-4 font-semibold text-white transition hover:bg-petcenter-primary-hover"
+            onClick={onClose}
+            type="button"
+          >
+            Xem hồ sơ
+          </button>
+          <button
+            className="label-md h-12 rounded-control border border-petcenter-border-strong px-4 font-semibold text-petcenter-text-secondary transition hover:bg-petcenter-sidebar"
+            onClick={onManage}
+            type="button"
+          >
+            Tiếp tục chỉnh sửa
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

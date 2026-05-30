@@ -33,7 +33,7 @@ type StaffPetDetailPageProps = {
 };
 
 const text = {
-  back: "Quay l\u1ea1i danh s\u00e1ch",
+  back: "Quay l\u1ea1i h\u1ed3 s\u01a1",
   list: "H\u1ed3 s\u01a1 th\u00fa c\u01b0ng",
   detail: "Chi ti\u1ebft",
   edit: "Ch\u1ec9nh s\u1eeda h\u1ed3 s\u01a1",
@@ -160,19 +160,27 @@ export function StaffPetDetailPage({ petId }: StaffPetDetailPageProps) {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2 text-[13px] text-petcenter-text-secondary">
-          <Link className="flex items-center gap-1 transition-colors hover:text-petcenter-primary" href="/staff/pets">
-            <ArrowLeft className="h-4 w-4" />
-            <span>{text.back}</span>
+          <Link className="transition-colors hover:text-petcenter-primary" href="/staff/pets">
+            {text.list}
           </Link>
-          <span className="mx-2 text-petcenter-border-strong">|</span>
-          <span>{text.list}</span>
           <ChevronRight className="h-4 w-4" />
           <span>{petCode}</span>
           <ChevronRight className="h-4 w-4" />
           <span className="font-medium text-petcenter-text">{text.detail}</span>
         </div>
+
+        <Button
+          asChild
+          variant="outline"
+          className="h-10 shrink-0 rounded-xl border-petcenter-primary bg-white px-4 text-[14px] font-medium text-petcenter-primary transition-colors hover:bg-petcenter-primary hover:text-white"
+        >
+          <Link href="/staff/pets">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {text.back}
+          </Link>
+        </Button>
       </div>
 
       <section className="flex flex-col justify-between gap-4 rounded-2xl border border-petcenter-border bg-white p-6 shadow-card md:flex-row md:items-end">

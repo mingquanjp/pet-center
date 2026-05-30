@@ -15,7 +15,7 @@ type StaffPetFilters = {
   species: "all" | PetSpecies;
   gender: "all" | PetGender;
   petStatus: "all" | StaffPet["petStatus"];
-  sort: "petName:asc" | "petName:desc";
+  sort: "petName:asc";
   page: number;
   limit: number;
 };
@@ -31,29 +31,24 @@ const defaultFilters: StaffPetFilters = {
 };
 
 const speciesOptions: Array<{ value: StaffPetFilters["species"]; label: string }> = [
-  { value: "all", label: "Loài: Tất cả" },
+  { value: "all", label: "Tất cả" },
   { value: "Dog", label: "Chó" },
   { value: "Cat", label: "Mèo" },
   { value: "Other", label: "Khác" },
 ];
 
 const genderOptions: Array<{ value: StaffPetFilters["gender"]; label: string }> = [
-  { value: "all", label: "Giới tính: Tất cả" },
+  { value: "all", label: "Tất cả" },
   { value: "male", label: "Đực" },
   { value: "female", label: "Cái" },
   { value: "unknown", label: "Chưa rõ" },
 ];
 
 const statusOptions: Array<{ value: StaffPetFilters["petStatus"]; label: string }> = [
-  { value: "all", label: "Trạng thái: Tất cả" },
+  { value: "all", label: "Tất cả" },
   { value: "active", label: "Đang hoạt động" },
   { value: "inactive", label: "Ngừng theo dõi" },
   { value: "deceased", label: "Đã mất" },
-];
-
-const sortOptions: Array<{ value: StaffPetFilters["sort"]; label: string }> = [
-  { value: "petName:asc", label: "Tên A-Z" },
-  { value: "petName:desc", label: "Tên Z-A" },
 ];
 
 const text = {
@@ -91,7 +86,7 @@ function parseFiltersFromParams(params: URLSearchParams): StaffPetFilters {
     species: (params.get("species") as StaffPetFilters["species"]) || defaultFilters.species,
     gender: (params.get("gender") as StaffPetFilters["gender"]) || defaultFilters.gender,
     petStatus: (params.get("petStatus") as StaffPetFilters["petStatus"]) || defaultFilters.petStatus,
-    sort: (params.get("sort") as StaffPetFilters["sort"]) || defaultFilters.sort,
+    sort: defaultFilters.sort,
     page: Number.isFinite(page) && page > 0 ? page : defaultFilters.page,
     limit: defaultFilters.limit,
   };
@@ -206,7 +201,6 @@ export function StaffPetsPage() {
       if (newFilters.species !== "all") params.set("species", newFilters.species);
       if (newFilters.gender !== "all") params.set("gender", newFilters.gender);
       if (newFilters.petStatus !== "all") params.set("petStatus", newFilters.petStatus);
-      if (newFilters.sort !== defaultFilters.sort) params.set("sort", newFilters.sort);
       if (newFilters.page > 1) params.set("page", String(newFilters.page));
 
       const query = params.toString();
@@ -227,8 +221,7 @@ export function StaffPetsPage() {
     Boolean(filters.q) ||
     filters.species !== defaultFilters.species ||
     filters.gender !== defaultFilters.gender ||
-    filters.petStatus !== defaultFilters.petStatus ||
-    filters.sort !== defaultFilters.sort;
+    filters.petStatus !== defaultFilters.petStatus;
 
   const startItem = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
   const endItem = Math.min(pagination.page * pagination.limit, pagination.total);
@@ -251,75 +244,51 @@ export function StaffPetsPage() {
         </Button>
       </div>
 
-      <div className="mb-6 grid gap-4 rounded-[16px] border border-petcenter-border bg-white p-4 shadow-sm md:grid-cols-[minmax(260px,1.3fr)_repeat(4,minmax(150px,1fr))_auto] md:items-center">
-        <label className="relative block w-full">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+      <div className="mb-6 rounded-[16px] border border-[#e6e8dd] bg-white p-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
+        <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center">
+        <label className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e7774]" />
+          <span className="sr-only">{text.searchPlaceholder}</span>
           <input
-            className="w-full rounded-xl border border-petcenter-border-strong bg-white py-2.5 pl-10 pr-4 text-[14px] text-petcenter-text outline-none transition-colors placeholder:text-petcenter-text-muted focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
+            className="h-11 w-full rounded-full border border-[#cfd8d5] bg-white pl-14 pr-4 text-base leading-6 text-[#1b1c15] outline-none transition placeholder:text-[#8a918e] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
             placeholder={text.searchPlaceholder}
+            type="search"
             value={filters.q}
             onChange={(event) => handleFilterChange({ q: event.target.value })}
           />
         </label>
 
-        <select
-          className="h-11 w-full rounded-xl border border-petcenter-border-strong bg-white px-4 text-[14px] text-petcenter-text outline-none transition-colors focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
-          value={filters.species}
-          onChange={(event) => handleFilterChange({ species: event.target.value as StaffPetFilters["species"] })}
-        >
-          {speciesOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className="h-11 w-full rounded-xl border border-petcenter-border-strong bg-white px-4 text-[14px] text-petcenter-text outline-none transition-colors focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
-          value={filters.gender}
-          onChange={(event) => handleFilterChange({ gender: event.target.value as StaffPetFilters["gender"] })}
-        >
-          {genderOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className="h-11 w-full rounded-xl border border-petcenter-border-strong bg-white px-4 text-[14px] text-petcenter-text outline-none transition-colors focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
-          value={filters.petStatus}
-          onChange={(event) => handleFilterChange({ petStatus: event.target.value as StaffPetFilters["petStatus"] })}
-        >
-          {statusOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className="h-11 w-full rounded-xl border border-petcenter-border-strong bg-white px-4 text-[14px] text-petcenter-text outline-none transition-colors focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
-          value={filters.sort}
-          onChange={(event) => handleFilterChange({ sort: event.target.value as StaffPetFilters["sort"] })}
-        >
-          {sortOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-
-        <Button
-          className="h-11 rounded-xl border-petcenter-border-strong px-4 text-[14px] text-petcenter-text-secondary hover:bg-petcenter-sidebar disabled:opacity-50"
-          disabled={!hasActiveFilters}
-          onClick={() => updateFilters(defaultFilters)}
-          type="button"
-          variant="outline"
-        >
-          <RotateCcw className="mr-2 h-4 w-4" />
-          {text.reset}
-        </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center 2xl:flex-nowrap">
+          <StaffPetFilterSelect
+            label="Loài"
+            onChange={(value) => handleFilterChange({ species: value as StaffPetFilters["species"] })}
+            options={speciesOptions}
+            value={filters.species}
+          />
+          <StaffPetFilterSelect
+            label="Giới tính"
+            onChange={(value) => handleFilterChange({ gender: value as StaffPetFilters["gender"] })}
+            options={genderOptions}
+            value={filters.gender}
+          />
+          <StaffPetFilterSelect
+            label="Trạng thái"
+            onChange={(value) => handleFilterChange({ petStatus: value as StaffPetFilters["petStatus"] })}
+            options={statusOptions}
+            value={filters.petStatus}
+          />
+          <Button
+            className="h-10 w-fit shrink-0 rounded-xl px-3 text-base font-normal leading-6 text-[#005e53] hover:bg-[#e0f2f1] hover:text-[#004c43] disabled:pointer-events-none disabled:opacity-50"
+            disabled={!hasActiveFilters}
+            onClick={() => updateFilters(defaultFilters)}
+            type="button"
+            variant="ghost"
+          >
+            <RotateCcw className="mr-1 h-4 w-4" />
+            Đặt lại bộ lọc
+          </Button>
+        </div>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-[16px] border border-petcenter-border bg-white shadow-card">
@@ -467,5 +436,34 @@ export function StaffPetsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function StaffPetFilterSelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+}) {
+  return (
+    <label className="flex items-center gap-2">
+      <span className="whitespace-nowrap text-base font-normal leading-6 text-[#3e4946]">{label}:</span>
+      <select
+        className="h-11 min-w-[132px] rounded-[16px] border border-[#cfd8d5] bg-white px-4 pr-9 text-base leading-6 text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

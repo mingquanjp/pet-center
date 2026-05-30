@@ -192,6 +192,7 @@ export function StaffSpaCreatePage() {
   const [selectedServiceId, setSelectedServiceId] = React.useState("")
   const [selectedDate, setSelectedDate] = React.useState(getDefaultBookingDate)
   const [selectedTime, setSelectedTime] = React.useState("")
+  const [timeDropdownOpen, setTimeDropdownOpen] = React.useState(false)
   const [specialRequest, setSpecialRequest] = React.useState("")
   const [options, setOptions] = React.useState<StaffCounterGroomingOptions | null>(null)
   const [availability, setAvailability] = React.useState<GroomingAvailabilitySlot[]>([])
@@ -300,6 +301,7 @@ export function StaffSpaCreatePage() {
 
   function handleDateChange(value: string) {
     setIsAvailabilityLoading(true)
+    setTimeDropdownOpen(false)
     setSelectedDate(value)
   }
 
@@ -465,24 +467,52 @@ export function StaffSpaCreatePage() {
                   <p className="text-sm font-medium leading-5 text-[#1b1c15]">Giờ trống ({formattedDate})</p>
                   <div className="relative">
                     <Clock3 className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-[#3e4946]" />
-                    <select
+                    <button
+                      type="button"
                       id="spa-time-slot"
-                      value={selectedTime}
                       disabled={isAvailabilityLoading || availableSlots.length === 0}
-                      onChange={(event) => setSelectedTime(event.target.value)}
-                      className="h-12 w-full appearance-none rounded-[12px] border border-[#bdc9c5] bg-[#fbfaee] pl-12 pr-12 text-base text-[#1b1c15] shadow-none outline-none transition-colors focus:border-[#005e53] focus:ring-2 focus:ring-[#005e53]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={() => setTimeDropdownOpen((open) => !open)}
+                      className="flex h-12 w-full items-center justify-between rounded-[12px] border border-[#bdc9c5] bg-[#fbfaee] pl-12 pr-4 text-left text-base text-[#1b1c15] shadow-none outline-none transition-colors focus:border-[#005e53] focus:ring-2 focus:ring-[#005e53]/20 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {isAvailabilityLoading ? <option value="">Đang tải khung giờ...</option> : null}
-                      {!isAvailabilityLoading && availableSlots.length === 0 ? (
-                        <option value="">Không có khung giờ trống</option>
-                      ) : null}
-                      {availableSlots.map((slot) => (
-                        <option key={slot.time} value={slot.time}>
-                          {slot.time} - còn {slot.availableUnits} chỗ
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-[#3e4946]" />
+                      <span>
+                        {isAvailabilityLoading
+                          ? "Đang tải khung giờ..."
+                          : availableSlots.length > 0 && selectedTime
+                            ? selectedTime
+                            : "Không có khung giờ trống"}
+                      </span>
+                      <ChevronDown className="size-4 text-[#3e4946]" aria-hidden="true" />
+                    </button>
+
+                    {timeDropdownOpen ? (
+                      <div className="absolute left-0 top-[56px] z-20 max-h-[260px] w-full overflow-y-auto rounded-xl border border-[#bdc9c5] bg-white p-1 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-4px_rgba(0,0,0,0.1)]">
+                        {availability.map((slot) => {
+                          const selected = slot.time === selectedTime
+
+                          return (
+                            <button
+                              key={slot.time}
+                              type="button"
+                              disabled={!slot.available}
+                              onClick={() => {
+                                setSelectedTime(slot.time)
+                                setTimeDropdownOpen(false)
+                              }}
+                              className={cn(
+                                "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm leading-5 hover:bg-[#fbfaee] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
+                                selected ? "font-bold text-[#005e53]" : "font-normal text-[#1b1c15]"
+                              )}
+                            >
+                              <span>{slot.time}</span>
+                              <span className="flex items-center gap-2 text-xs text-[#3e4946]">
+                                {slot.available ? `Còn ${slot.availableUnits}` : "Đầy"}
+                                {selected ? <Check className="size-4 text-[#005e53]" aria-hidden="true" /> : null}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
