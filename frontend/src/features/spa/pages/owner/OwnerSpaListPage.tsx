@@ -11,6 +11,13 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { spaApi } from "../../api/spa.api"
@@ -872,18 +879,23 @@ function BookedFilterSelect({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="whitespace-nowrap text-base font-normal leading-6 text-[#3E4946]">{label}:</span>
-      <select
-        className="h-11 min-w-[132px] rounded-[16px] border border-[#CFD8D5] bg-white px-4 pr-9 text-base leading-6 text-[#1B1C15] outline-none transition focus:border-[#005E53] focus:ring-4 focus:ring-[#005E53]/10"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <span className="whitespace-nowrap text-sm font-normal leading-5 text-[#3E4946]">{label}:</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-9 min-w-[120px] rounded-lg border border-[#CFD8D5] bg-white px-3 text-sm leading-5 text-[#1B1C15] outline-none transition focus:border-[#005E53] focus:ring-2 focus:ring-[#005E53]/10">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper" className="max-h-44 rounded-lg border border-[#CFD8D5] bg-white p-1 shadow-md">
+          {options.map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="rounded-md py-2 px-3 text-sm font-normal text-[#3E4946] hover:bg-[#F3F7F6] focus:bg-[#E0F2F1] focus:text-[#005E53] cursor-pointer"
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </label>
   )
 }

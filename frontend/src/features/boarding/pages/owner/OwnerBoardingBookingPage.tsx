@@ -14,6 +14,7 @@ import {
   Loader2,
   PawPrint,
   WalletCards,
+  Search
 } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -43,6 +44,7 @@ export function OwnerBoardingBookingPage() {
   const [roomOptions, setRoomOptions] = React.useState<BoardingRoomTypeBooking[]>([])
   const [selectedPetId, setSelectedPetId] = React.useState<string | null>(null)
   const [petDropdownOpen, setPetDropdownOpen] = React.useState(false)
+  const [petSearchQuery, setPetSearchQuery] = React.useState("")
   const [checkInAt, setCheckInAt] = React.useState(defaultTimes.checkInAt)
   const [checkOutAt, setCheckOutAt] = React.useState(defaultTimes.checkOutAt)
   const [selectedRoomId, setSelectedRoomId] = React.useState<string | null>(null)
@@ -118,6 +120,12 @@ export function OwnerBoardingBookingPage() {
     () => roomOptions.find((room) => room.roomTypeId === selectedRoomId) ?? roomOptions[0] ?? null,
     [roomOptions, selectedRoomId]
   )
+  const filteredPets = React.useMemo(() => {
+    return pets.filter((pet) =>
+      pet.petName.toLowerCase().includes(petSearchQuery.toLowerCase())
+    )
+  }, [pets, petSearchQuery])
+
   const nights = selectedRoom?.nights ?? calculateNights(checkInAt, checkOutAt)
   const totalAmount = selectedRoom?.estimatedTotal ?? 0
   const canSubmit = Boolean(selectedPet && selectedRoom?.available && !isSubmitting)
@@ -211,7 +219,10 @@ export function OwnerBoardingBookingPage() {
                 <button
                   type="button"
                   className="flex h-[52px] w-full items-center gap-3 rounded-xl border border-[#E6E8DD] bg-[#FBFAEE] px-[17px] text-left transition hover:border-[#BDC9C5]"
-                  onClick={() => setPetDropdownOpen((current) => !current)}
+                  onClick={() => {
+                    setPetDropdownOpen((current) => !current)
+                    if (petDropdownOpen) setPetSearchQuery("")
+                  }}
                 >
                   <PetAvatar pet={selectedPet} size="sm" />
                   <span className="min-w-0 flex-1">
@@ -232,28 +243,60 @@ export function OwnerBoardingBookingPage() {
 
                 {petDropdownOpen ? (
                   <div className="absolute left-0 top-[60px] z-20 w-full overflow-hidden rounded-xl border border-[#BDC9C5] bg-white shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-4px_rgba(0,0,0,0.1)]">
-                    {pets.map((pet) => (
-                      <button
-                        key={pet.petId}
-                        type="button"
-                        className={cn(
-                          "flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[#FBFAEE]",
-                          pet.petId === selectedPetId && "bg-[#FBFAEE]"
-                        )}
-                        onClick={() => {
-                          setSelectedPetId(pet.petId)
-                          setPetDropdownOpen(false)
-                        }}
-                      >
-                        <PetAvatar pet={pet} size="sm" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium leading-5 text-[#1B1C15]">{pet.petName}</span>
-                          <span className="block truncate text-[13px] leading-[18px] text-[#3E4946]">
-                            {pet.speciesLabel} • {formatWeight(pet.weightKg)}
-                          </span>
-                        </span>
-                      </button>
-                    ))}
+                    <div className="border-b border-[#BDC9C5] p-2">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#8D9693]" aria-hidden="true" />
+                        <input
+                          type="text"
+                          placeholder="Tìm kiếm thú cưng..."
+                          value={petSearchQuery}
+                          onChange={(e) => setPetSearchQuery(e.target.value)}
+                          className="w-full rounded-xl border border-[#E6E8DD] bg-[#FBFAEE] py-2.5 pl-9 pr-3 text-sm text-[#1B1C15] placeholder:text-[#8D9693] focus:border-[#005E53] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {filteredPets.length > 0 ? (
+                        filteredPets.map((pet) => {
+                          const selected = pet.petId === selectedPetId
+                          return (
+                            <button
+                              key={pet.petId}
+                              type="button"
+                              className="flex w-full items-center gap-3 border-b border-[rgba(189,201,197,0.3)] px-3 py-3 text-left transition hover:bg-[#FBFAEE]"
+                              onClick={() => {
+                                setSelectedPetId(pet.petId)
+                                setPetDropdownOpen(false)
+                                setPetSearchQuery("")
+                              }}
+                            >
+                              <PetAvatar pet={pet} size="sm" />
+                              <span className="min-w-0 flex-1">
+                                <span className={cn("block truncate text-sm leading-5 text-[#1B1C15]", selected ? "font-bold" : "font-normal")}>
+                                  {pet.petName}
+                                </span>
+                                <span className="block truncate text-[13px] leading-[18px] text-[#3E4946]">
+                                  {pet.speciesLabel} • {formatWeight(pet.weightKg)}
+                                </span>
+                              </span>
+                              {selected ? <Check className="size-4 shrink-0 text-[#005E53]" aria-hidden="true" /> : null}
+                            </button>
+                          )
+                        })
+                      ) : (
+                        <div className="px-3 py-4 text-center text-sm text-[#8D9693]">
+                          Không tìm thấy thú cưng
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => router.push("/owner/pets/add")}
+                      className="h-[42px] w-full justify-start rounded-none border-t border-[#BDC9C5] px-3 text-[13px] font-normal leading-[18px] text-[#3E4946] hover:bg-[#FBFAEE]"
+                    >
+                      + Thêm hồ sơ thú cưng
+                    </Button>
                   </div>
                 ) : null}
               </div>
