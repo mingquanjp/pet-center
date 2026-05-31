@@ -36,6 +36,15 @@ export async function getOwnerBoardingRecordDetail(req: Request, res: Response):
   sendSuccess(res, result);
 }
 
+export async function cancelOwnerBoardingRecord(req: Request, res: Response): Promise<void> {
+  await boardingService.cancelOwnerBoardingRecord(
+    req.user!,
+    req.params as unknown as BoardingRecordParams
+  );
+
+  sendSuccess(res, null);
+}
+
 export async function createBoardingRecord(req: Request, res: Response): Promise<void> {
   const result = await boardingService.createBoardingRecord(
     req.user!,

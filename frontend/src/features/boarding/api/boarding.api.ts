@@ -251,4 +251,11 @@ export const boardingApi = {
     );
     return response.data;
   },
+
+  async cancelRecord(boardingRecordId: string, init: RequestInit = {}): Promise<void> {
+    await apiRequest(`/boarding/records/${encodeURIComponent(boardingRecordId)}/cancel`, {
+      ...init,
+      method: "PATCH",
+    })
+  },
 }

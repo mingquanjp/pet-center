@@ -21,6 +21,8 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
+import { toast } from "sonner"
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -32,6 +34,7 @@ import type {
   BoardingRecordDetail,
   BoardingRecordStatus,
 } from "../../types/boarding.types"
+import { OwnerBoardingCancelDialog } from "../../components/owner/OwnerBoardingCancelDialog"
 
 type OwnerBoardingDetailPageProps = {
   boardingRecordId: string
@@ -64,12 +67,24 @@ const statusMeta: Record<BoardingRecordStatus, StatusMeta> = {
     dotClassName: "bg-[#6E7A76]",
     label: "Đã trả thú cưng",
   },
+  cancelled: {
+    className: "bg-[#FDE2E4] text-[#C62828]",
+    dotClassName: "bg-[#C62828]",
+    label: "Đã hủy",
+  },
+  rejected: {
+    className: "bg-[#FDE2E4] text-[#C62828]",
+    dotClassName: "bg-[#C62828]",
+    label: "Từ chối",
+  },
 }
 
 export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetailPageProps) {
   const [record, setRecord] = React.useState<BoardingRecordDetail | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = React.useState(false)
+  const [isCanceling, setIsCanceling] = React.useState(false)
 
   React.useEffect(() => {
     const abortController = new AbortController()
@@ -167,24 +182,15 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
             <span className={cn("size-2 rounded-full", meta.dotClassName)} aria-hidden="true" />
             {meta.label}
           </span>
-          <Button
-            asChild={Boolean(record.payment.receiptUrl)}
-            variant="outline"
-            disabled={!record.payment.receiptUrl}
-            className="h-9 rounded-lg border-[#005E53] bg-white px-4 text-xs font-medium text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#005E53] disabled:cursor-not-allowed disabled:border-[#BDC9C5] disabled:text-[#6E7A76]"
-          >
-            {record.payment.receiptUrl ? (
-              <a href={record.payment.receiptUrl} target="_blank" rel="noreferrer">
-                <ReceiptText className="mr-2 size-4" aria-hidden="true" />
-                Tải hóa đơn
-              </a>
-            ) : (
-              <>
-                <ReceiptText className="mr-2 size-4" aria-hidden="true" />
-                Tải hóa đơn
-              </>
-            )}
-          </Button>
+          {record.status === "pending" && record.payment.paymentStatus === "unpaid" ? (
+            <Button
+              variant="outline"
+              className="h-9 rounded-lg border-[#C62828] bg-white px-4 text-xs font-medium text-[#C62828] hover:bg-[#FDE2E4] hover:text-[#C62828]"
+              onClick={() => setIsCancelDialogOpen(true)}
+            >
+              Hủy lịch
+            </Button>
+          ) : null}
           <Button asChild className="h-9 rounded-lg bg-[#005E53] px-4 text-xs font-medium text-white hover:bg-[#004C43]">
             <Link href="/owner/boarding/booking">
               <RotateCcw className="mr-2 size-4" aria-hidden="true" />
@@ -263,6 +269,26 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
           </div>
         </article>
       </section>
+
+      <OwnerBoardingCancelDialog
+        isOpen={isCancelDialogOpen}
+        isPending={isCanceling}
+        onOpenChange={setIsCancelDialogOpen}
+        onSubmit={async () => {
+          setIsCanceling(true)
+          try {
+            await boardingApi.cancelRecord(record.boardingRecordId)
+            setRecord((prev) => (prev ? { ...prev, status: "cancelled" } : null))
+            setIsCancelDialogOpen(false)
+            toast.success("Hủy lưu trú thành công")
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Không thể hủy lịch lưu trú"
+            toast.error(errorMessage)
+          } finally {
+            setIsCanceling(false)
+          }
+        }}
+      />
     </div>
   )
 }

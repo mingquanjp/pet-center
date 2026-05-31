@@ -15,14 +15,14 @@ import type {
   CreateBoardingRecordInput
 } from "./boarding.types.js";
 
-const activeBoardingStatuses = ["pending", "confirmed", "staying", "checked_out"] as const;
+const ownerVisibleBoardingStatuses = ["pending", "confirmed", "staying", "checked_out", "cancelled", "rejected"] as const;
 
 function buildBoardingRecordWhere(filters: BoardingRecordListFilters): { clauses: string[]; params: unknown[] } {
   const clauses = [
     "br.owner_user_id = $1",
     "br.boarding_status = ANY($2)"
   ];
-  const params: unknown[] = [filters.ownerUserId, activeBoardingStatuses];
+  const params: unknown[] = [filters.ownerUserId, ownerVisibleBoardingStatuses];
 
   if (filters.search) {
     params.push(`%${filters.search}%`);
@@ -203,7 +203,7 @@ export async function findOwnerBoardingRecordDetail(
         AND br.boarding_status = ANY($3)
       LIMIT 1
     `,
-    [ownerUserId, boardingRecordId, activeBoardingStatuses]
+    [ownerUserId, boardingRecordId, ownerVisibleBoardingStatuses]
   );
 
   return result.rows[0] ?? null;
@@ -225,6 +225,18 @@ export async function findPublishedBoardingUpdates(boardingRecordId: string): Pr
   );
 
   return result.rows;
+}
+
+export async function updateBoardingRecordStatus(
+  boardingRecordId: string,
+  status: string
+): Promise<void> {
+  await query(
+    `UPDATE pet_center.boarding_records
+     SET boarding_status = $1, updated_at = NOW()
+     WHERE boarding_record_id = $2`,
+    [status, boardingRecordId]
+  );
 }
 
 export async function findOwnerBookingPets(ownerUserId: string): Promise<BoardingBookingPetRow[]> {

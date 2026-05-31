@@ -6,6 +6,8 @@ import type {
   OwnerSpaTab,
   SpaBookingServiceOption,
   SpaBookingStatus,
+  StaffGroomingTicketStatusFilter,
+  StaffGroomingTicketStatusTone,
 } from "../types/spa.types"
 
 export const ownerSpaTabs: Array<{ value: OwnerSpaTab; label: string }> = [
@@ -180,6 +182,23 @@ export const spaBookingServiceOptions: SpaBookingServiceOption[] = [
 ]
 
 export const spaBookingTimeSlots = buildTimeSlots("08:00", "17:30", 30)
+
+export const staffSpaTabs: Array<{ value: StaffGroomingTicketStatusFilter; label: string }> = [
+  { value: "all", label: "Tất cả" },
+  { value: "pending", label: "Chờ tiếp nhận" },
+  { value: "waiting", label: "Đã tiếp nhận" },
+  { value: "completed", label: "Hoàn tất" },
+  { value: "cancelled", label: "Đã hủy" },
+]
+
+export const staffSpaStatusClassName: Record<StaffGroomingTicketStatusTone, string> = {
+  payment: "bg-petcenter-danger-bg text-petcenter-danger-text",
+  pending: "bg-petcenter-warning-bg text-petcenter-warning-text",
+  accepted: "bg-[#D8F3EE] text-petcenter-primary",
+  inProgress: "bg-[#E0F2FE] text-[#0369A1]",
+  completed: "bg-petcenter-success-bg text-petcenter-success-text",
+  cancelled: "bg-petcenter-danger-bg text-petcenter-danger-text",
+}
 
 function buildTimeSlots(start: string, end: string, stepMinutes: number) {
   const [startHour, startMinute] = start.split(":").map(Number)

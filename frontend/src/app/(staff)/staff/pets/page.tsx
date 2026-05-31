@@ -1,7 +1,16 @@
-export default function StaffPetsPage() {
+import { Suspense } from "react";
+import { StaffPetsPage } from "@/features/pets/pages/staff/StaffPetsPage";
+
+export default function Page() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-petcenter-text">Thú cưng</h1>
-    </div>
-  )
+    <Suspense
+      fallback={
+        <div className="flex min-h-[320px] items-center justify-center text-sm text-petcenter-text-secondary">
+          Đang tải danh sách hồ sơ thú cưng...
+        </div>
+      }
+    >
+      <StaffPetsPage />
+    </Suspense>
+  );
 }

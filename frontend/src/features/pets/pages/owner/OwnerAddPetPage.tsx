@@ -171,10 +171,13 @@ export function OwnerAddPetPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1180px]">
+    <div className="mx-auto w-full max-w-[1440px]">
       <nav className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="body-md text-petcenter-text-secondary">
-          Danh sách thú cưng &gt; <span className="font-semibold text-petcenter-primary">Thêm hồ sơ</span>
+          <Link className="font-semibold text-petcenter-primary hover:underline" href="/owner/pets">
+            Danh sách thú cưng
+          </Link>{" "}
+          &gt; <span className="font-semibold text-petcenter-primary">Thêm hồ sơ</span>
         </div>
         <Link
           className="label-md inline-flex h-10 items-center justify-center gap-2 rounded-control border border-petcenter-primary bg-white px-4 font-semibold text-petcenter-primary shadow-card transition hover:bg-petcenter-sidebar sm:w-auto"

@@ -1,4 +1,4 @@
-export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out"
+export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out" | "cancelled" | "rejected"
 export type BoardingCreateStatus = "pending_payment" | "pending"
 export type BoardingPaymentOption = "online" | "counter"
 export type BoardingPaymentStatus = "paid" | "unpaid" | "refunded" | "cancelled"

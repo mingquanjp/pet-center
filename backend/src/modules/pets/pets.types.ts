@@ -32,6 +32,32 @@ export type PetDto = {
   displayStatusLabel: string;
 };
 
+export type StaffPetDto = PetDto & {
+  owner: {
+    userId: string;
+    fullName: string;
+    phoneNumber: string | null;
+  };
+};
+
+export type StaffPetDetailDto = PetDetailDto & {
+  owner: {
+    userId: string;
+    fullName: string;
+    phoneNumber: string | null;
+    email: string | null;
+    address: string | null;
+  };
+};
+
+export type StaffOwnerCandidateDto = {
+  userId: string;
+  fullName: string;
+  email: string | null;
+  phoneNumber: string | null;
+  address: string | null;
+};
+
 export type PetDetailDto = PetDto & {
   healthProfile: {
     medicalHistory: string | null;
@@ -213,8 +239,12 @@ export type PetListFilters = {
   ownerUserId: string;
   q?: string;
   species?: PetSpecies;
+  gender?: PetDto["gender"];
+  petStatus?: PetStatus;
   sort: "petName:asc" | "petName:desc";
   page: number;
   limit: number;
   offset: number;
 };
+
+export type StaffPetListFilters = Omit<PetListFilters, "ownerUserId">;

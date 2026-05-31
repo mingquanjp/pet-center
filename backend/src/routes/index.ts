@@ -7,6 +7,7 @@ import { uploadsRouter } from "../modules/uploads/uploads.routes.js";
 import { invoicesRouter } from "../modules/invoices/invoices.routes.js";
 import { appointmentsRouter } from "../modules/appointments/appointments.routes.js";
 import { boardingRouter } from "../modules/boarding/boarding.routes.js";
+import { dashboardRouter } from "../modules/dashboard/dashboard.routes.js";
 
 export const apiRouter = Router();
 
@@ -18,3 +19,4 @@ apiRouter.use(uploadsRouter);
 apiRouter.use(invoicesRouter);
 apiRouter.use(appointmentsRouter);
 apiRouter.use(boardingRouter);
+apiRouter.use(dashboardRouter);
