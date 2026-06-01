@@ -559,7 +559,10 @@ function RevenueTrendPanel({ data }: { data?: AdminDashboardRevenuePoint[] }) {
   return (
     <section className="flex h-64 flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card">
       <h2 className="title-md text-petcenter-text">{"Xu h\u01b0\u1edbng doanh thu"}</h2>
-      <div className="relative mt-4 flex flex-1 flex-col overflow-visible rounded-control border border-petcenter-border bg-petcenter-filter px-4 py-4">
+      <div
+        className="relative mt-4 flex flex-1 flex-col overflow-visible rounded-control border border-petcenter-border bg-petcenter-filter px-4 py-4"
+        data-chart-tooltip-root
+      >
         {points.length > 0 ? (
           <>
             <svg className="h-full min-h-0 w-full flex-1" preserveAspectRatio="none" viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
@@ -645,7 +648,7 @@ function ServiceRevenuePanel({ data }: { data?: AdminDashboardServiceRevenue[] }
     <section className="flex h-64 flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card">
       <h2 className="title-md text-petcenter-text">{"Doanh thu theo d\u1ecbch v\u1ee5"}</h2>
       <div className="mt-4 flex flex-1 items-center justify-center gap-6">
-        <div className="relative flex h-32 w-32 shrink-0 items-center justify-center">
+        <div className="relative flex h-32 w-32 shrink-0 items-center justify-center" data-chart-tooltip-root>
           {rows.length > 0 ? (
             <DonutChart
               data={rows}
@@ -900,7 +903,8 @@ function ChartTooltip({
 
 function getLocalMousePosition(event: React.MouseEvent<Element>): { x: number; y: number } {
   const rect = event.currentTarget.getBoundingClientRect()
-  const parentRect = event.currentTarget.parentElement?.getBoundingClientRect() ?? rect
+  const root = event.currentTarget.closest("[data-chart-tooltip-root]")
+  const parentRect = root?.getBoundingClientRect() ?? rect
 
   return {
     x: event.clientX - parentRect.left,
