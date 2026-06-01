@@ -89,3 +89,72 @@ export type StaffDashboardOverviewDto = {
   stats: StaffDashboardStatDto;
   appointmentTasks: StaffDashboardAppointmentTaskDto[];
 };
+
+export type AdminDashboardStatDto = {
+  totalUsers: number;
+  totalPets: number;
+  medicalAppointments: number;
+  currentBoardingPets: number;
+  totalBoardingCapacity: number;
+  monthlyRevenue: number;
+  pendingInvoices: number;
+  medicineRevenue: number;
+  bookingRate: number;
+};
+
+export type AdminDashboardTrendDto = {
+  totalUsers: number | null;
+  totalPets: number | null;
+  monthlyRevenue: number | null;
+  bookingRate: number | null;
+};
+
+export type AdminDashboardRevenuePointDto = {
+  label: string;
+  revenue: number;
+};
+
+export type AdminDashboardServiceRevenueDto = {
+  category: "medical" | "grooming" | "boarding" | "medicine" | "other";
+  label: string;
+  revenue: number;
+  percentage: number;
+};
+
+export type AdminDashboardRecentActivityDto = {
+  activityLogId: string;
+  occurredAt: string;
+  code: string;
+  customerName: string;
+  petName: string | null;
+  action: string;
+  status: string;
+  statusLabel: string;
+  category: string;
+  sourceType: string;
+  sourceId: string;
+};
+
+export type AdminDashboardAlertDto = {
+  id: string;
+  type: "boarding_capacity" | "payment_failed" | "appointment_delay" | "medicine_inventory";
+  severity: "info" | "warning" | "danger";
+  title: string;
+  description: string;
+  sourceType: string | null;
+  sourceId: string | null;
+  occurredAt: string | null;
+};
+
+export type AdminDashboardOverviewDto = {
+  range: {
+    startDate: string;
+    endDate: string;
+  };
+  stats: AdminDashboardStatDto;
+  trends: AdminDashboardTrendDto;
+  revenueTrend: AdminDashboardRevenuePointDto[];
+  serviceRevenue: AdminDashboardServiceRevenueDto[];
+  recentActivities: AdminDashboardRecentActivityDto[];
+  operationAlerts: AdminDashboardAlertDto[];
+};
