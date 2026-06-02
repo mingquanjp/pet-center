@@ -34,6 +34,7 @@ const FIXED_TIME_SLOTS = [
   "17:00",
 ];
 const timeZone = "Asia/Ho_Chi_Minh";
+const MIN_BOOKING_LEAD_TIME_MS = 60 * 60 * 1000;
 
 function getVietnamDateInputValue(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -46,6 +47,10 @@ function getVietnamDateInputValue(date = new Date()) {
     parts.find((part) => part.type === type)?.value ?? "";
 
   return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
+function buildVietnamSlotDate(date: string, slot: string) {
+  return new Date(`${date}T${slot}:00+07:00`);
 }
 
 function mapDbStatus(row: Pick<OwnerAppointmentListRow, "appointment_status" | "completed_exam_id">): OwnerAppointmentStatusDto {
@@ -127,6 +132,19 @@ function formatAgeText(birthDate: Date | null, estimatedAge: string | null): str
   return `${Number.isInteger(age) ? age : age.toFixed(1)} tuổi`;
 }
 
+function formatWeightText(weightKg: string | null): string | undefined {
+  if (!weightKg) {
+    return undefined;
+  }
+
+  const weight = Number(weightKg);
+  if (!Number.isFinite(weight) || weight <= 0) {
+    return undefined;
+  }
+
+  return `${Number.isInteger(weight) ? weight : weight.toFixed(1)} kg`;
+}
+
 function mapListRowToDto(row: OwnerAppointmentListRow): OwnerAppointmentDto {
   return {
     id: row.appointment_id,
@@ -156,6 +174,7 @@ function mapPetOption(row: OwnerPetOptionRow): OwnerAppointmentPetOptionDto {
     species: mapSpecies(row.species),
     breed: row.breed ?? undefined,
     ageText: formatAgeText(row.birth_date, row.estimated_age),
+    weightText: formatWeightText(row.weight_kg),
     imageUrl: row.profile_image_url ?? undefined,
   };
 }
@@ -255,13 +274,24 @@ async function buildTimeSlots(date: string): Promise<OwnerAppointmentTimeSlotDto
   const bookedBySlot = new Map(
     bookedSlots.map((slot) => [slot.slot, Number(slot.booked_count)])
   );
+  const now = new Date();
 
-  return FIXED_TIME_SLOTS.map((slot) => ({
-    value: slot,
-    label: slot,
-    disabled: Math.max(slotCapacity - (bookedBySlot.get(slot) ?? 0), 0) <= 0,
-    availableUnits: Math.max(slotCapacity - (bookedBySlot.get(slot) ?? 0), 0),
-  }));
+  return FIXED_TIME_SLOTS.map((slot) => {
+    const slotStartsAt = buildVietnamSlotDate(date, slot);
+    const isPastSlot = slotStartsAt.getTime() - now.getTime() <= MIN_BOOKING_LEAD_TIME_MS;
+    const availableUnits = isPastSlot
+      ? 0
+      : Math.max(slotCapacity - (bookedBySlot.get(slot) ?? 0), 0);
+    const disabledReason = isPastSlot ? "past" : availableUnits <= 0 ? "full" : undefined;
+
+    return {
+      value: slot,
+      label: slot,
+      disabled: Boolean(disabledReason),
+      disabledReason,
+      availableUnits,
+    };
+  });
 }
 
 export async function listOwnerAppointments(ownerUserId: string, filters: OwnerAppointmentListQuery) {
@@ -313,6 +343,9 @@ export async function createOwnerAppointment(
   body: CreateOwnerAppointmentBody,
 ): Promise<CreateOwnerAppointmentResultDto> {
   const scheduledAt = new Date(body.scheduledAt);
+  if (scheduledAt.getTime() - Date.now() <= MIN_BOOKING_LEAD_TIME_MS) {
+    throw new AppError("Vui lòng đặt lịch trước giờ khám ít nhất 1 tiếng", "APPOINTMENT_TIME_TOO_SOON", httpStatus.BAD_REQUEST);
+  }
 
   const result = await withTransaction(async (client) => {
     const [pet, examType] = await Promise.all([

@@ -229,6 +229,7 @@ export interface OwnerAppointmentPetOption {
   species: "Dog" | "Cat" | "Other";
   breed?: string;
   ageText?: string;
+  weightText?: string;
   imageUrl?: string;
 }
 
@@ -243,6 +244,7 @@ export interface OwnerAppointmentTimeSlot {
   value: string;
   label: string;
   disabled?: boolean;
+  disabledReason?: "past" | "full";
   availableUnits?: number;
 }
 

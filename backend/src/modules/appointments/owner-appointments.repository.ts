@@ -191,6 +191,7 @@ export async function listOwnerPetOptions(ownerUserId: string) {
       breed,
       birth_date,
       estimated_age::text AS estimated_age,
+      weight_kg::text AS weight_kg,
       profile_image_url
     FROM pet_center.pets
     WHERE owner_user_id = $1
@@ -216,7 +217,7 @@ export async function listActiveExamTypes() {
 
 export async function findOwnerPetById(ownerUserId: string, petId: string, client?: PoolClient) {
   const sql = `
-    SELECT pet_id, pet_name, species, breed, birth_date, estimated_age::text AS estimated_age, profile_image_url
+    SELECT pet_id, pet_name, species, breed, birth_date, estimated_age::text AS estimated_age, weight_kg::text AS weight_kg, profile_image_url
     FROM pet_center.pets
     WHERE owner_user_id = $1
       AND pet_id = $2

@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { CalendarDays } from "lucide-react";
 
-import { getVietnamDateInputValue } from "../../utils/appointment-format";
+import { getMinAppointmentDateInputValue } from "../../utils/appointment-format";
 
 interface OwnerAppointmentDatePickerProps {
   value: string;
@@ -61,5 +61,5 @@ function formatDateLabel(value: string) {
 }
 
 function getTodayDateInputValue() {
-  return getVietnamDateInputValue();
+  return getMinAppointmentDateInputValue();
 }
