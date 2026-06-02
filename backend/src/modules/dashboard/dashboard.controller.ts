@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { sendPaginated, sendSuccess } from "../../shared/responses/api-response.js";
-import type { StaffDashboardQuery } from "./dashboard.schema.js";
+import type { AdminDashboardQuery, StaffDashboardQuery } from "./dashboard.schema.js";
 import * as dashboardService from "./dashboard.service.js";
 
 export async function getOwnerDashboard(req: Request, res: Response): Promise<void> {
@@ -19,6 +19,12 @@ export async function listOwnerActivityLogs(req: Request, res: Response): Promis
 
 export async function getStaffOverview(req: Request, res: Response): Promise<void> {
   const overview = await dashboardService.getStaffOverview(req.user!, req.query as unknown as StaffDashboardQuery);
+
+  sendSuccess(res, overview);
+}
+
+export async function getAdminOverview(req: Request, res: Response): Promise<void> {
+  const overview = await dashboardService.getAdminOverview(req.user!, req.query as unknown as AdminDashboardQuery);
 
   sendSuccess(res, overview);
 }

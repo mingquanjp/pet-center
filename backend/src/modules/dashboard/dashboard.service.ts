@@ -3,8 +3,8 @@ import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
 import { createPagination, normalizePagination } from "../../shared/utils/pagination.js";
 import * as dashboardRepository from "./dashboard.repository.js";
-import type { StaffDashboardQuery } from "./dashboard.schema.js";
-import type { StaffDashboardOverviewDto } from "./dashboard.types.js";
+import type { AdminDashboardQuery, StaffDashboardQuery } from "./dashboard.schema.js";
+import type { AdminDashboardOverviewDto, StaffDashboardOverviewDto } from "./dashboard.types.js";
 
 function assertOwner(authUser: AuthUser): void {
   if (authUser.role !== "OWNER") {
@@ -15,6 +15,12 @@ function assertOwner(authUser: AuthUser): void {
 function assertStaffAccess(authUser: AuthUser): void {
   if (authUser.role !== "STAFF" && authUser.role !== "ADMIN") {
     throw new AppError("Bạn không có quyền xem tổng quan nhân viên", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+}
+
+function assertAdmin(authUser: AuthUser): void {
+  if (authUser.role !== "ADMIN") {
+    throw new AppError("Ban khong co quyen xem dashboard quan tri", "FORBIDDEN", httpStatus.FORBIDDEN);
   }
 }
 
@@ -78,4 +84,82 @@ export async function getStaffOverview(
     },
     appointmentTasks,
   };
+}
+
+export async function getAdminOverview(
+  authUser: AuthUser,
+  query: AdminDashboardQuery
+): Promise<AdminDashboardOverviewDto> {
+  assertAdmin(authUser);
+
+  const range = normalizeAdminDateRange(query);
+  const [statsResult, revenueTrend, serviceRevenue, recentActivities, operationAlerts] = await Promise.all([
+    dashboardRepository.getAdminStats(range),
+    dashboardRepository.findAdminRevenueTrend(range.endDate),
+    dashboardRepository.findAdminServiceRevenue(range),
+    dashboardRepository.findAdminRecentActivities({
+      startDate: range.startDate,
+      endDate: range.endDate,
+      limit: 5,
+    }),
+    dashboardRepository.findAdminOperationAlerts(),
+  ]);
+
+  return {
+    range: {
+      startDate: range.startDate,
+      endDate: range.endDate,
+    },
+    stats: statsResult.stats,
+    trends: statsResult.trends,
+    revenueTrend,
+    serviceRevenue,
+    recentActivities,
+    operationAlerts,
+  };
+}
+
+function normalizeAdminDateRange(query: AdminDashboardQuery): {
+  startDate: string;
+  endDate: string;
+  previousStartDate: string;
+  previousEndDate: string;
+} {
+  const today = new Date();
+  const defaultStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  const startDate = parseDateOnly(query.startDate) ?? defaultStartDate;
+  const endDate = parseDateOnly(query.endDate) ?? today;
+  const normalizedStartDate = startOfDay(startDate);
+  const normalizedEndDate = startOfDay(endDate);
+  const rangeDays = Math.max(
+    1,
+    Math.round((normalizedEndDate.getTime() - normalizedStartDate.getTime()) / 86_400_000) + 1
+  );
+  const previousEndDate = new Date(normalizedStartDate);
+  previousEndDate.setDate(previousEndDate.getDate() - 1);
+  const previousStartDate = new Date(previousEndDate);
+  previousStartDate.setDate(previousStartDate.getDate() - rangeDays + 1);
+
+  return {
+    startDate: formatDateOnly(normalizedStartDate),
+    endDate: formatDateOnly(normalizedEndDate),
+    previousStartDate: formatDateOnly(previousStartDate),
+    previousEndDate: formatDateOnly(previousEndDate),
+  };
+}
+
+function parseDateOnly(value: string | undefined): Date | null {
+  if (!value) return null;
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function formatDateOnly(date: Date): string {
+  return date.toISOString().slice(0, 10);
 }
