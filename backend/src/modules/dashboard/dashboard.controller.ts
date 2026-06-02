@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { sendPaginated, sendSuccess } from "../../shared/responses/api-response.js";
-import type { AdminDashboardQuery, StaffDashboardQuery } from "./dashboard.schema.js";
+import type { AdminDashboardActivityLogsQuery, AdminDashboardQuery, StaffDashboardQuery } from "./dashboard.schema.js";
 import * as dashboardService from "./dashboard.service.js";
 
 export async function getOwnerDashboard(req: Request, res: Response): Promise<void> {
@@ -27,4 +27,10 @@ export async function getAdminOverview(req: Request, res: Response): Promise<voi
   const overview = await dashboardService.getAdminOverview(req.user!, req.query as unknown as AdminDashboardQuery);
 
   sendSuccess(res, overview);
+}
+
+export async function listAdminActivityLogs(req: Request, res: Response): Promise<void> {
+  const result = await dashboardService.listAdminActivityLogs(req.user!, req.query as unknown as AdminDashboardActivityLogsQuery);
+
+  sendPaginated(res, result.data, result.pagination);
 }

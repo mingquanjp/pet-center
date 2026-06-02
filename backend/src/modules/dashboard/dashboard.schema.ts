@@ -26,3 +26,24 @@ export const adminDashboardQuerySchema = z
   );
 
 export type AdminDashboardQuery = z.infer<typeof adminDashboardQuerySchema>;
+
+export const adminDashboardActivityLogsQuerySchema = z
+  .object({
+    startDate: dateStringSchema.optional(),
+    endDate: dateStringSchema.optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .refine(
+    (value) => {
+      if (!value.startDate || !value.endDate) return true;
+
+      return value.startDate <= value.endDate;
+    },
+    {
+      message: "startDate must be before or equal to endDate",
+      path: ["startDate"],
+    }
+  );
+
+export type AdminDashboardActivityLogsQuery = z.infer<typeof adminDashboardActivityLogsQuerySchema>;

@@ -956,6 +956,7 @@ export async function findAdminRecentActivities(range: {
   startDate: string;
   endDate: string;
   limit: number;
+  offset?: number;
 }): Promise<AdminDashboardRecentActivityDto[]> {
   const result = await query<AdminRecentActivityRow>(
     `select
@@ -975,11 +976,34 @@ export async function findAdminRecentActivities(range: {
      where pal.visibility_status = 'visible'
        and pal.occurred_at::date between $1::date and $2::date
      order by pal.occurred_at desc, pal.activity_log_id desc
-     limit $3`,
-    [range.startDate, range.endDate, range.limit]
+     limit $3 offset $4`,
+    [range.startDate, range.endDate, range.limit, range.offset ?? 0]
   );
 
   return result.rows.map(mapAdminRecentActivity);
+}
+
+export async function findAdminActivityLogs(range: {
+  startDate: string;
+  endDate: string;
+  limit: number;
+  offset: number;
+}): Promise<{ activities: AdminDashboardRecentActivityDto[]; total: number }> {
+  const [listResult, countResult] = await Promise.all([
+    findAdminRecentActivities(range),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.pet_activity_logs pal
+       where pal.visibility_status = 'visible'
+         and pal.occurred_at::date between $1::date and $2::date`,
+      [range.startDate, range.endDate]
+    ),
+  ]);
+
+  return {
+    activities: listResult,
+    total: Number(countResult.rows[0]?.total ?? 0),
+  };
 }
 
 export async function findAdminOperationAlerts(): Promise<AdminDashboardAlertDto[]> {
