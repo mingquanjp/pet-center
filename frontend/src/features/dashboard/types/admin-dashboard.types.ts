@@ -43,6 +43,13 @@ export type AdminDashboardRecentActivity = {
   sourceId: string
 }
 
+export type Pagination = {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 export type AdminDashboardAlert = {
   id: string
   type: "boarding_capacity" | "payment_failed" | "appointment_delay" | "medicine_inventory"
