@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, Search, Settings, User } from "lucide-react"
+import { Bell, User } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -31,35 +31,15 @@ export function AdminHeader() {
   }
 
   return (
-    <header className="z-10 flex h-18 w-full shrink-0 items-center justify-between border-b border-petcenter-border-strong bg-[#FBFAEE] px-6 py-2">
-      <div className="hidden items-center gap-2 text-sm text-petcenter-text-secondary sm:flex">
-        <span>{"Qu\u1ea3n tr\u1ecb"}</span>
-        <span>/</span>
-        <span className="font-medium text-petcenter-text">{"T\u1ed5ng quan Dashboard"}</span>
-      </div>
-
-      <div className="flex flex-1 items-center justify-end gap-3">
-        <label className="relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-muted" />
-          <input
-            className="h-9 w-64 rounded-pill border border-petcenter-border-strong bg-petcenter-filter pl-9 pr-4 text-sm text-petcenter-text outline-none transition focus:border-petcenter-primary"
-            placeholder={"T\u00ecm ki\u1ebfm..."}
-            type="search"
-          />
-        </label>
-
-        <button className="relative flex items-center justify-center rounded-full p-2 text-petcenter-text-secondary transition-colors hover:bg-petcenter-sidebar">
+    <header className="h-18 bg-[#FBFAEE] border-b border-petcenter-border-strong flex justify-end items-center w-full px-6 py-2 shrink-0 z-10">
+      <div className="flex items-center gap-4">
+        <button className="relative p-2 text-petcenter-text-secondary hover:bg-petcenter-sidebar rounded-full transition-all duration-150 flex items-center justify-center">
           <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-petcenter-danger-text" />
-        </button>
-
-        <button className="flex items-center justify-center rounded-full p-2 text-petcenter-text-secondary transition-colors hover:bg-petcenter-sidebar">
-          <Settings className="h-5 w-5" />
         </button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div className="ml-1 h-10 w-10 cursor-pointer overflow-hidden rounded-full border border-petcenter-border-strong bg-petcenter-sidebar transition-opacity hover:opacity-90">
+            <div className="ml-2 h-10 w-10 cursor-pointer overflow-hidden rounded-full border border-petcenter-border-strong bg-petcenter-sidebar transition-opacity hover:opacity-90">
               <Avatar className="h-full w-full">
                 <AvatarFallback className="bg-petcenter-primary text-white">
                   <User className="h-5 w-5" />
