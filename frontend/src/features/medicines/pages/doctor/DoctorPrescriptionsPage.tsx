@@ -8,8 +8,7 @@ import {
   ClipboardList,
   CircleAlert,
   Eye,
-  Filter,
-  FileDown,
+  RotateCcw,
   FlaskConical,
   Pill,
   Plus,
@@ -280,8 +279,8 @@ export function DoctorPrescriptionsPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-petcenter-background">
-      <main className="w-full px-6 py-8 lg:px-8">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8">
+      <main className="w-full px-6 py-8">
+        <div className="mx-auto flex w-full max-w-full flex-col gap-8">
           <header className="flex flex-col gap-2">
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs leading-4">
               <span className="font-medium text-[#3e4946]">Tổng quan</span>
@@ -332,41 +331,58 @@ export function DoctorPrescriptionsPage() {
             })}
           </section>
 
-          <section className="overflow-hidden rounded-[16px] border border-[#e4e3d7] bg-white shadow-[0_4px_16px_rgba(31,38,31,0.05)]">
-            <div className="flex flex-col gap-4 border-b border-[#e4e3d7] bg-[#fbfaee] px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
-              <label className="relative w-full max-w-[320px]">
-                <span className="sr-only">Tìm đơn thuốc</span>
-                <Search
-                  aria-hidden="true"
-                  className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-[#6e7a76]"
-                />
+          <section className="rounded-[16px] border border-[#e4e3d7] bg-[#fbfaee] p-4 shadow-[0_4px_8px_rgba(31,38,31,0.05)]">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e7a76]" />
                 <input
-                  className="h-11 w-full rounded-full border border-[rgba(189,201,197,0.4)] bg-[#fbfaee] pl-11 pr-4 text-sm leading-5 text-[#1b1c15] outline-none transition placeholder:text-[#6b7280] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+                  value={query}
                   onChange={(event) => handleSearchChange(event.target.value)}
                   placeholder="Tìm theo mã đơn, tên thú cưng..."
                   type="search"
-                  value={query}
+                  className="h-11 w-full rounded-full border border-[rgba(189,201,197,0.4)] bg-white pl-11 pr-4 text-sm text-[#1b1c15] outline-none transition placeholder:text-[#6b7280] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
                 />
-              </label>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-[rgba(189,201,197,0.4)] bg-[#fbfaee] px-4 text-sm font-medium text-[#3e4946] transition hover:border-[#005e53]/40 hover:text-[#005e53]"
-                  type="button"
-                >
-                  <Filter aria-hidden="true" className="size-4" />
-                  Lọc
-                </button>
-                <button
-                  className="inline-flex h-11 items-center gap-2 rounded-full border border-[rgba(189,201,197,0.4)] bg-[#fbfaee] px-4 text-sm font-medium text-[#3e4946] transition hover:border-[#005e53]/40 hover:text-[#005e53]"
-                  type="button"
-                >
-                  <CalendarDays aria-hidden="true" className="size-4" />
-                  Tuần này
-                </button>
               </div>
-            </div>
 
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <label className="flex items-center gap-2">
+                  <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">
+                    Trạng thái:
+                  </span>
+                  <select
+                    className="h-10 rounded-full border border-[rgba(189,201,197,0.4)] bg-white px-3 pr-9 text-sm text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+                    defaultValue="ALL"
+                  >
+                    <option value="ALL">Tất cả</option>
+                    <option value="PRESCRIBED">Đã kê</option>
+                  </select>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">
+                    Ngày:
+                  </span>
+                  <input
+                    type="date"
+                    aria-label="Ngày kê đơn"
+                    className="h-10 rounded-full border border-[rgba(189,201,197,0.4)] bg-white px-3 text-sm text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+                  />
+                </label>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-full border-[#bdc9c5] bg-white px-4 font-medium text-[#3e4946] hover:bg-[#e9e9dd] xl:ml-auto"
+                onClick={() => setQuery("")}
+              >
+                <RotateCcw aria-hidden="true" className="mr-2 size-4" />
+                Đặt lại
+              </Button>
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-[16px] border border-[#e4e3d7] bg-white shadow-[0_4px_16px_rgba(31,38,31,0.05)]">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1050px] border-collapse">
                 <thead>
