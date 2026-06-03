@@ -1,10 +1,8 @@
 "use client"
 
-import Link from "next/link"
 import { useMemo, useState } from "react"
 import {
   CalendarDays,
-  ChevronRight,
   ClipboardList,
   CircleAlert,
   Eye,
@@ -12,7 +10,6 @@ import {
   RotateCcw,
   FlaskConical,
   Pill,
-  Plus,
   Search,
   Stethoscope,
   UserRound,
@@ -241,6 +238,12 @@ const stats = [
   },
 ]
 
+const parseVietnameseDate = (date: string) => {
+  const [day, month, year] = date.split("/").map(Number)
+
+  return new Date(year, month - 1, day).getTime()
+}
+
 export function DoctorPrescriptionsPage() {
   const [query, setQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
@@ -249,21 +252,23 @@ export function DoctorPrescriptionsPage() {
   const filteredPrescriptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
-    if (!normalizedQuery) return prescriptions
+    return prescriptions
+      .filter((prescription) => {
+        if (!normalizedQuery) return true
 
-    return prescriptions.filter((prescription) => {
-      return [
-        prescription.prescriptionId,
-        prescription.examId,
-        prescription.pet.name,
-        prescription.pet.species,
-        prescription.pet.breed,
-        prescription.ownerName,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery)
-    })
+        return [
+          prescription.prescriptionId,
+          prescription.examId,
+          prescription.pet.name,
+          prescription.pet.species,
+          prescription.pet.breed,
+          prescription.ownerName,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      })
+      .sort((current, next) => parseVietnameseDate(next.prescribedDate) - parseVietnameseDate(current.prescribedDate))
   }, [query])
 
   const totalPages = Math.max(1, Math.ceil(filteredPrescriptions.length / pageSize))
@@ -281,92 +286,68 @@ export function DoctorPrescriptionsPage() {
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8">
       <header className="flex flex-col gap-2">
-            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs leading-4">
-              <span className="font-medium text-[#3e4946]">Tổng quan</span>
-              <ChevronRight aria-hidden="true" className="size-3 text-[#6e7a76]" />
-              <span className="font-semibold text-[#005e53]">Đơn thuốc</span>
-            </nav>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-[30px] font-bold leading-9 tracking-[0] text-[#1b1c15]">
+              Đơn thuốc
+            </h1>
+            <p className="mt-1 max-w-[672px] text-sm leading-5 text-[#3e4946]">
+              Xem lại các đơn thuốc đã kê và hướng dẫn sử dụng thuốc cho từng phiếu khám trong hệ thống.
+            </p>
+          </div>
+        </div>
+      </header>
 
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <section aria-label="Thống kê đơn thuốc" className="grid gap-6 md:grid-cols-3">
+        {stats.map((stat) => {
+          const Icon = stat.icon
+
+          return (
+            <article
+              className="flex h-[110px] items-center gap-5 rounded-[16px] border border-[#e4e3d7] bg-white p-[25px] shadow-[0_4px_8px_rgba(31,38,31,0.05)]"
+              key={stat.label}
+            >
+              <div
+                className={cn(
+                  "flex size-14 shrink-0 items-center justify-center rounded-full",
+                  stat.iconClassName
+                )}
+              >
+                <Icon aria-hidden="true" className="size-6" />
+              </div>
               <div className="min-w-0">
-                <h1 className="text-[30px] font-bold leading-9 tracking-[0] text-[#1b1c15]">
-                  Đơn thuốc
-                </h1>
-                <p className="mt-1 max-w-[672px] text-sm leading-5 text-[#3e4946]">
-                  Xem lại các đơn thuốc đã kê và hướng dẫn sử dụng thuốc cho từng phiếu khám trong hệ thống.
-                </p>
+                <p className="text-sm font-medium leading-5 text-[#3e4946]">{stat.label}</p>
+                <p className="mt-1 text-[30px] font-bold leading-9 text-[#1b1c15]">{stat.value}</p>
               </div>
+            </article>
+          )
+        })}
+      </section>
 
-              <Button
-                asChild
-                className="h-11 w-fit rounded-full bg-[#005e53] px-5 text-sm font-medium text-white shadow-[0_1px_1px_rgba(0,0,0,0.05)] hover:bg-[#004f47]"
-              >
-                <Link href="/doctor/prescriptions/create">
-                  <Plus aria-hidden="true" className="mr-2 size-4" />
-                  Kê đơn mới
-                </Link>
-              </Button>
-            </div>
-          </header>
+      <section className="rounded-[16px] border border-[#e4e3d7] bg-[#fbfaee] p-4 shadow-[0_4px_8px_rgba(31,38,31,0.05)]">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e7a76]" />
+            <input
+              value={query}
+              onChange={(event) => handleSearchChange(event.target.value)}
+              placeholder="Tìm theo mã đơn, tên thú cưng..."
+              type="search"
+              className="h-11 w-full rounded-full border border-[rgba(189,201,197,0.4)] bg-white pl-11 pr-4 text-sm text-[#1b1c15] outline-none transition placeholder:text-[#6b7280] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+            />
+          </div>
 
-          <section aria-label="Thống kê đơn thuốc" className="grid gap-6 md:grid-cols-3">
-            {stats.map((stat) => {
-              const Icon = stat.icon
-
-              return (
-                <article
-                  className="flex h-[110px] items-center gap-5 rounded-[16px] border border-[#e4e3d7] bg-white p-[25px] shadow-[0_4px_8px_rgba(31,38,31,0.05)]"
-                  key={stat.label}
-                >
-                  <div className={cn("flex size-14 shrink-0 items-center justify-center rounded-full", stat.iconClassName)}>
-                    <Icon aria-hidden="true" className="size-6" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium leading-5 text-[#3e4946]">{stat.label}</p>
-                    <p className="mt-1 text-[30px] font-bold leading-9 text-[#1b1c15]">{stat.value}</p>
-                  </div>
-                </article>
-              )
-            })}
-          </section>
-
-          <section className="rounded-[16px] border border-[#e4e3d7] bg-[#fbfaee] p-4 shadow-[0_4px_8px_rgba(31,38,31,0.05)]">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-              <div className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e7a76]" />
-                <input
-                  value={query}
-                  onChange={(event) => handleSearchChange(event.target.value)}
-                  placeholder="Tìm theo mã đơn, tên thú cưng..."
-                  type="search"
-                  className="h-11 w-full rounded-full border border-[rgba(189,201,197,0.4)] bg-white pl-11 pr-4 text-sm text-[#1b1c15] outline-none transition placeholder:text-[#6b7280] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
-                />
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                <label className="flex items-center gap-2">
-                  <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">
-                    Ngày:
-                  </span>
-                  <input
-                    type="date"
-                    aria-label="Ngày kê đơn"
-                    className="h-10 rounded-full border border-[rgba(189,201,197,0.4)] bg-white px-3 text-sm text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
-                  />
-                </label>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 rounded-full border-[#bdc9c5] bg-white px-4 font-medium text-[#3e4946] hover:bg-[#e9e9dd] xl:ml-auto"
-                onClick={() => setQuery("")}
-              >
-                <RotateCcw aria-hidden="true" className="mr-2 size-4" />
-                Đặt lại
-              </Button>
-            </div>
-          </section>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 rounded-full border-[#bdc9c5] bg-white px-4 font-medium text-[#3e4946] hover:bg-[#e9e9dd] xl:ml-auto"
+            onClick={() => setQuery("")}
+          >
+            <RotateCcw aria-hidden="true" className="mr-2 size-4" />
+            Đặt lại
+          </Button>
+        </div>
+      </section>
 
           <section className="overflow-hidden rounded-[16px] border border-[#e4e3d7] bg-white shadow-[0_4px_16px_rgba(31,38,31,0.05)]">
             <div className="overflow-x-auto">

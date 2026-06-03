@@ -7,7 +7,6 @@ import {
   CalendarClock,
   CalendarDays,
   CheckCircle2,
-  ChevronRight,
   Eye,
   RotateCcw,
   Search,
@@ -16,9 +15,17 @@ import {
 import { Button } from "@/components/ui/button"
 
 import { AppPagination } from "@/components/ui/app-pagination"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 type FollowUpStatus = "upcoming" | "overdue" | "completed"
+type FollowUpStatusFilter = "all" | FollowUpStatus
 
 type FollowUpRow = {
   followUpId: string
@@ -263,30 +270,38 @@ const stats = [
   },
 ]
 
+const statusFilterOptions: { label: string; value: FollowUpStatusFilter }[] = [
+  { label: "Tất cả", value: "all" },
+  { label: "Sắp đến", value: "upcoming" },
+  { label: "Quá hạn", value: "overdue" },
+  { label: "Đã hoàn tất", value: "completed" },
+]
+
 export function DoctorFollowUpsPage() {
   const [query, setQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<FollowUpStatusFilter>("all")
   const [currentPage, setCurrentPage] = useState(1)
 
   const filteredFollowUps = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
-    if (!normalizedQuery) return followUps
-
     return followUps.filter((followUp) =>
-      [
-        followUp.followUpId,
-        followUp.pet.name,
-        followUp.pet.species,
-        followUp.pet.breed,
-        followUp.ownerName,
-        followUp.examId,
-        followUp.reason,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery)
+      (statusFilter === "all" || followUp.status === statusFilter) &&
+      (!normalizedQuery ||
+        [
+          followUp.followUpId,
+          followUp.pet.name,
+          followUp.pet.species,
+          followUp.pet.breed,
+          followUp.ownerName,
+          followUp.examId,
+          followUp.reason,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery))
     )
-  }, [query])
+  }, [query, statusFilter])
 
   const totalPages = Math.max(1, Math.ceil(filteredFollowUps.length / pageSize))
   const safePage = Math.min(currentPage, totalPages)
@@ -300,83 +315,118 @@ export function DoctorFollowUpsPage() {
     setCurrentPage(1)
   }
 
+  const handleStatusFilterChange = (value: FollowUpStatusFilter) => {
+    setStatusFilter(value)
+    setCurrentPage(1)
+  }
+
+  const handleResetFilters = () => {
+    setQuery("")
+    setStatusFilter("all")
+    setCurrentPage(1)
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8">
-          <header className="flex flex-col gap-2">
-            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs leading-4">
-              <span className="font-medium text-[#3e4946]">Tổng quan</span>
-              <ChevronRight aria-hidden="true" className="size-3 text-[#6e7a76]" />
-              <span className="font-semibold text-[#005e53]">Tái khám</span>
-            </nav>
+      <header className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-[30px] font-bold leading-9 tracking-[0] text-[#1b1c15]">
+              Tái khám
+            </h1>
+            <p className="mt-1 max-w-[672px] text-sm leading-5 text-[#3e4946]">
+              Theo dõi các ca cần tái khám, nhắc lịch và cập nhật ghi chú chuyên môn.
+            </p>
+          </div>
+        </div>
+      </header>
 
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div className="min-w-0">
-                <h1 className="text-[30px] font-bold leading-9 tracking-[0] text-[#1b1c15]">Tái khám</h1>
-                <p className="mt-1 max-w-[672px] text-sm leading-5 text-[#3e4946]">
-                  Theo dõi các ca cần tái khám, nhắc lịch và cập nhật ghi chú chuyên môn.
-                </p>
-              </div>
-            </div>
-          </header>
+      <section aria-label="Thống kê tái khám" className="grid gap-6 md:grid-cols-3">
+        {stats.map((stat) => {
+          const Icon = stat.icon
 
-          <section aria-label="Thống kê tái khám" className="grid gap-6 md:grid-cols-3">
-            {stats.map((stat) => {
-              const Icon = stat.icon
-
-              return (
-                <article
-                  className="flex h-[110px] items-center gap-5 rounded-[16px] border border-[#e4e3d7] bg-white p-[25px] shadow-[0_4px_8px_rgba(31,38,31,0.05)]"
-                  key={stat.label}
-                >
-                  <div className={cn("flex size-14 shrink-0 items-center justify-center rounded-full", stat.iconClassName)}>
-                    <Icon aria-hidden="true" className="size-6" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium leading-5 text-[#3e4946]">{stat.label}</p>
-                    <p className="mt-1 text-[30px] font-bold leading-9 text-[#1b1c15]">{stat.value}</p>
-                  </div>
-                </article>
-              )
-            })}
-          </section>
-
-          <section className="rounded-[16px] border border-[#e4e3d7] bg-[#fbfaee] p-4 shadow-[0_4px_8px_rgba(31,38,31,0.05)]">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-              <div className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e7a76]" />
-                <input
-                  value={query}
-                  onChange={(event) => handleSearchChange(event.target.value)}
-                  placeholder="Tìm theo ID, tên thú cưng..."
-                  type="search"
-                  className="h-11 w-full rounded-full border border-[rgba(189,201,197,0.4)] bg-white pl-11 pr-4 text-sm text-[#1b1c15] outline-none transition placeholder:text-[#6b7280] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
-                />
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                <label className="flex items-center gap-2">
-                  <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">
-                    Ngày:
-                  </span>
-                  <input
-                    type="date"
-                    aria-label="Ngày tái khám"
-                    className="h-10 rounded-full border border-[rgba(189,201,197,0.4)] bg-white px-3 text-sm text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
-                  />
-                </label>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 rounded-full border-[#bdc9c5] bg-white px-4 font-medium text-[#3e4946] hover:bg-[#e9e9dd] xl:ml-auto"
-                onClick={() => setQuery("")}
+          return (
+            <article
+              className="flex h-[110px] items-center gap-5 rounded-[16px] border border-[#e4e3d7] bg-white p-[25px] shadow-[0_4px_8px_rgba(31,38,31,0.05)]"
+              key={stat.label}
+            >
+              <div
+                className={cn(
+                  "flex size-14 shrink-0 items-center justify-center rounded-full",
+                  stat.iconClassName
+                )}
               >
-                <RotateCcw aria-hidden="true" className="mr-2 size-4" />
-                Đặt lại
-              </Button>
-            </div>
-          </section>
+                <Icon aria-hidden="true" className="size-6" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium leading-5 text-[#3e4946]">{stat.label}</p>
+                <p className="mt-1 text-[30px] font-bold leading-9 text-[#1b1c15]">{stat.value}</p>
+              </div>
+            </article>
+          )
+        })}
+      </section>
+
+      <section className="rounded-[16px] border border-[#e4e3d7] bg-[#fbfaee] p-4 shadow-[0_4px_8px_rgba(31,38,31,0.05)]">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e7a76]" />
+            <input
+              value={query}
+              onChange={(event) => handleSearchChange(event.target.value)}
+              placeholder="Tìm theo ID, tên thú cưng..."
+              type="search"
+              className="h-11 w-full rounded-full border border-[rgba(189,201,197,0.4)] bg-white pl-11 pr-4 text-sm text-[#1b1c15] outline-none transition placeholder:text-[#6b7280] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+            />
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <label className="flex items-center gap-2">
+              <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">
+                Trạng thái:
+              </span>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger
+                  aria-label="Lọc theo trạng thái tái khám"
+                  className="h-10 min-w-[150px] rounded-full border-[rgba(189,201,197,0.6)] bg-white px-4 text-sm text-[#1b1c15] shadow-none focus:ring-4 focus:ring-[#005e53]/10"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border border-[#bdc9c5] bg-white p-1 text-[#1b1c15]">
+                  {statusFilterOptions.map((option) => (
+                    <SelectItem
+                      className="rounded-lg px-3 py-2 text-sm focus:bg-[#d8f3ee] focus:text-[#005e53]"
+                      key={option.value}
+                      value={option.value}
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+
+            <label className="flex items-center gap-2">
+              <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">Ngày:</span>
+              <input
+                type="date"
+                aria-label="Ngày tái khám"
+                className="h-10 rounded-full border border-[rgba(189,201,197,0.4)] bg-white px-3 text-sm text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+              />
+            </label>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 rounded-full border-[#bdc9c5] bg-white px-4 font-medium text-[#3e4946] hover:bg-[#e9e9dd] xl:ml-auto"
+            onClick={handleResetFilters}
+          >
+            <RotateCcw aria-hidden="true" className="mr-2 size-4" />
+            Đặt lại
+          </Button>
+        </div>
+      </section>
 
           <section className="overflow-hidden rounded-[16px] border border-[#e4e3d7] bg-white shadow-[0_4px_16px_rgba(31,38,31,0.05)]">
 

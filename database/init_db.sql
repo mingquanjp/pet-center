@@ -184,6 +184,7 @@ CREATE TABLE prescription_items (
     prescription_id VARCHAR(30) NOT NULL REFERENCES prescriptions(prescription_id) ON UPDATE CASCADE ON DELETE CASCADE,
     medicine_id VARCHAR(30) NOT NULL REFERENCES medicines(medicine_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     medicine_name VARCHAR(150) NOT NULL,
+    quantity VARCHAR(120),
     dosage VARCHAR(120) NOT NULL,
     frequency VARCHAR(120) NOT NULL,
     duration VARCHAR(120) NOT NULL,
