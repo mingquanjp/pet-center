@@ -7,6 +7,9 @@ import * as appointmentsController from "./appointments.controller.js";
 import * as ownerAppointmentsController from "./owner-appointments.controller.js";
 import { 
   listStaffAppointmentsQuerySchema,
+  listDoctorExaminationsQuerySchema,
+  doctorExaminationIdParamsSchema,
+  completeDoctorExaminationSchema,
   staffAppointmentIdParamsSchema,
   confirmStaffAppointmentSchema,
   rejectStaffAppointmentSchema
@@ -161,4 +164,39 @@ appointmentsRouter.patch(
     body: rejectStaffAppointmentSchema
   }),
   asyncHandler(appointmentsController.rejectStaffAppointment)
+);
+
+appointmentsRouter.get(
+  "/doctor/examinations",
+  authMiddleware,
+  requireRole("DOCTOR"),
+  validateRequest({ query: listDoctorExaminationsQuerySchema }),
+  asyncHandler(appointmentsController.listDoctorExaminations)
+);
+
+appointmentsRouter.get(
+  "/doctor/examinations/:appointmentId",
+  authMiddleware,
+  requireRole("DOCTOR"),
+  validateRequest({ params: doctorExaminationIdParamsSchema }),
+  asyncHandler(appointmentsController.getDoctorExaminationDetail)
+);
+
+appointmentsRouter.post(
+  "/doctor/examinations/:appointmentId/start",
+  authMiddleware,
+  requireRole("DOCTOR"),
+  validateRequest({ params: doctorExaminationIdParamsSchema }),
+  asyncHandler(appointmentsController.startDoctorExamination)
+);
+
+appointmentsRouter.patch(
+  "/doctor/examinations/:appointmentId/complete",
+  authMiddleware,
+  requireRole("DOCTOR"),
+  validateRequest({
+    params: doctorExaminationIdParamsSchema,
+    body: completeDoctorExaminationSchema,
+  }),
+  asyncHandler(appointmentsController.completeDoctorExamination)
 );
