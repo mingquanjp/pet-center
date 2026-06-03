@@ -145,3 +145,87 @@ export interface PendingAppointmentAssignmentRow {
   appointment_id: string;
   scheduled_at: Date;
 }
+
+export type DoctorExaminationStatusDto =
+  | "WAITING"
+  | "EXAMINING"
+  | "COMPLETED"
+  | "FOLLOW_UP";
+
+export interface DoctorExaminationListRow {
+  id: string;
+  exam_id: string | null;
+  pet_id: string;
+  pet_name: string;
+  species: string;
+  breed: string | null;
+  birth_date: Date | null;
+  estimated_age: string | null;
+  profile_image_url: string | null;
+  owner_id: string;
+  owner_name: string;
+  owner_phone: string | null;
+  owner_email: string | null;
+  exam_type_id: string;
+  type_code: string;
+  type_name: string;
+  scheduled_at: Date;
+  symptom_description: string | null;
+  internal_note: string | null;
+  examination_status: string;
+}
+
+export interface DoctorExaminationStatsRow {
+  total_count: string;
+  waiting_count: string;
+  examining_count: string;
+  completed_count: string;
+  follow_up_count: string;
+}
+
+export interface DoctorExaminationCountRow {
+  total: string;
+}
+
+export interface DoctorExaminationFieldDefinitionRow {
+  field_definition_id: string;
+  field_name: string;
+  field_label: string;
+  field_type: "text" | "number" | "date" | "select" | "file";
+  is_required: boolean;
+  display_order: number;
+  option_source: string | null;
+}
+
+export interface DoctorExaminationFieldValueRow {
+  field_definition_id: string;
+  value_text: string | null;
+  value_number: string | null;
+  value_date: string | null;
+  file_url: string | null;
+}
+
+export interface DoctorExaminationDetailRow extends DoctorExaminationListRow {
+  gender: string | null;
+  weight_kg: string | null;
+  diagnosis: string | null;
+  conclusion: string | null;
+  health_note: string | null;
+  exam_status: string | null;
+  exam_date: string | null;
+}
+
+export interface CompleteDoctorExaminationFieldValueBody {
+  fieldDefinitionId: string;
+  valueText?: string;
+  valueNumber?: number;
+  valueDate?: string;
+  fileUrl?: string;
+}
+
+export interface CompleteDoctorExaminationBody {
+  diagnosis: string;
+  conclusion: string;
+  healthNote?: string;
+  fieldValues?: CompleteDoctorExaminationFieldValueBody[];
+}
