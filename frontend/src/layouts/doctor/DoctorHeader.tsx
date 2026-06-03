@@ -17,7 +17,7 @@ import {
 import { authApi } from "@/features/auth/api/auth.api"
 import { clearAuthSession } from "@/features/auth/api/auth-session"
 
-export function AdminHeader() {
+export function DoctorHeader() {
   const router = useRouter()
 
   const handleLogout = async () => {
@@ -34,15 +34,15 @@ export function AdminHeader() {
     <header className="h-18 bg-[#FBFAEE] border-b border-petcenter-border-strong flex justify-end items-center w-full px-6 py-2 shrink-0 z-10">
       <div className="flex items-center gap-4">
         <button className="relative p-2 text-petcenter-text-secondary hover:bg-petcenter-sidebar rounded-full transition-all duration-150 flex items-center justify-center">
-          <Bell className="h-5 w-5" />
+          <Bell className="w-5 h-5" />
         </button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div className="ml-2 h-10 w-10 cursor-pointer overflow-hidden rounded-full border border-petcenter-border-strong bg-petcenter-sidebar transition-opacity hover:opacity-90">
-              <Avatar className="h-full w-full">
+            <div className="w-10 h-10 rounded-full bg-petcenter-sidebar border border-petcenter-border-strong overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ml-2">
+              <Avatar className="w-full h-full">
                 <AvatarFallback className="bg-petcenter-primary text-white">
-                  <User className="h-5 w-5" />
+                  <User className="w-5 h-5" />
                 </AvatarFallback>
               </Avatar>
             </div>
@@ -50,12 +50,12 @@ export function AdminHeader() {
 
           <DropdownMenuContent
             align="end"
-            className="z-50 w-56 rounded-xl border border-petcenter-border-strong bg-white shadow-xl"
+            className="w-56 bg-white border border-petcenter-border-strong shadow-xl rounded-xl z-50"
           >
-            <DropdownMenuLabel>{"T\u00e0i kho\u1ea3n qu\u1ea3n tr\u1ecb"}</DropdownMenuLabel>
+            <DropdownMenuLabel>{"T\u00e0i kho\u1ea3n b\u00e1c s\u0129"}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link className="w-full cursor-pointer" href="/admin/profile">
+              <Link href="/doctor/profile" className="cursor-pointer w-full">
                 {"H\u1ed3 s\u01a1 c\u00e1 nh\u00e2n"}
               </Link>
             </DropdownMenuItem>
