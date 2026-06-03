@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import {
   AlertTriangle,
   BedDouble,
@@ -12,14 +11,29 @@ import {
   Clock3,
   CreditCard,
   FileWarning,
+  FileText,
+  HeartPulse,
   PawPrint,
   Pill,
   ReceiptText,
+  Sparkles,
+  Stethoscope,
   type LucideIcon,
   Users,
 } from "lucide-react"
 
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 import { adminDashboardApi } from "../../api/admin-dashboard.api"
 import type {
   AdminDashboardAlert,
@@ -27,6 +41,7 @@ import type {
   AdminDashboardRecentActivity,
   AdminDashboardRevenuePoint,
   AdminDashboardServiceRevenue,
+  Pagination,
 } from "../../types/admin-dashboard.types"
 
 type AdminStatCard = {
@@ -100,11 +115,61 @@ const statCardConfig: AdminStatConfig[] = [
   },
 ]
 
+const adminActivityCategoryMeta: Record<string, { label: string; icon: LucideIcon; className: string }> = {
+  medical: {
+    label: "Khám bệnh",
+    icon: Stethoscope,
+    className: "bg-petcenter-success-bg text-petcenter-success-text",
+  },
+  vaccination: {
+    label: "Tiêm phòng",
+    icon: HeartPulse,
+    className: "bg-petcenter-warning-bg text-petcenter-warning-text",
+  },
+  grooming: {
+    label: "Spa",
+    icon: Sparkles,
+    className: "bg-petcenter-primary/10 text-petcenter-primary",
+  },
+  boarding: {
+    label: "Lưu trú",
+    icon: BedDouble,
+    className: "bg-petcenter-info-bg text-petcenter-info-text",
+  },
+  invoice: {
+    label: "Hóa đơn",
+    icon: FileText,
+    className: "bg-petcenter-sidebar text-petcenter-text-secondary",
+  },
+  payment: {
+    label: "Thanh toán",
+    icon: ReceiptText,
+    className: "bg-petcenter-cta/15 text-petcenter-cta-hover",
+  },
+  profile: {
+    label: "Hồ sơ",
+    icon: PawPrint,
+    className: "bg-petcenter-primary/10 text-petcenter-primary",
+  },
+}
+
+const adminActivityFilterOptions = [
+  { label: "Tất cả", value: "all" },
+  { label: "Khám bệnh", value: "medical" },
+  { label: "Spa", value: "grooming" },
+  { label: "Lưu trú", value: "boarding" },
+  { label: "Hóa đơn", value: "invoice" },
+  { label: "Thanh toán", value: "payment" },
+] as const
+
+const activityHistoryPageSize = 30
+
 export function AdminDashboardPage() {
   const [dateRange, setDateRange] = React.useState(() => getLast30DaysRange())
   const [dashboard, setDashboard] = React.useState<AdminDashboardOverview | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const [isActivityHistoryOpen, setIsActivityHistoryOpen] = React.useState(false)
   const recentActivityCardRef = React.useRef<HTMLElement | null>(null)
   const [recentActivityCardHeight, setRecentActivityCardHeight] = React.useState<number | null>(null)
 
@@ -232,9 +297,13 @@ export function AdminDashboardPage() {
         >
           <div className="flex items-center justify-between border-b border-petcenter-border bg-petcenter-filter px-5 py-4">
             <h2 className="heading-sm text-petcenter-text">{"Ho\u1ea1t \u0111\u1ed9ng g\u1ea7n \u0111\u00e2y"}</h2>
-            <Link className="label-md font-semibold text-petcenter-primary hover:underline" href="/admin/reports">
+            <button
+              className="label-md font-semibold text-petcenter-primary hover:underline"
+              onClick={() => setIsActivityHistoryOpen(true)}
+              type="button"
+            >
               {"Xem t\u1ea5t c\u1ea3"}
-            </Link>
+            </button>
           </div>
           <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
             <table className="w-full min-w-[760px] text-left">
@@ -302,7 +371,312 @@ export function AdminDashboardPage() {
           </div>
         </section>
       </section>
+
+      <AdminActivityHistoryDialog
+        dateRange={dateRange}
+        open={isActivityHistoryOpen}
+        onOpenChange={setIsActivityHistoryOpen}
+      />
     </div>
+  )
+}
+
+function AdminActivityHistoryDialog({
+  dateRange,
+  open,
+  onOpenChange,
+}: {
+  dateRange: { startDate: string; endDate: string }
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const [activities, setActivities] = React.useState<AdminDashboardRecentActivity[]>([])
+  const [pagination, setPagination] = React.useState<Pagination | null>(null)
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [isLoadingMore, setIsLoadingMore] = React.useState(false)
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = React.useState<string>("all")
+
+  const filteredActivities = React.useMemo(() => {
+    if (activeCategory === "all") return activities
+
+    return activities.filter((activity) => activity.category === activeCategory)
+  }, [activeCategory, activities])
+  const groupedActivities = React.useMemo(() => groupAdminActivitiesByDate(filteredActivities), [filteredActivities])
+  const hasMoreActivities = pagination ? pagination.page < pagination.totalPages : false
+
+  const loadActivityPage = React.useCallback(
+    async (page: number, signal?: AbortSignal) => {
+      const isFirstPage = page === 1
+
+      try {
+        if (isFirstPage) {
+          setIsLoading(true)
+        } else {
+          setIsLoadingMore(true)
+        }
+        setErrorMessage(null)
+
+        const result = await adminDashboardApi.listActivityLogs(
+          {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+            page,
+            limit: activityHistoryPageSize,
+          },
+          signal ? { signal } : {}
+        )
+
+        if (signal?.aborted) return
+
+        setPagination(result.pagination)
+        setActivities((currentActivities) =>
+          isFirstPage ? result.activities : mergeAdminActivities(currentActivities, result.activities)
+        )
+      } catch (error) {
+        if (!signal?.aborted) {
+          if (isFirstPage) {
+            setActivities([])
+            setPagination(null)
+          }
+          setErrorMessage(error instanceof Error ? error.message : "Không thể tải lịch sử hoạt động")
+        }
+      } finally {
+        if (!signal?.aborted) {
+          if (isFirstPage) {
+            setIsLoading(false)
+          } else {
+            setIsLoadingMore(false)
+          }
+        }
+      }
+    },
+    [dateRange.endDate, dateRange.startDate]
+  )
+
+  React.useEffect(() => {
+    if (!open) return
+
+    const abortController = new AbortController()
+
+    async function loadActivities() {
+      try {
+        setIsLoading(true)
+        setErrorMessage(null)
+        const result = await adminDashboardApi.listActivityLogs(
+          {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+            page: 1,
+            limit: activityHistoryPageSize,
+          },
+          { signal: abortController.signal }
+        )
+
+        if (!abortController.signal.aborted) {
+          setPagination(result.pagination)
+          setActivities(result.activities)
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          setActivities([])
+          setPagination(null)
+          setErrorMessage(error instanceof Error ? error.message : "Không thể tải lịch sử hoạt động")
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadActivities()
+
+    return () => abortController.abort()
+  }, [dateRange.endDate, dateRange.startDate, open])
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[calc(100vh-2rem)] gap-0 overflow-hidden rounded-card border border-petcenter-border bg-petcenter-card p-0 text-petcenter-text shadow-modal ring-0 sm:max-w-[920px]"
+      >
+        <DialogHeader className="border-b border-petcenter-border px-6 py-4">
+          <DialogTitle className="heading-sm text-petcenter-text">Lịch sử hoạt động</DialogTitle>
+          <DialogDescription className="body-md mt-1 text-petcenter-text-secondary">
+            Hoạt động gần đây trong khoảng {formatDateRangeLabel(dateRange.startDate, dateRange.endDate)}.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="h-[min(620px,calc(100vh-13rem))] overflow-y-auto bg-petcenter-background/45 px-5 py-5 sm:px-6">
+          {isLoading ? (
+            <p className="body-md text-petcenter-text-secondary">Đang tải lịch sử hoạt động...</p>
+          ) : errorMessage ? (
+            <div className="rounded-control border border-petcenter-danger-text/20 bg-petcenter-danger-bg p-4 text-petcenter-danger-text">
+              <p className="body-md font-semibold">Không thể tải lịch sử</p>
+              <p className="body-sm mt-1">{errorMessage}</p>
+            </div>
+          ) : activities.length > 0 ? (
+            <div className="space-y-5">
+              <div className="flex flex-wrap gap-2">
+                {adminActivityFilterOptions.map((option) => {
+                  const isActive = activeCategory === option.value
+
+                  return (
+                    <button
+                      className={cn(
+                        "label-md rounded-pill border px-3 py-1.5 font-semibold transition-colors",
+                        isActive
+                          ? "border-petcenter-primary bg-petcenter-primary text-white"
+                          : "border-petcenter-border-strong bg-white text-petcenter-text-secondary hover:border-petcenter-primary/40 hover:text-petcenter-primary"
+                      )}
+                      key={option.value}
+                      onClick={() => setActiveCategory(option.value)}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {groupedActivities.length > 0 ? (
+                <div className="space-y-5">
+                  {groupedActivities.map((group) => (
+                    <section className="space-y-2" key={group.label}>
+                      <h3 className="label-sm uppercase text-petcenter-text-muted">{group.label}</h3>
+                      <div className="overflow-hidden rounded-card border border-petcenter-border bg-white shadow-card">
+                        {group.activities.map((activity) => (
+                          <AdminActivityHistoryItem activity={activity} key={activity.activityLogId} />
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex min-h-[360px] flex-col items-center justify-center rounded-control border border-dashed border-petcenter-border-strong bg-white px-6 py-8 text-center">
+                  <p className="body-md font-semibold text-petcenter-text">Không có hoạt động thuộc loại này</p>
+                  <p className="body-sm mt-1 text-petcenter-text-secondary">Chọn loại khác để xem thêm lịch sử.</p>
+                </div>
+              )}
+
+              <ActivityHistoryLoadMore
+                hasMore={hasMoreActivities}
+                isLoading={isLoadingMore}
+                onLoadMore={() => {
+                  if (!pagination || isLoadingMore) return
+
+                  void loadActivityPage(pagination.page + 1)
+                }}
+                total={pagination?.total ?? activities.length}
+                visible={activities.length}
+              />
+            </div>
+          ) : (
+            <div className="flex min-h-[360px] flex-col items-center justify-center rounded-control border border-dashed border-petcenter-border-strong bg-petcenter-filter px-6 py-10 text-center">
+              <p className="title-md text-petcenter-text">Chưa có lịch sử hoạt động</p>
+              <p className="body-md mt-1 text-petcenter-text-secondary">
+                Khi có hoạt động trong khoảng thời gian này, danh sách sẽ hiển thị tại đây.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="m-0 rounded-none border-t border-petcenter-border bg-petcenter-filter px-6 py-4">
+          <DialogClose asChild>
+            <Button
+              className="h-10 rounded-control border-petcenter-border-strong bg-petcenter-card px-8 text-petcenter-text hover:bg-petcenter-sidebar"
+              type="button"
+              variant="outline"
+            >
+              Đóng
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function AdminActivityHistoryItem({ activity }: { activity: AdminDashboardRecentActivity }) {
+  const meta = getAdminActivityCategoryMeta(activity.category)
+  const Icon = meta.icon
+
+  return (
+    <article className="border-b border-petcenter-border px-4 py-3 last:border-b-0">
+      <div className="flex gap-3">
+        <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${meta.className}`}>
+          <Icon className="h-5 w-5" />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h4 className="body-md font-semibold text-petcenter-text">{activity.action}</h4>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <span className="label-md text-petcenter-text-secondary">{activity.customerName}</span>
+                {activity.petName ? (
+                  <>
+                    <span className="h-1 w-1 rounded-full bg-petcenter-text-muted" />
+                    <span className="label-md text-petcenter-text-secondary">{activity.petName}</span>
+                  </>
+                ) : null}
+                <span className="h-1 w-1 rounded-full bg-petcenter-text-muted" />
+                <span className="label-md text-petcenter-text-secondary">{meta.label}</span>
+                <span className="h-1 w-1 rounded-full bg-petcenter-text-muted" />
+                <span className="label-md text-petcenter-text-secondary">{formatTime(activity.occurredAt)}</span>
+              </div>
+              <p className="label-sm mt-2 font-semibold text-petcenter-primary">{activity.code}</p>
+            </div>
+
+            <div className="shrink-0">
+              <span className={`label-sm rounded-full px-2.5 py-1 font-bold uppercase ${getRecentActivityStatusClassName(activity)}`}>
+                {getRecentActivityStatusLabel(activity)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function ActivityHistoryLoadMore({
+  hasMore,
+  isLoading,
+  onLoadMore,
+  total,
+  visible,
+}: {
+  hasMore: boolean
+  isLoading: boolean
+  onLoadMore: () => void
+  total: number
+  visible: number
+}) {
+  if (hasMore) {
+    return (
+      <div className="flex flex-col items-center gap-2 pt-1">
+        <Button
+          className="h-10 rounded-control border-petcenter-border-strong bg-white px-6 text-petcenter-primary hover:bg-petcenter-primary/5 disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={isLoading}
+          onClick={onLoadMore}
+          type="button"
+          variant="outline"
+        >
+          {isLoading ? "\u0110ang t\u1ea3i..." : "T\u1ea3i th\u00eam"}
+        </Button>
+        <p className="label-sm text-petcenter-text-secondary">
+          {"\u0110ang hi\u1ec3n th\u1ecb"} {visible}/{total} {"ho\u1ea1t \u0111\u1ed9ng"}
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <p className="label-sm text-center text-petcenter-text-secondary">
+      {"\u0110\u00e3 hi\u1ec3n th\u1ecb t\u1ea5t c\u1ea3"} {total} {"ho\u1ea1t \u0111\u1ed9ng"}
+    </p>
   )
 }
 
@@ -354,6 +728,57 @@ function buildLoadingStatCards(): AdminStatCard[] {
     ...stat,
     value: "...",
   }))
+}
+
+function getAdminActivityCategoryMeta(category: string): { label: string; icon: LucideIcon; className: string } {
+  return adminActivityCategoryMeta[category] ?? {
+    label: category || "Khác",
+    icon: Clock3,
+    className: "bg-petcenter-sidebar text-petcenter-text-secondary",
+  }
+}
+
+function mergeAdminActivities(
+  currentActivities: AdminDashboardRecentActivity[],
+  nextActivities: AdminDashboardRecentActivity[]
+): AdminDashboardRecentActivity[] {
+  const existingIds = new Set(currentActivities.map((activity) => activity.activityLogId))
+  const uniqueNextActivities = nextActivities.filter((activity) => !existingIds.has(activity.activityLogId))
+
+  return [...currentActivities, ...uniqueNextActivities]
+}
+
+function groupAdminActivitiesByDate(
+  activities: AdminDashboardRecentActivity[]
+): Array<{ label: string; activities: AdminDashboardRecentActivity[] }> {
+  const groups = new Map<string, AdminDashboardRecentActivity[]>()
+
+  activities.forEach((activity) => {
+    const label = getAdminActivityDateGroupLabel(activity.occurredAt)
+    const currentActivities = groups.get(label) ?? []
+
+    currentActivities.push(activity)
+    groups.set(label, currentActivities)
+  })
+
+  return Array.from(groups.entries()).map(([label, groupedItems]) => ({
+    label,
+    activities: groupedItems,
+  }))
+}
+
+function getAdminActivityDateGroupLabel(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "Không rõ ngày"
+
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+
+  if (date.toDateString() === today.toDateString()) return "Hôm nay"
+  if (date.toDateString() === yesterday.toDateString()) return "Hôm qua"
+
+  return formatDate(value)
 }
 
 function formatCompactCurrency(value: number): string {
@@ -424,6 +849,21 @@ function normalizeStatusLabel(label: string): string {
   }
 
   return labels[label] ?? label
+}
+
+function formatTime(value: string): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value))
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value))
 }
 
 function getAlertKey(alert: AdminDashboardAlert): string {

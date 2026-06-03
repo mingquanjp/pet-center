@@ -3,7 +3,7 @@ import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
 import { createPagination, normalizePagination } from "../../shared/utils/pagination.js";
 import * as dashboardRepository from "./dashboard.repository.js";
-import type { AdminDashboardQuery, StaffDashboardQuery } from "./dashboard.schema.js";
+import type { AdminDashboardActivityLogsQuery, AdminDashboardQuery, StaffDashboardQuery } from "./dashboard.schema.js";
 import type { AdminDashboardOverviewDto, StaffDashboardOverviewDto } from "./dashboard.types.js";
 
 function assertOwner(authUser: AuthUser): void {
@@ -116,6 +116,24 @@ export async function getAdminOverview(
     serviceRevenue,
     recentActivities,
     operationAlerts,
+  };
+}
+
+export async function listAdminActivityLogs(authUser: AuthUser, query: AdminDashboardActivityLogsQuery) {
+  assertAdmin(authUser);
+
+  const range = normalizeAdminDateRange(query);
+  const paginationInput = normalizePagination(query.page, query.limit);
+  const result = await dashboardRepository.findAdminActivityLogs({
+    startDate: range.startDate,
+    endDate: range.endDate,
+    limit: paginationInput.limit,
+    offset: paginationInput.offset,
+  });
+
+  return {
+    data: result.activities,
+    pagination: createPagination(paginationInput.page, paginationInput.limit, result.total),
   };
 }
 
