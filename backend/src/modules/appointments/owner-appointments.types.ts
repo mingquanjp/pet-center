@@ -148,7 +148,7 @@ export interface OwnerAppointmentTimeSlotDto {
   value: string;
   label: string;
   disabled?: boolean;
-  disabledReason?: "past" | "full";
+  disabledReason?: "cutoff" | "full";
   availableUnits: number;
 }
 

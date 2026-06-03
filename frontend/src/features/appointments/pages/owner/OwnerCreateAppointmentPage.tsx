@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 import { Card } from "@/components/ui/card";
+import { ApiError } from "@/lib/api";
 import { OwnerAppointmentDatePicker } from "../../components/owner/OwnerAppointmentDatePicker";
 import { OwnerAppointmentSummaryCard } from "../../components/owner/OwnerAppointmentSummaryCard";
 import {
@@ -155,8 +157,12 @@ export function OwnerCreateAppointmentPage() {
 
       setCreatedAppointment(result);
       setIsSuccessModalOpen(true);
-    } catch {
-      setValidationMessage("Không thể tạo lịch hẹn. Vui lòng thử lại sau.");
+    } catch (error) {
+      const message = error instanceof ApiError || error instanceof Error
+        ? error.message
+        : "Không thể tạo lịch hẹn. Vui lòng thử lại sau.";
+      toast.error(message);
+      setValidationMessage(message);
     }
   }
 
