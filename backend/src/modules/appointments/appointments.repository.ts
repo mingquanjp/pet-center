@@ -1,7 +1,15 @@
 import type { PoolClient } from "pg";
 import { query } from "../../db/query.js";
+import { createId } from "../../shared/utils/id.js";
 import type {
   AvailableDoctorRow,
+  CompleteDoctorExaminationFieldValueBody,
+  DoctorExaminationCountRow,
+  DoctorExaminationDetailRow,
+  DoctorExaminationFieldDefinitionRow,
+  DoctorExaminationFieldValueRow,
+  DoctorExaminationListRow,
+  DoctorExaminationStatsRow,
   PendingAppointmentAssignmentRow,
   StaffAppointmentListRow,
   StaffAppointmentStatsRow,
@@ -54,6 +62,373 @@ function buildFilterClauses(filters: any) {
   }
 
   return { where, params };
+}
+
+type DoctorExaminationFilters = {
+  search?: string;
+  status?: string;
+  examType?: string;
+  tab?: string;
+  date?: string;
+  page?: number;
+  limit?: number;
+};
+
+function buildDoctorExaminationBaseSql(
+  doctorUserId: string,
+  filters: DoctorExaminationFilters,
+  includeStatusFilter: boolean
+) {
+  const params: unknown[] = [doctorUserId];
+  let innerWhere = "";
+  let outerWhere = "";
+
+  if (filters.search) {
+    params.push(`%${filters.search}%`);
+    innerWhere += ` AND (
+      ma.appointment_id ILIKE $${params.length}
+      OR p.pet_name ILIKE $${params.length}
+      OR u.full_name ILIKE $${params.length}
+      OR u.phone_number ILIKE $${params.length}
+    )`;
+  }
+
+  if (filters.examType) {
+    params.push(filters.examType.toLowerCase());
+    innerWhere += ` AND et.type_code = $${params.length}`;
+  }
+
+  if (filters.date) {
+    params.push(filters.date);
+    innerWhere += ` AND (ma.scheduled_at AT TIME ZONE '${timeZone}')::date = $${params.length}::date`;
+  }
+
+  const statusFilter = filters.tab && filters.tab !== "ALL" ? filters.tab : filters.status;
+  if (includeStatusFilter && statusFilter) {
+    params.push(statusFilter.toLowerCase());
+    outerWhere += ` AND examination_status = $${params.length}`;
+  }
+
+  const sql = `
+    WITH doctor_examinations AS (
+      SELECT
+        ma.appointment_id AS id,
+        me.exam_id,
+        p.pet_id,
+        p.pet_name,
+        p.species,
+        p.breed,
+        p.birth_date,
+        p.estimated_age::text AS estimated_age,
+        p.profile_image_url,
+        u.user_id AS owner_id,
+        u.full_name AS owner_name,
+        u.phone_number AS owner_phone,
+        u.email AS owner_email,
+        et.exam_type_id,
+        et.type_code,
+        et.type_name,
+        ma.scheduled_at,
+        ma.symptom_description,
+        ma.internal_note,
+        CASE
+          WHEN me.exam_id IS NULL THEN 'waiting'
+          WHEN me.exam_status = 'follow_up_required' OR fui.follow_up_id IS NOT NULL THEN 'follow_up'
+          WHEN me.diagnosis IS NULL AND me.conclusion IS NULL AND me.health_note IS NULL THEN 'examining'
+          ELSE 'completed'
+        END AS examination_status
+      FROM pet_center.medical_appointments ma
+      JOIN pet_center.pets p ON ma.pet_id = p.pet_id
+      JOIN pet_center.users u ON ma.owner_user_id = u.user_id
+      JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
+      LEFT JOIN pet_center.medical_exams me ON ma.appointment_id = me.appointment_id
+      LEFT JOIN pet_center.follow_up_instructions fui ON me.exam_id = fui.exam_id
+      WHERE ma.appointment_status = 'confirmed'
+        AND ma.veterinarian_user_id = $1
+        ${innerWhere}
+    )
+    SELECT *
+    FROM doctor_examinations
+    WHERE 1=1 ${outerWhere}
+  `;
+
+  return { sql, params };
+}
+
+export async function getDoctorExaminationsList(doctorUserId: string, filters: DoctorExaminationFilters) {
+  const { sql, params } = buildDoctorExaminationBaseSql(doctorUserId, filters, true);
+  const page = filters.page ?? 1;
+  const limit = filters.limit ?? 10;
+  const offset = (page - 1) * limit;
+
+  params.push(limit);
+  const limitParam = params.length;
+  params.push(offset);
+  const offsetParam = params.length;
+
+  const result = await query<DoctorExaminationListRow>(
+    `
+      ${sql}
+      ORDER BY scheduled_at ASC, id ASC
+      LIMIT $${limitParam} OFFSET $${offsetParam}
+    `,
+    params
+  );
+
+  return result.rows;
+}
+
+export async function getDoctorExaminationsCount(doctorUserId: string, filters: DoctorExaminationFilters) {
+  const { sql, params } = buildDoctorExaminationBaseSql(doctorUserId, filters, true);
+
+  const result = await query<DoctorExaminationCountRow>(
+    `
+      SELECT COUNT(*)::text AS total
+      FROM (${sql}) counted_examinations
+    `,
+    params
+  );
+
+  return parseInt(result.rows[0]?.total ?? "0", 10);
+}
+
+export async function getDoctorExaminationsStats(doctorUserId: string) {
+  const { sql, params } = buildDoctorExaminationBaseSql(doctorUserId, {}, false);
+
+  const result = await query<DoctorExaminationStatsRow>(
+    `
+      SELECT
+        COUNT(*)::text AS total_count,
+        COUNT(*) FILTER (WHERE examination_status = 'waiting')::text AS waiting_count,
+        COUNT(*) FILTER (WHERE examination_status = 'examining')::text AS examining_count,
+        COUNT(*) FILTER (WHERE examination_status = 'completed')::text AS completed_count,
+        COUNT(*) FILTER (WHERE examination_status = 'follow_up')::text AS follow_up_count
+      FROM (${sql}) stats_examinations
+    `,
+    params
+  );
+
+  return result.rows[0];
+}
+
+export async function getDoctorExaminationsTabStats(doctorUserId: string, filters: DoctorExaminationFilters) {
+  const filtersWithoutTab = { ...filters, tab: undefined, status: undefined };
+  const { sql, params } = buildDoctorExaminationBaseSql(doctorUserId, filtersWithoutTab, false);
+
+  const result = await query<DoctorExaminationStatsRow>(
+    `
+      SELECT
+        COUNT(*)::text AS total_count,
+        COUNT(*) FILTER (WHERE examination_status = 'waiting')::text AS waiting_count,
+        COUNT(*) FILTER (WHERE examination_status = 'examining')::text AS examining_count,
+        COUNT(*) FILTER (WHERE examination_status = 'completed')::text AS completed_count,
+        COUNT(*) FILTER (WHERE examination_status = 'follow_up')::text AS follow_up_count
+      FROM (${sql}) tab_stats_examinations
+    `,
+    params
+  );
+
+  return result.rows[0];
+}
+
+export async function findDoctorExaminationDetail(doctorUserId: string, appointmentId: string) {
+  const sql = `
+    SELECT
+      ma.appointment_id AS id,
+      me.exam_id,
+      p.pet_id,
+      p.pet_name,
+      p.species,
+      p.breed,
+      p.birth_date,
+      p.estimated_age::text AS estimated_age,
+      p.profile_image_url,
+      p.gender,
+      p.weight_kg::text AS weight_kg,
+      u.user_id AS owner_id,
+      u.full_name AS owner_name,
+      u.phone_number AS owner_phone,
+      u.email AS owner_email,
+      et.exam_type_id,
+      et.type_code,
+      et.type_name,
+      ma.scheduled_at,
+      ma.symptom_description,
+      ma.internal_note,
+      me.diagnosis,
+      me.conclusion,
+      me.health_note,
+      me.exam_status,
+      me.exam_date::text AS exam_date,
+      CASE
+        WHEN me.exam_id IS NULL THEN 'waiting'
+        WHEN me.exam_status = 'follow_up_required' OR fui.follow_up_id IS NOT NULL THEN 'follow_up'
+        WHEN me.diagnosis IS NULL AND me.conclusion IS NULL AND me.health_note IS NULL THEN 'examining'
+        ELSE 'completed'
+      END AS examination_status
+    FROM pet_center.medical_appointments ma
+    JOIN pet_center.pets p ON ma.pet_id = p.pet_id
+    JOIN pet_center.users u ON ma.owner_user_id = u.user_id
+    JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
+    LEFT JOIN pet_center.medical_exams me ON ma.appointment_id = me.appointment_id
+    LEFT JOIN pet_center.follow_up_instructions fui ON me.exam_id = fui.exam_id
+    WHERE ma.appointment_status = 'confirmed'
+      AND ma.veterinarian_user_id = $1
+      AND ma.appointment_id = $2
+    LIMIT 1
+  `;
+
+  const result = await query<DoctorExaminationDetailRow>(sql, [doctorUserId, appointmentId]);
+  return result.rows[0] || null;
+}
+
+export async function findDoctorExaminationForUpdate(
+  doctorUserId: string,
+  appointmentId: string,
+  client: PoolClient
+) {
+  const sql = `
+    SELECT
+      ma.appointment_id,
+      ma.exam_type_id,
+      ma.veterinarian_user_id,
+      ma.appointment_status,
+      me.exam_id
+    FROM pet_center.medical_appointments ma
+    LEFT JOIN pet_center.medical_exams me ON ma.appointment_id = me.appointment_id
+    WHERE ma.appointment_id = $1
+      AND ma.veterinarian_user_id = $2
+      AND ma.appointment_status = 'confirmed'
+    FOR UPDATE OF ma
+  `;
+
+  const result = await client.query<{
+    appointment_id: string;
+    exam_type_id: string;
+    veterinarian_user_id: string;
+    appointment_status: string;
+    exam_id: string | null;
+  }>(sql, [appointmentId, doctorUserId]);
+
+  return result.rows[0] || null;
+}
+
+export async function createMedicalExamForAppointment(
+  examId: string,
+  appointmentId: string,
+  examTypeId: string,
+  doctorUserId: string,
+  client: PoolClient
+) {
+  const sql = `
+    INSERT INTO pet_center.medical_exams (
+      exam_id,
+      appointment_id,
+      exam_type_id,
+      examined_by_veterinarian_id
+    )
+    VALUES ($1, $2, $3, $4)
+  `;
+
+  await client.query(sql, [examId, appointmentId, examTypeId, doctorUserId]);
+}
+
+export async function getDoctorExaminationFieldDefinitions(examTypeId: string) {
+  const result = await query<DoctorExaminationFieldDefinitionRow>(
+    `
+      SELECT
+        field_definition_id,
+        field_name,
+        field_label,
+        field_type,
+        is_required,
+        display_order,
+        option_source
+      FROM pet_center.exam_field_definitions
+      WHERE exam_type_id = $1
+        AND field_status = 'active'
+      ORDER BY display_order ASC, field_definition_id ASC
+    `,
+    [examTypeId]
+  );
+
+  return result.rows;
+}
+
+export async function getDoctorExaminationFieldValues(examId: string | null) {
+  if (!examId) return [];
+
+  const result = await query<DoctorExaminationFieldValueRow>(
+    `
+      SELECT
+        field_definition_id,
+        value_text,
+        value_number::text AS value_number,
+        value_date::text AS value_date,
+        file_url
+      FROM pet_center.medical_exam_field_values
+      WHERE exam_id = $1
+    `,
+    [examId]
+  );
+
+  return result.rows;
+}
+
+export async function completeMedicalExam(
+  examId: string,
+  diagnosis: string,
+  conclusion: string,
+  healthNote: string | undefined,
+  client: PoolClient
+) {
+  await client.query(
+    `
+      UPDATE pet_center.medical_exams
+      SET
+        diagnosis = $1,
+        conclusion = $2,
+        health_note = $3,
+        exam_status = 'result_recorded',
+        exam_date = CURRENT_DATE
+      WHERE exam_id = $4
+    `,
+    [diagnosis, conclusion, healthNote || null, examId]
+  );
+}
+
+export async function replaceMedicalExamFieldValues(
+  examId: string,
+  fieldValues: CompleteDoctorExaminationFieldValueBody[],
+  client: PoolClient
+) {
+  await client.query("DELETE FROM pet_center.medical_exam_field_values WHERE exam_id = $1", [examId]);
+
+  for (const fieldValue of fieldValues) {
+    await client.query(
+      `
+        INSERT INTO pet_center.medical_exam_field_values (
+          field_value_id,
+          exam_id,
+          field_definition_id,
+          value_text,
+          value_number,
+          value_date,
+          file_url
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `,
+      [
+        createId("efv"),
+        examId,
+        fieldValue.fieldDefinitionId,
+        fieldValue.valueText ?? null,
+        fieldValue.valueNumber ?? null,
+        fieldValue.valueDate ?? null,
+        fieldValue.fileUrl ?? null,
+      ]
+    );
+  }
 }
 
 export async function getStaffAppointmentsList(filters: any) {
