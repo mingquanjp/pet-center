@@ -7,11 +7,13 @@ import {
   CalendarClock,
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
   ChevronRight,
-  Filter,
+  Eye,
+  RotateCcw,
   Search,
 } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
 
 import { AppPagination } from "@/components/ui/app-pagination"
 import { cn } from "@/lib/utils"
@@ -299,100 +301,87 @@ export function DoctorFollowUpsPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-petcenter-background">
-      <main className="w-full px-6 py-8 lg:px-8">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-8">
-          <header className="flex flex-col gap-3">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8">
+          <header className="flex flex-col gap-2">
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs leading-4">
               <span className="font-medium text-[#3e4946]">Tổng quan</span>
               <ChevronRight aria-hidden="true" className="size-3 text-[#6e7a76]" />
-              <span className="font-semibold text-[#1b1c15]">Tái khám</span>
+              <span className="font-semibold text-[#005e53]">Tái khám</span>
             </nav>
 
-            <div>
-              <h1 className="text-2xl font-bold leading-9 tracking-[-0.6px] text-[#1b1c15]">Tái khám</h1>
-              <p className="mt-1 text-sm leading-[21px] text-[#3e4946]">
-                Theo dõi các ca cần tái khám, nhắc lịch và cập nhật ghi chú chuyên môn.
-              </p>
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="min-w-0">
+                <h1 className="text-[30px] font-bold leading-9 tracking-[0] text-[#1b1c15]">Tái khám</h1>
+                <p className="mt-1 max-w-[672px] text-sm leading-5 text-[#3e4946]">
+                  Theo dõi các ca cần tái khám, nhắc lịch và cập nhật ghi chú chuyên môn.
+                </p>
+              </div>
             </div>
           </header>
 
-          <section aria-label="Thống kê tái khám" className="grid gap-4 md:grid-cols-3">
+          <section aria-label="Thống kê tái khám" className="grid gap-6 md:grid-cols-3">
             {stats.map((stat) => {
               const Icon = stat.icon
 
               return (
                 <article
-                  className="relative min-h-[165px] overflow-hidden rounded-[12px] border border-[#bdc9c5] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                  className="flex h-[110px] items-center gap-5 rounded-[16px] border border-[#e4e3d7] bg-white p-[25px] shadow-[0_4px_8px_rgba(31,38,31,0.05)]"
                   key={stat.label}
                 >
-                  <div className="absolute right-px top-px size-24 rounded-bl-full bg-[#fbfaee]" />
-                  <div className="relative flex items-start justify-between">
-                    <div className={cn("flex size-10 items-center justify-center rounded-[8px]", stat.iconClassName)}>
-                      <Icon aria-hidden="true" className="size-5" />
-                    </div>
-                    {stat.badge ? (
-                      <span className={cn("rounded-full px-2 py-1 text-[11px] font-bold leading-[16px]", stat.badgeClassName)}>
-                        {stat.badge}
-                      </span>
-                    ) : null}
+                  <div className={cn("flex size-14 shrink-0 items-center justify-center rounded-full", stat.iconClassName)}>
+                    <Icon aria-hidden="true" className="size-6" />
                   </div>
-                  <div className="relative pt-4">
-                    <p className="text-sm font-medium leading-[21px] text-[#3e4946]">{stat.label}</p>
-                    <p className={cn("mt-1 text-[28px] font-bold leading-[42px]", stat.valueClassName)}>{stat.value}</p>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium leading-5 text-[#3e4946]">{stat.label}</p>
+                    <p className="mt-1 text-[30px] font-bold leading-9 text-[#1b1c15]">{stat.value}</p>
                   </div>
                 </article>
               )
             })}
           </section>
 
-          <section className="overflow-hidden rounded-[16px] border border-[#e4e3d7] bg-white shadow-[0_4px_16px_rgba(31,38,31,0.05)]">
-            <div className="flex flex-col gap-4 border-b border-[#e4e3d7] bg-[#fbfaee] px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <label className="relative w-full sm:w-[256px]">
-                  <span className="sr-only">Tìm lịch tái khám</span>
-                  <Search
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-3 top-1/2 size-[15px] -translate-y-1/2 text-[#6e7a76]"
-                  />
-                  <input
-                    className="h-11 w-full rounded-[8px] border border-[#bdc9c5] bg-[#fbfaee] pl-9 pr-4 text-[13px] leading-5 text-[#1b1c15] outline-none transition placeholder:text-[#6b7280] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
-                    onChange={(event) => handleSearchChange(event.target.value)}
-                    placeholder="Tìm theo ID, tên thú cưng..."
-                    type="search"
-                    value={query}
-                  />
-                </label>
-
-                <button
-                  className="inline-flex h-11 w-fit items-center gap-2 rounded-[8px] border border-[#bdc9c5] bg-[#fbfaee] px-3 text-[13px] font-medium text-[#1b1c15] transition hover:border-[#005e53] hover:text-[#005e53]"
-                  type="button"
-                >
-                  <Filter aria-hidden="true" className="size-4" />
-                  Lọc
-                </button>
+          <section className="rounded-[16px] border border-[#e4e3d7] bg-[#fbfaee] p-4 shadow-[0_4px_8px_rgba(31,38,31,0.05)]">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e7a76]" />
+                <input
+                  value={query}
+                  onChange={(event) => handleSearchChange(event.target.value)}
+                  placeholder="Tìm theo ID, tên thú cưng..."
+                  type="search"
+                  className="h-11 w-full rounded-full border border-[rgba(189,201,197,0.4)] bg-white pl-11 pr-4 text-sm text-[#1b1c15] outline-none transition placeholder:text-[#6b7280] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+                />
               </div>
 
-              <label className="flex w-fit items-center gap-2 text-[13px] font-medium leading-5 text-[#3e4946]">
-                Sắp xếp theo:
-                <span className="relative">
-                  <select
-                    className="h-11 appearance-none rounded-[8px] border border-[#bdc9c5] bg-[#fbfaee] pl-3 pr-9 text-[13px] leading-6 text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
-                    defaultValue="latest"
-                  >
-                    <option value="latest">Ngày gần nhất</option>
-                    <option value="oldest">Ngày xa nhất</option>
-                  </select>
-                  <ChevronDown
-                    aria-hidden="true"
-                    className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#3e4946]"
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <label className="flex items-center gap-2">
+                  <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">
+                    Ngày:
+                  </span>
+                  <input
+                    type="date"
+                    aria-label="Ngày tái khám"
+                    className="h-10 rounded-full border border-[rgba(189,201,197,0.4)] bg-white px-3 text-sm text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
                   />
-                </span>
-              </label>
+                </label>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-full border-[#bdc9c5] bg-white px-4 font-medium text-[#3e4946] hover:bg-[#e9e9dd] xl:ml-auto"
+                onClick={() => setQuery("")}
+              >
+                <RotateCcw aria-hidden="true" className="mr-2 size-4" />
+                Đặt lại
+              </Button>
             </div>
+          </section>
+
+          <section className="overflow-hidden rounded-[16px] border border-[#e4e3d7] bg-white shadow-[0_4px_16px_rgba(31,38,31,0.05)]">
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1180px] border-collapse">
+              <table className="w-full min-w-[1050px] border-collapse">
                 <thead>
                   <tr className="border-b border-[#e4e3d7] bg-[#d8f3ee]">
                     <TableHeaderCell className="w-[210px]">Thú cưng</TableHeaderCell>
@@ -420,8 +409,8 @@ export function DoctorFollowUpsPage() {
             ) : null}
 
             <div className="flex flex-col gap-4 border-t border-[#e4e3d7] bg-[#fbfaee] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs leading-5 text-[#3e4946]">
-                Hiển thị {startItem}-{endItem} của {filteredFollowUps.length || 0} kết quả
+              <p className="text-xs leading-4 text-[#3e4946]">
+                Hiển thị {startItem} đến {endItem} của {filteredFollowUps.length || 0} kết quả
               </p>
               <AppPagination
                 ariaLabel="Phân trang danh sách tái khám"
@@ -432,8 +421,6 @@ export function DoctorFollowUpsPage() {
               />
             </div>
           </section>
-        </div>
-      </main>
     </div>
   )
 }
@@ -447,46 +434,48 @@ function FollowUpTableRow({ followUp }: { followUp: FollowUpRow }) {
       <TableBodyCell>
         <div className="flex items-center gap-3">
           <div
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+              followUp.pet.avatarClassName
+            )}
             aria-hidden="true"
-            className={cn("flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold", followUp.pet.avatarClassName)}
           >
             {followUp.pet.name.charAt(0)}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-5 text-[#1b1c15]">{followUp.pet.name}</p>
-            <p className="truncate text-xs leading-4 text-[#3e4946]">
-              {followUp.pet.species} - {followUp.pet.breed}
+            <p className="truncate font-medium text-[#1b1c15]">{followUp.pet.name}</p>
+            <p className="truncate text-xs leading-4 text-[#6e7a76]">
+              {followUp.pet.species} • {followUp.pet.breed}
             </p>
           </div>
         </div>
       </TableBodyCell>
+      <TableBodyCell>{followUp.ownerName}</TableBodyCell>
       <TableBodyCell>
-        <span className="text-sm font-medium text-[#3e4946]">{followUp.ownerName}</span>
+        <span className="font-medium text-[#005e53]">{followUp.examId}</span>
       </TableBodyCell>
       <TableBodyCell>
-        <span className="text-sm font-semibold text-[#005e53]">{followUp.examId}</span>
-      </TableBodyCell>
-      <TableBodyCell>
-        <span className={cn("inline-flex items-center gap-1.5 text-sm font-medium", status.dateClassName)}>
+        <span className={cn("inline-flex items-center gap-1.5 font-medium", status.dateClassName)}>
           <DateIcon aria-hidden="true" className="size-4" />
           {followUp.appointmentDate}
         </span>
       </TableBodyCell>
       <TableBodyCell>
-        <span className="line-clamp-2 text-sm leading-5 text-[#3e4946]">{followUp.reason}</span>
+        <span className="line-clamp-2">{followUp.reason}</span>
       </TableBodyCell>
       <TableBodyCell>
-        <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-semibold leading-4", status.pillClassName)}>
+        <span className={cn("inline-flex rounded-full px-2.5 py-1 text-xs font-medium leading-4", status.pillClassName)}>
           {status.label}
         </span>
       </TableBodyCell>
       <TableBodyCell className="text-right">
         <button
           aria-label={`Xem lịch tái khám ${followUp.followUpId}`}
-          className="inline-flex h-9 items-center justify-center rounded-[12px] border border-[#005e53] bg-white px-4 text-sm font-medium leading-5 text-[#005e53] transition hover:bg-[#d8f3ee]"
+          className="inline-flex size-8 items-center justify-center rounded-[12px] text-[#005e53] transition hover:bg-[#d8f3ee]"
+          onClick={() => {}}
           type="button"
         >
-          Xem
+          <Eye aria-hidden="true" className="size-[18px]" />
         </button>
       </TableBodyCell>
     </tr>
@@ -496,7 +485,7 @@ function FollowUpTableRow({ followUp }: { followUp: FollowUpRow }) {
 function TableHeaderCell({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
-      className={cn("px-4 py-4 text-left text-base font-bold uppercase leading-5 tracking-[0.05em] text-[#003d36]", className)}
+      className={cn("px-6 py-4 text-left text-base font-bold leading-5 text-[#003d36]", className)}
       scope="col"
       {...props}
     />
@@ -504,5 +493,5 @@ function TableHeaderCell({ className, ...props }: React.ComponentProps<"th">) {
 }
 
 function TableBodyCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("px-4 py-4 align-middle text-sm leading-5 text-[#3e4946]", className)} {...props} />
+  return <td className={cn("px-6 py-5 text-base leading-6 text-[#3e4946]", className)} {...props} />
 }

@@ -8,6 +8,7 @@ import {
   ClipboardList,
   CircleAlert,
   Eye,
+  FileDown,
   RotateCcw,
   FlaskConical,
   Pill,
@@ -278,10 +279,8 @@ export function DoctorPrescriptionsPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-petcenter-background">
-      <main className="w-full px-6 py-8">
-        <div className="mx-auto flex w-full max-w-full flex-col gap-8">
-          <header className="flex flex-col gap-2">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8">
+      <header className="flex flex-col gap-2">
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs leading-4">
               <span className="font-medium text-[#3e4946]">Tổng quan</span>
               <ChevronRight aria-hidden="true" className="size-3 text-[#6e7a76]" />
@@ -347,19 +346,6 @@ export function DoctorPrescriptionsPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <label className="flex items-center gap-2">
                   <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">
-                    Trạng thái:
-                  </span>
-                  <select
-                    className="h-10 rounded-full border border-[rgba(189,201,197,0.4)] bg-white px-3 pr-9 text-sm text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
-                    defaultValue="ALL"
-                  >
-                    <option value="ALL">Tất cả</option>
-                    <option value="PRESCRIBED">Đã kê</option>
-                  </select>
-                </label>
-
-                <label className="flex items-center gap-2">
-                  <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">
                     Ngày:
                   </span>
                   <input
@@ -393,7 +379,6 @@ export function DoctorPrescriptionsPage() {
                     <TableHeaderCell className="w-[165px]">Chủ nuôi</TableHeaderCell>
                     <TableHeaderCell className="w-[140px]">Ngày kê</TableHeaderCell>
                     <TableHeaderCell className="w-[120px] text-center">Số thuốc</TableHeaderCell>
-                    <TableHeaderCell className="w-[130px]">Trạng thái</TableHeaderCell>
                     <TableHeaderCell className="w-[120px] text-right">Thao tác</TableHeaderCell>
                   </tr>
                 </thead>
@@ -427,11 +412,6 @@ export function DoctorPrescriptionsPage() {
                       <TableBodyCell>{prescription.prescribedDate}</TableBodyCell>
                       <TableBodyCell className="text-center font-medium text-[#1b1c15]">
                         {prescription.medicineCount}
-                      </TableBodyCell>
-                      <TableBodyCell>
-                        <span className="inline-flex rounded-full bg-[#dff3e3] px-2.5 py-1 text-xs font-medium leading-4 text-[#2e7d32]">
-                          {statusLabels[prescription.status]}
-                        </span>
                       </TableBodyCell>
                       <TableBodyCell className="text-right">
                         <button
@@ -469,8 +449,6 @@ export function DoctorPrescriptionsPage() {
               />
             </div>
           </section>
-        </div>
-      </main>
 
       <PrescriptionDetailDialog
         onOpenChange={(open) => {
