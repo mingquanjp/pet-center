@@ -1,4 +1,4 @@
-export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out"
+export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out" | "cancelled" | "rejected"
 export type BoardingCreateStatus = "pending_payment" | "pending"
 export type BoardingPaymentOption = "online" | "counter"
 export type BoardingPaymentStatus = "paid" | "unpaid" | "refunded" | "cancelled"
@@ -383,4 +383,105 @@ export interface CloudinaryUploadResult {
   url: string;
   secure_url?: string;
   public_id?: string;
+}
+
+export type StaffBoardingCreatePaymentMethod = "AT_COUNTER";
+export type StaffBoardingCreatePaymentStatus = "PAID";
+export type StaffBoardingCreateStatus = "STAYING";
+
+export interface StaffBoardingOwnerOption {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  email?: string | null;
+  address?: string | null;
+  emailSent?: boolean;
+}
+
+export interface CreateStaffBoardingOwnerPayload {
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  address?: string;
+}
+
+export interface StaffBoardingPetOption {
+  id: string;
+  ownerId: string;
+  name: string;
+  species: "Dog" | "Cat" | "Other";
+  breed?: string | null;
+  ageText?: string | null;
+  weightText?: string | null;
+  imageUrl?: string | null;
+  healthNote?: string | null;
+}
+
+export interface CreateStaffBoardingPetPayload {
+  petName: string;
+  species: "Dog" | "Cat" | "Other";
+  breed: string;
+  gender: "male" | "female" | "unknown";
+  birthDate?: string;
+  estimatedAge?: number;
+  furColor?: string;
+  weightKg?: number;
+  profileImageUrl?: string;
+  identifyingMarks?: string;
+}
+
+export interface StaffBoardingRoomTypeOption {
+  id: string;
+  code: string;
+  name: string;
+  roomType: "STANDARD" | "VIP" | "UNKNOWN";
+  description?: string | null;
+  pricePerDay: number;
+  availableCount: number;
+  capacityText?: string | null;
+  features: string[];
+}
+
+export interface StaffBoardingCreateOptions {
+  owners: StaffBoardingOwnerOption[];
+  pets: StaffBoardingPetOption[];
+  roomTypes: StaffBoardingRoomTypeOption[];
+}
+
+export interface CreateStaffBoardingPayload {
+  ownerId: string;
+  petId: string;
+  roomTypeId: string;
+  plannedCheckInAt?: string;
+  plannedCheckOutAt?: string;
+  plannedCheckInDate: string;
+  plannedCheckOutDate: string;
+  careRequest?: string | null;
+  specialRequests: string[];
+  paymentMethod: StaffBoardingCreatePaymentMethod;
+  paymentStatus: StaffBoardingCreatePaymentStatus;
+  createMode: "CHECK_IN_NOW";
+  note?: string | null;
+}
+
+export interface StaffBoardingCreateInvoicePreview {
+  invoiceId?: string | null;
+  invoiceCode?: string | null;
+  subtotal: number;
+  discountAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  currency: "VND";
+  totalDays: number;
+  pricePerDay: number;
+  paymentMethod: StaffBoardingCreatePaymentMethod;
+  paymentStatus: StaffBoardingCreatePaymentStatus;
+}
+
+export interface CreateStaffBoardingResult {
+  boardingId: string;
+  boardingCode: string;
+  status: StaffBoardingCreateStatus;
+  actualCheckInAt: string;
+  invoice: StaffBoardingCreateInvoicePreview;
 }

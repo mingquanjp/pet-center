@@ -15,14 +15,14 @@ import type {
   CreateBoardingRecordInput
 } from "./boarding.types.js";
 
-const activeBoardingStatuses = ["pending", "confirmed", "staying", "checked_out"] as const;
+const ownerVisibleBoardingStatuses = ["pending", "confirmed", "staying", "checked_out", "cancelled", "rejected"] as const;
 
 function buildBoardingRecordWhere(filters: BoardingRecordListFilters): { clauses: string[]; params: unknown[] } {
   const clauses = [
     "br.owner_user_id = $1",
     "br.boarding_status = ANY($2)"
   ];
-  const params: unknown[] = [filters.ownerUserId, activeBoardingStatuses];
+  const params: unknown[] = [filters.ownerUserId, ownerVisibleBoardingStatuses];
 
   if (filters.search) {
     params.push(`%${filters.search}%`);
@@ -203,7 +203,7 @@ export async function findOwnerBoardingRecordDetail(
         AND br.boarding_status = ANY($3)
       LIMIT 1
     `,
-    [ownerUserId, boardingRecordId, activeBoardingStatuses]
+    [ownerUserId, boardingRecordId, ownerVisibleBoardingStatuses]
   );
 
   return result.rows[0] ?? null;
@@ -225,6 +225,18 @@ export async function findPublishedBoardingUpdates(boardingRecordId: string): Pr
   );
 
   return result.rows;
+}
+
+export async function updateBoardingRecordStatus(
+  boardingRecordId: string,
+  status: string
+): Promise<void> {
+  await query(
+    `UPDATE pet_center.boarding_records
+     SET boarding_status = $1, updated_at = NOW()
+     WHERE boarding_record_id = $2`,
+    [status, boardingRecordId]
+  );
 }
 
 export async function findOwnerBookingPets(ownerUserId: string): Promise<BoardingBookingPetRow[]> {
@@ -296,6 +308,28 @@ export async function findActiveRoomTypesWithAvailability(
   return result.rows;
 }
 
+export async function countOverlappingBoardingRecordsByPet(
+  petId: string,
+  plannedCheckInAt: Date,
+  plannedCheckOutAt: Date,
+  client?: PoolClient
+): Promise<number> {
+  const sql = `
+    SELECT COUNT(*)::int AS total
+    FROM pet_center.boarding_records br
+    WHERE br.pet_id = $1
+      AND br.boarding_status IN ('pending_payment', 'pending', 'confirmed', 'staying')
+      AND br.planned_check_in_at < $2
+      AND br.planned_check_out_at > $3
+  `;
+  const values = [petId, plannedCheckOutAt, plannedCheckInAt];
+  const result = client
+    ? await client.query<CountRow>(sql, values)
+    : await query<CountRow>(sql, values);
+
+  return Number(result.rows[0]?.total ?? 0);
+}
+
 function createBoardingCode(date: Date): string {
   const datePart = date.toISOString().slice(0, 10).replaceAll("-", "");
 
@@ -312,6 +346,17 @@ export async function createBoardingRecord(input: CreateBoardingRecordInput): Pr
       client
     );
     const roomType = roomTypes.find((room) => room.room_type_id === input.roomType.roomTypeId);
+
+    const overlappingPetRecords = await countOverlappingBoardingRecordsByPet(
+      input.pet.petId,
+      input.plannedCheckInAt,
+      input.plannedCheckOutAt,
+      client
+    );
+
+    if (overlappingPetRecords > 0) {
+      throw new Error("BOARDING_PET_TIME_CONFLICT");
+    }
 
     if (!roomType || Number(roomType.booked_units) >= Number(roomType.capacity)) {
       throw new Error("BOARDING_ROOM_FULL");
@@ -892,3 +937,430 @@ export async function updateBoardingToCheckedOut(params: { boardingRecordId: str
   return result.rows[0];
 }
 
+// ==========================================
+// STAFF CREATE BOARDING AT COUNTER REPOSITORY FUNCTIONS
+// ==========================================
+
+export async function findStaffBoardingCreateOwners(params?: { searchOwner?: string }) {
+  const clauses: string[] = ["u.role = 'Owner'"];
+  const values: unknown[] = [];
+  
+  if (params?.searchOwner) {
+    values.push(`%${params.searchOwner}%`);
+    clauses.push(`(u.full_name ILIKE $${values.length} OR u.phone_number ILIKE $${values.length} OR u.email ILIKE $${values.length})`);
+  }
+
+  const sql = `
+    SELECT
+      u.user_id as id,
+      u.full_name as "fullName",
+      u.phone_number as "phoneNumber",
+      CASE WHEN u.email::text LIKE '%@petcenter.local' THEN NULL ELSE u.email::text END as email,
+      u.address
+    FROM pet_center.users u
+    WHERE ${clauses.join(" AND ")}
+      AND u.account_status = 'active'
+    ORDER BY u.created_at DESC
+  `;
+  const result = await query(sql, values);
+  return result.rows;
+}
+
+export async function findStaffOwnerByPhoneNumber(phoneNumber: string, client?: PoolClient) {
+  const sql = `
+    SELECT user_id as id
+    FROM pet_center.users
+    WHERE role = 'Owner'
+      AND account_status = 'active'
+      AND phone_number = $1
+    LIMIT 1
+  `;
+  const result = client ? await client.query(sql, [phoneNumber]) : await query(sql, [phoneNumber]);
+  return result.rows[0] ?? null;
+}
+
+export async function findUserByEmail(email: string, client?: PoolClient) {
+  const sql = `
+    SELECT user_id as id
+    FROM pet_center.users
+    WHERE email = $1
+    LIMIT 1
+  `;
+  const result = client ? await client.query(sql, [email]) : await query(sql, [email]);
+  return result.rows[0] ?? null;
+}
+
+export async function createStaffBoardingOwner(params: {
+  userId: string;
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  passwordHash: string;
+  address: string | null;
+}, client?: PoolClient) {
+  const sql = `
+    INSERT INTO pet_center.users (
+      user_id,
+      full_name,
+      email,
+      password_hash,
+      phone_number,
+      address,
+      role,
+      account_status,
+      created_at
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, 'Owner', 'active', NOW())
+    RETURNING
+      user_id as id,
+      full_name as "fullName",
+      phone_number as "phoneNumber",
+      CASE WHEN email::text LIKE '%@petcenter.local' THEN NULL ELSE email::text END as email,
+      address
+  `;
+  const values = [
+    params.userId,
+    params.fullName,
+    params.email,
+    params.passwordHash,
+    params.phoneNumber,
+    params.address
+  ];
+  const result = client ? await client.query(sql, values) : await query(sql, values);
+  return result.rows[0];
+}
+
+export async function findStaffBoardingCreatePets(ownerIds?: string[]) {
+  if (ownerIds && ownerIds.length === 0) return [];
+  
+  const clauses: string[] = ["p.pet_status = 'active'"];
+  const values: unknown[] = [];
+  
+  if (ownerIds && ownerIds.length > 0) {
+    values.push(ownerIds);
+    clauses.push(`p.owner_user_id = ANY($${values.length})`);
+  }
+  
+  const sql = `
+    SELECT p.pet_id as id, p.owner_user_id as "ownerId", p.pet_name as name, 
+           p.species, p.breed, p.profile_image_url as "imageUrl", p.identifying_marks as "healthNote",
+           CASE
+             WHEN p.birth_date IS NOT NULL THEN concat(GREATEST(0, date_part('year', age(CURRENT_DATE, p.birth_date))::int), ' tuổi')
+             WHEN p.estimated_age IS NOT NULL THEN concat(trim(to_char(p.estimated_age, 'FM999999990.##')), ' tuổi')
+             ELSE NULL
+           END AS "ageText",
+           CASE
+             WHEN p.weight_kg IS NOT NULL THEN concat(trim(to_char(p.weight_kg, 'FM999999990.##')), ' kg')
+             ELSE NULL
+           END AS "weightText"
+    FROM pet_center.pets p
+    WHERE ${clauses.join(" AND ")}
+  `;
+  const result = await query(sql, values);
+  return result.rows;
+}
+
+export async function createStaffBoardingPet(params: {
+  petId: string;
+  ownerId: string;
+  petName: string;
+  species: "Dog" | "Cat" | "Other";
+  breed: string;
+  gender: "male" | "female" | "unknown";
+  birthDate: Date | null;
+  estimatedAge: number | null;
+  furColor: string | null;
+  weightKg: number | null;
+  profileImageUrl: string | null;
+  identifyingMarks: string | null;
+}, client?: PoolClient) {
+  const sql = `
+    INSERT INTO pet_center.pets (
+      pet_id,
+      owner_user_id,
+      pet_name,
+      species,
+      breed,
+      gender,
+      birth_date,
+      estimated_age,
+      fur_color,
+      weight_kg,
+      profile_image_url,
+      identifying_marks,
+      pet_status
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active')
+    RETURNING
+      pet_id as id,
+      owner_user_id as "ownerId",
+      pet_name as name,
+      species,
+      breed,
+      profile_image_url as "imageUrl",
+      identifying_marks as "healthNote",
+      CASE
+        WHEN birth_date IS NOT NULL THEN concat(GREATEST(0, date_part('year', age(CURRENT_DATE, birth_date))::int), ' tuổi')
+        WHEN estimated_age IS NOT NULL THEN concat(trim(to_char(estimated_age, 'FM999999990.##')), ' tuổi')
+        ELSE NULL
+      END AS "ageText",
+      CASE
+        WHEN weight_kg IS NOT NULL THEN concat(trim(to_char(weight_kg, 'FM999999990.##')), ' kg')
+        ELSE NULL
+      END AS "weightText"
+  `;
+  const values = [
+    params.petId,
+    params.ownerId,
+    params.petName,
+    params.species,
+    params.breed,
+    params.gender,
+    params.birthDate,
+    params.estimatedAge,
+    params.furColor,
+    params.weightKg,
+    params.profileImageUrl,
+    params.identifyingMarks
+  ];
+  const result = client ? await client.query(sql, values) : await query(sql, values);
+  return result.rows[0];
+}
+
+export async function findActiveRoomTypes() {
+  const sql = `
+    SELECT rt.room_type_id as id, rt.room_type_id as code, rt.room_type_name as name,
+           rt.description, rt.boarding_unit_price as "pricePerDay", rt.capacity
+    FROM pet_center.room_types rt
+    WHERE rt.room_type_status = 'active'
+    ORDER BY rt.boarding_unit_price ASC
+  `;
+  const result = await query(sql);
+  return result.rows;
+}
+
+export async function findStaffBoardingCreateRoomTypes(checkInAt?: Date, checkOutAt?: Date) {
+  let sql = "";
+  let values: any[] = [];
+  
+  if (checkInAt && checkOutAt) {
+    sql = `
+      SELECT
+        rt.room_type_id,
+        rt.room_type_name,
+        rt.description,
+        rt.capacity,
+        rt.boarding_unit_price,
+        COALESCE(booked.booked_units, 0)::int AS booked_units
+      FROM pet_center.room_types rt
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS booked_units
+        FROM pet_center.boarding_records br
+        WHERE br.room_type_id = rt.room_type_id
+          AND br.boarding_status IN ('pending', 'confirmed', 'staying')
+          AND br.planned_check_in_at < $1
+          AND br.planned_check_out_at > $2
+      ) booked ON true
+      WHERE rt.room_type_status = 'active'
+      ORDER BY rt.boarding_unit_price ASC, rt.room_type_name ASC
+    `;
+    values = [checkOutAt, checkInAt];
+  } else {
+    sql = `
+      SELECT
+        rt.room_type_id,
+        rt.room_type_name,
+        rt.description,
+        rt.capacity,
+        rt.boarding_unit_price,
+        0 AS booked_units
+      FROM pet_center.room_types rt
+      WHERE rt.room_type_status = 'active'
+      ORDER BY rt.boarding_unit_price ASC, rt.room_type_name ASC
+    `;
+  }
+  
+  const result = await query(sql, values);
+  return result.rows;
+}
+
+export async function countBookedUnitsByRoomType(roomTypeId: string, checkInAt: Date, checkOutAt: Date, client?: PoolClient) {
+  const sql = `
+    SELECT COUNT(*)::int AS booked_units
+    FROM pet_center.boarding_records br
+    WHERE br.room_type_id = $1
+      AND br.boarding_status IN ('pending', 'confirmed', 'staying')
+      AND br.planned_check_in_at < $2
+      AND br.planned_check_out_at > $3
+  `;
+  const values = [roomTypeId, checkOutAt, checkInAt];
+  const result = client ? await client.query(sql, values) : await query(sql, values);
+  return Number(result.rows[0]?.booked_units ?? 0);
+}
+
+export async function findRoomTypeById(roomTypeId: string, client?: PoolClient) {
+  const sql = `
+    SELECT rt.room_type_id as id, rt.capacity, rt.boarding_unit_price as "pricePerDay", rt.room_type_status
+    FROM pet_center.room_types rt
+    WHERE rt.room_type_id = $1
+  `;
+  const result = client ? await client.query(sql, [roomTypeId]) : await query(sql, [roomTypeId]);
+  return result.rows[0] ?? null;
+}
+
+export async function verifyOwnerExists(ownerId: string, client?: PoolClient) {
+  const sql = `SELECT 1 FROM pet_center.users WHERE user_id = $1 AND role = 'Owner'`;
+  const result = client ? await client.query(sql, [ownerId]) : await query(sql, [ownerId]);
+  return result.rowCount !== null && result.rowCount > 0;
+}
+
+export async function verifyPetBelongsToOwner(petId: string, ownerId: string, client?: PoolClient) {
+  const sql = `SELECT 1 FROM pet_center.pets WHERE pet_id = $1 AND owner_user_id = $2 AND pet_status = 'active'`;
+  const result = client ? await client.query(sql, [petId, ownerId]) : await query(sql, [petId, ownerId]);
+  return result.rowCount !== null && result.rowCount > 0;
+}
+
+export async function lockBoardingRecordsForAvailability(client: PoolClient) {
+  await client.query("LOCK TABLE pet_center.boarding_records IN SHARE ROW EXCLUSIVE MODE");
+}
+
+export async function createBoardingRecordAtCounter(params: {
+  boardingRecordId: string;
+  petId: string;
+  ownerId: string;
+  roomTypeId: string;
+  plannedCheckInAt: Date;
+  plannedCheckOutAt: Date;
+  careRequest: string | null;
+  estimatedTotal: number;
+  handledByStaffId: string;
+}, client: PoolClient) {
+  const sql = `
+    INSERT INTO pet_center.boarding_records (
+      boarding_record_id, pet_id, owner_user_id, room_type_id,
+      planned_check_in_at, planned_check_out_at, actual_check_in_at, care_request,
+      estimated_total, boarding_status, handled_by_staff_id, created_at
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, 'staying', $9, NOW())
+    RETURNING actual_check_in_at
+  `;
+  const result = await client.query(sql, [
+    params.boardingRecordId,
+    params.petId,
+    params.ownerId,
+    params.roomTypeId,
+    params.plannedCheckInAt,
+    params.plannedCheckOutAt,
+    params.careRequest,
+    params.estimatedTotal,
+    params.handledByStaffId
+  ]);
+  return result.rows[0];
+}
+
+export async function createInitialBoardingUpdate(params: {
+  boardingUpdateId: string;
+  boardingRecordId: string;
+  createdByUserId: string;
+  updateNote: string;
+}, client: PoolClient) {
+  const sql = `
+    INSERT INTO pet_center.boarding_updates (
+      boarding_update_id,
+      boarding_record_id,
+      created_by_user_id,
+      updated_at,
+      update_note,
+      attachment_url,
+      alert_level,
+      visibility_status
+    )
+    VALUES (
+      $1, $2, $3, NOW(), $4, ARRAY[]::TEXT[], 'normal', 'published'
+    )
+  `;
+  await client.query(sql, [
+    params.boardingUpdateId,
+    params.boardingRecordId,
+    params.createdByUserId,
+    params.updateNote
+  ]);
+}
+
+export async function createBoardingInvoice(params: {
+  invoiceId: string;
+  ownerId: string;
+  petId: string;
+  totalAmount: number;
+}, client: PoolClient) {
+  const sql = `
+    INSERT INTO pet_center.invoices (
+      invoice_id, owner_user_id, pet_id, issued_at,
+      subtotal_amount, discount_amount, surcharge_amount, total_amount,
+      payment_option, payment_due_at, invoice_status
+    )
+    VALUES (
+      $1, $2, $3, CURRENT_DATE,
+      $4, 0, 0, $4,
+      'counter', NOW(), 'paid'
+    )
+  `;
+  await client.query(sql, [
+    params.invoiceId,
+    params.ownerId,
+    params.petId,
+    params.totalAmount
+  ]);
+}
+
+export async function createBoardingInvoiceLine(params: {
+  invoiceLineId: string;
+  invoiceId: string;
+  boardingRecordId: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  lineAmount: number;
+}, client: PoolClient) {
+  const sql = `
+    INSERT INTO pet_center.invoice_lines (
+      invoice_line_id, invoice_id, service_id, source_type, source_id,
+      description, quantity, unit_price, line_discount_amount, line_amount
+    )
+    VALUES (
+      $1, $2, NULL, 'boarding', $3,
+      $4, $5, $6, 0, $7
+    )
+  `;
+  await client.query(sql, [
+    params.invoiceLineId,
+    params.invoiceId,
+    params.boardingRecordId,
+    params.description,
+    params.quantity,
+    params.unitPrice,
+    params.lineAmount
+  ]);
+}
+
+export async function createBoardingPayment(params: {
+  paymentId: string;
+  invoiceId: string;
+  paidAmount: number;
+}, client: PoolClient) {
+  const sql = `
+    INSERT INTO pet_center.payments (
+      payment_id, invoice_id, payment_method, payment_provider, transaction_code,
+      paid_amount, paid_at, payment_status, receipt_code, receipt_url
+    )
+    VALUES (
+      $1, $2, 'cash_at_counter', NULL, NULL,
+      $3, NOW(), 'success', NULL, NULL
+    )
+  `;
+  await client.query(sql, [
+    params.paymentId,
+    params.invoiceId,
+    params.paidAmount
+  ]);
+}

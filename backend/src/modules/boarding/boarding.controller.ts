@@ -36,6 +36,15 @@ export async function getOwnerBoardingRecordDetail(req: Request, res: Response):
   sendSuccess(res, result);
 }
 
+export async function cancelOwnerBoardingRecord(req: Request, res: Response): Promise<void> {
+  await boardingService.cancelOwnerBoardingRecord(
+    req.user!,
+    req.params as unknown as BoardingRecordParams
+  );
+
+  sendSuccess(res, null);
+}
+
 export async function createBoardingRecord(req: Request, res: Response): Promise<void> {
   const result = await boardingService.createBoardingRecord(
     req.user!,
@@ -55,7 +64,12 @@ import type {
   ConfirmStaffBoardingPayload,
   CheckInStaffBoardingPayload,
   CheckOutStaffBoardingPayload,
-  RejectStaffBoardingPayload
+  RejectStaffBoardingPayload,
+  GetStaffBoardingCreateOptionsQuery,
+  CreateStaffBoardingAtCounterPayload,
+  CreateStaffBoardingOwnerPayload,
+  CreateStaffBoardingPetPayload,
+  StaffBoardingOwnerParams
 } from "./boarding.schema.js";
 
 export async function listStaffBoardingRecords(req: Request, res: Response): Promise<void> {
@@ -143,4 +157,37 @@ export async function checkOutStaffBoarding(req: Request, res: Response): Promis
 export async function getRoomTypes(req: Request, res: Response): Promise<void> {
   const roomTypes = await boardingService.getRoomTypes();
   sendSuccess(res, roomTypes, "Lấy danh sách loại phòng thành công");
+}
+
+export async function getStaffBoardingCreateOptions(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.getStaffBoardingCreateOptions(
+    req.user!,
+    req.query as unknown as GetStaffBoardingCreateOptionsQuery
+  );
+  sendSuccess(res, result);
+}
+
+export async function createStaffBoardingOwner(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.createStaffBoardingOwner(
+    req.user!,
+    req.body as CreateStaffBoardingOwnerPayload
+  );
+  sendSuccess(res, result, "Tao ho so chu nuoi thanh cong", httpStatus.CREATED);
+}
+
+export async function createStaffBoardingPet(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.createStaffBoardingPet(
+    req.user!,
+    req.params as unknown as StaffBoardingOwnerParams,
+    req.body as CreateStaffBoardingPetPayload
+  );
+  sendSuccess(res, result, "Tao ho so thu cung thanh cong", httpStatus.CREATED);
+}
+
+export async function createStaffBoardingAtCounter(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.createStaffBoardingAtCounter(
+    req.user!,
+    req.body as CreateStaffBoardingAtCounterPayload
+  );
+  sendSuccess(res, result, "Tạo lưu trú tại quầy thành công", httpStatus.CREATED);
 }

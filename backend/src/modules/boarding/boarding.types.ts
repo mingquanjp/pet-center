@@ -1,6 +1,6 @@
 import type { QueryResultRow } from "pg";
 
-export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out";
+export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out" | "cancelled" | "rejected";
 export type BoardingCreateStatus = "pending_payment" | "pending";
 export type BoardingPaymentOption = "online" | "counter";
 export type BoardingInvoiceStatus = "pending_payment" | "paid" | "cancelled" | "refunded";
@@ -411,5 +411,52 @@ export interface StaffBoardingDetailDto {
   careUpdates: StaffBoardingCareUpdateDto[];
   careLogs: StaffBoardingCareUpdateDto[];
   timeline: StaffBoardingTimelineItemDto[];
+}
+
+// ==================================================
+// STAFF CREATE BOARDING AT COUNTER TYPES
+// ==================================================
+
+export type StaffBoardingCreatePaymentMethodDto = "AT_COUNTER";
+export type StaffBoardingCreatePaymentStatusDto = "PAID";
+export type StaffBoardingCreateModeDto = "CHECK_IN_NOW";
+
+export interface StaffBoardingCreateRoomTypeOptionDto {
+  id: string;
+  code: string;
+  name: string;
+  roomType: "STANDARD" | "VIP" | "UNKNOWN";
+  description?: string | null;
+  pricePerDay: number;
+  capacity: number;
+  bookedUnits: number;
+  availableUnits: number;
+  availableCount: number;
+  available: boolean;
+  capacityText?: string | null;
+  features: string[];
+}
+
+export interface CreateStaffBoardingAtCounterBody {
+  ownerId: string;
+  petId: string;
+  roomTypeId: string;
+
+  plannedCheckInAt?: string;
+  plannedCheckOutAt?: string;
+
+  plannedCheckInDate?: string;
+  plannedCheckInTime?: string;
+  plannedCheckOutDate?: string;
+  plannedCheckOutTime?: string;
+
+  careRequest?: string | null;
+  specialRequests?: string[];
+
+  paymentMethod?: "AT_COUNTER";
+  paymentStatus?: "PAID";
+  createMode?: "CHECK_IN_NOW";
+
+  note?: string | null;
 }
 

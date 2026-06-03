@@ -1,12 +1,22 @@
+import { randomBytes, scrypt as scryptCallback } from "node:crypto";
+import { promisify } from "node:util";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
 import { createPagination, normalizePagination } from "../../shared/utils/pagination.js";
+import { createId } from "../../shared/utils/id.js";
+import { withTransaction } from "../../db/transactions.js";
+import * as mailService from "../mail/mail.service.js";
 import type {
   BoardingBookingOptionsQuery,
   BoardingRecordParams,
   CreateBoardingRecordPayload,
-  ListBoardingRecordsQuery
+  CreateStaffBoardingPetPayload,
+  CreateStaffBoardingOwnerPayload,
+  ListBoardingRecordsQuery,
+  GetStaffBoardingCreateOptionsQuery,
+  CreateStaffBoardingAtCounterPayload,
+  StaffBoardingOwnerParams
 } from "./boarding.schema.js";
 import * as boardingRepository from "./boarding.repository.js";
 import type {
@@ -29,6 +39,26 @@ import type {
 } from "./boarding.types.js";
 
 const minimumStayDays = 1;
+const scrypt = promisify(scryptCallback);
+
+function generateTemporaryPassword(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const random = randomBytes(10);
+
+  return Array.from(random, (byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const derivedKey = await scrypt(password, salt, 64) as Buffer;
+
+  return `scrypt$${salt}$${derivedKey.toString("base64url")}`;
+}
+
+function normalizeOptionalText(value?: string | null): string | null {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
+}
 
 function assertOwner(authUser: AuthUser): void {
   if (authUser.role !== "OWNER") {
@@ -41,7 +71,9 @@ function getStatusLabel(status: BoardingRecordStatus): string {
     pending: "Chờ xác nhận",
     confirmed: "Chờ check-in",
     staying: "Đang lưu trú",
-    checked_out: "Hoàn tất"
+    checked_out: "Hoàn tất",
+    cancelled: "Đã hủy",
+    rejected: "Từ chối"
   };
 
   return labels[status];
@@ -432,8 +464,20 @@ export async function createBoardingRecord(
       paymentOption: payload.paymentOption
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "BOARDING_PET_TIME_CONFLICT") {
+      throw new AppError("Thú cưng này đã có lịch lưu trú trùng thời gian đã chọn", "BOARDING_PET_TIME_CONFLICT", httpStatus.CONFLICT);
+    }
+
     if (error instanceof Error && error.message === "BOARDING_ROOM_FULL") {
       throw new AppError("Loại phòng này đã hết chỗ trong khoảng thời gian đã chọn", "BOARDING_ROOM_FULL", httpStatus.CONFLICT);
+    }
+
+    if (error instanceof Error && error.message === "BOARDING_PET_TIME_CONFLICT") {
+      throw new AppError(
+        "Thú cưng này đã có lịch lưu trú trong khoảng thời gian đã chọn",
+        "BOARDING_PET_TIME_CONFLICT",
+        httpStatus.CONFLICT
+      );
     }
 
     throw error;
@@ -458,6 +502,33 @@ export async function getOwnerBoardingRecordDetail(
   const updates = await boardingRepository.findPublishedBoardingUpdates(record.boarding_record_id);
 
   return mapBoardingRecordDetail(record, updates);
+}
+
+export async function cancelOwnerBoardingRecord(
+  authUser: AuthUser,
+  params: BoardingRecordParams
+): Promise<void> {
+  assertOwner(authUser);
+
+  const record = await boardingRepository.findOwnerBoardingRecordDetail(
+    authUser.userId,
+    params.boardingRecordId
+  );
+
+  if (!record) {
+    throw new AppError("Không tìm thấy lịch lưu trú phù hợp", "BOARDING_RECORD_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  if (record.boarding_status !== "pending") {
+    throw new AppError("Chỉ có thể hủy lịch lưu trú đang chờ xác nhận", "INVALID_BOARDING_STATUS", httpStatus.BAD_REQUEST);
+  }
+
+  // Double check if payment is somewhat completed or not
+  if (record.invoice_status === "paid") {
+    throw new AppError("Lịch này đã được thanh toán. Vui lòng liên hệ nhân viên để được hỗ trợ hủy.", "INVALID_BOARDING_STATUS", httpStatus.BAD_REQUEST);
+  }
+
+  await boardingRepository.updateBoardingRecordStatus(params.boardingRecordId, "cancelled");
 }
 
 export async function listOwnerBoardingRecords(authUser: AuthUser, query: ListBoardingRecordsQuery) {
@@ -590,7 +661,7 @@ function mapDbBoardingStatusToDto(status: string): any {
 
 function buildStaffBoardingTimeline(record: any, careUpdates: any[]): StaffBoardingTimelineItemDto[] {
   const timeline: StaffBoardingTimelineItemDto[] = [];
-  
+
   let fallbackStaff = record.handled_by_staff_id ? { id: record.handled_by_staff_id, fullName: record.handled_by_staff_name || "Nhân viên" } : null;
   let confirmedBy = fallbackStaff;
   let checkedInBy = fallbackStaff;
@@ -955,7 +1026,7 @@ export async function checkInStaffBoarding(authUser: AuthUser, boardingId: strin
   if (!record) throw new AppError("Không tìm thấy phiếu lưu trú", "BOARDING_NOT_FOUND", httpStatus.NOT_FOUND);
   if (record.boarding_status !== "confirmed") throw new AppError("Trạng thái phiếu lưu trú không hợp lệ", "INVALID_BOARDING_STATUS", httpStatus.BAD_REQUEST);
   await boardingRepository.updateBoardingToStaying({ boardingRecordId: boardingId, handledByStaffId: authUser.userId });
-  
+
   await boardingRepository.insertBoardingUpdate({
     boardingRecordId: boardingId,
     createdByUserId: authUser.userId,
@@ -964,7 +1035,7 @@ export async function checkInStaffBoarding(authUser: AuthUser, boardingId: strin
     visibilityStatus: "published",
     attachmentUrls: null
   });
-  
+
   if (payload.internalNote) {
     await boardingRepository.insertBoardingUpdate({
       boardingRecordId: boardingId,
@@ -985,7 +1056,7 @@ export async function checkOutStaffBoarding(authUser: AuthUser, boardingId: stri
   if (record.boarding_status === "checked_out") throw new AppError("Phiếu lưu trú đã được check-out.", "BOARDING_ALREADY_CHECKED_OUT", httpStatus.BAD_REQUEST);
   if (record.boarding_status !== "staying") throw new AppError("Trạng thái phiếu lưu trú không hợp lệ", "INVALID_BOARDING_STATUS", httpStatus.BAD_REQUEST);
   await boardingRepository.updateBoardingToCheckedOut({ boardingRecordId: boardingId, handledByStaffId: authUser.userId });
-  
+
   await boardingRepository.insertBoardingUpdate({
     boardingRecordId: boardingId,
     createdByUserId: authUser.userId,
@@ -1014,4 +1085,311 @@ export async function getRoomTypes() {
     id: roomType.room_type_id,
     name: roomType.room_type_name
   }));
+}
+
+export async function getStaffBoardingCreateOptions(
+  authUser: AuthUser,
+  query: GetStaffBoardingCreateOptionsQuery
+) {
+  assertStaff(authUser);
+
+  const owners = await boardingRepository.findStaffBoardingCreateOwners({ searchOwner: query.searchOwner });
+
+  let ownerIds = owners.map(o => o.id);
+  if (ownerIds.length === 0) ownerIds = ["non_existent_id_just_for_empty"];
+
+  const pets = await boardingRepository.findStaffBoardingCreatePets(ownerIds);
+
+  let checkInAt: Date | undefined = undefined;
+  let checkOutAt: Date | undefined = undefined;
+
+  const parseDateWithDefaultTime = (val: string, defaultTime: string) => {
+    if (val.includes('T')) return new Date(val);
+    return new Date(`${val}T${defaultTime}+07:00`);
+  };
+
+  if (query.plannedCheckInAt) {
+    checkInAt = new Date(query.plannedCheckInAt as string);
+  } else if (query.plannedCheckInDate) {
+    checkInAt = parseDateWithDefaultTime(query.plannedCheckInDate as string, "08:00:00");
+  }
+
+  if (query.plannedCheckOutAt) {
+    checkOutAt = new Date(query.plannedCheckOutAt as string);
+  } else if (query.plannedCheckOutDate) {
+    checkOutAt = parseDateWithDefaultTime(query.plannedCheckOutDate as string, "18:00:00");
+  }
+
+  if (checkInAt && isNaN(checkInAt.getTime())) checkInAt = undefined;
+  if (checkOutAt && isNaN(checkOutAt.getTime())) checkOutAt = undefined;
+
+  const roomTypesRaw = await boardingRepository.findStaffBoardingCreateRoomTypes(
+    (checkInAt && checkOutAt) ? checkInAt : undefined,
+    (checkInAt && checkOutAt) ? checkOutAt : undefined
+  );
+
+  const roomTypes = roomTypesRaw.map((rt: any) => {
+    const capacity = Number(rt.capacity);
+    const bookedUnits = Number(rt.booked_units);
+    const availableUnits = Math.max(capacity - bookedUnits, 0);
+    const available = availableUnits > 0;
+
+    let roomTypeTag = "STANDARD";
+    if (rt.room_type_name.toLowerCase().includes("vip")) roomTypeTag = "VIP";
+
+    return {
+      id: rt.room_type_id,
+      code: rt.room_type_id,
+      name: rt.room_type_name,
+      roomType: roomTypeTag,
+      description: rt.description,
+      pricePerDay: Number(rt.boarding_unit_price),
+      capacity,
+      bookedUnits,
+      availableUnits,
+      availableCount: availableUnits,
+      available,
+      capacityText: available ? `Còn ${availableUnits} phòng` : "Hết phòng",
+      features: []
+    };
+  });
+
+  return { owners, pets, roomTypes };
+}
+
+export async function createStaffBoardingOwner(
+  authUser: AuthUser,
+  payload: CreateStaffBoardingOwnerPayload
+) {
+  assertStaff(authUser);
+
+  const fullName = payload.fullName.trim();
+  const phoneNumber = payload.phoneNumber.trim();
+  const email = payload.email.trim();
+  const address = normalizeOptionalText(payload.address);
+
+  const temporaryPassword = generateTemporaryPassword();
+  const passwordHash = await hashPassword(temporaryPassword);
+
+  const owner = await withTransaction(async (client) => {
+    const existingPhoneOwner = await boardingRepository.findStaffOwnerByPhoneNumber(phoneNumber, client);
+    if (existingPhoneOwner) {
+      throw new AppError("Số điện thoại đã tồn tại trong hồ sơ chủ nuôi", "OWNER_PHONE_ALREADY_EXISTS", httpStatus.CONFLICT);
+    }
+
+    const existingEmailUser = await boardingRepository.findUserByEmail(email, client);
+    if (existingEmailUser) {
+      throw new AppError("Email này đã được sử dụng", "OWNER_EMAIL_ALREADY_EXISTS", httpStatus.CONFLICT);
+    }
+
+    const userId = createId("usr");
+
+    return boardingRepository.createStaffBoardingOwner({
+      userId,
+      fullName,
+      phoneNumber,
+      email,
+      passwordHash,
+      address
+    }, client);
+  });
+
+  try {
+    await mailService.sendOwnerAccountCreatedEmail({
+      to: email,
+      ownerName: fullName,
+      loginEmail: email,
+      temporaryPassword
+    });
+
+    return { ...owner, emailSent: true };
+  } catch (error) {
+    console.error("Failed to send owner account email:", error);
+    return { ...owner, emailSent: false };
+  }
+}
+
+export async function createStaffBoardingPet(
+  authUser: AuthUser,
+  params: StaffBoardingOwnerParams,
+  payload: CreateStaffBoardingPetPayload
+) {
+  assertStaff(authUser);
+
+  return withTransaction(async (client) => {
+    const ownerExists = await boardingRepository.verifyOwnerExists(params.ownerId, client);
+    if (!ownerExists) {
+      throw new AppError("Chủ nuôi không tồn tại", "OWNER_NOT_FOUND", httpStatus.NOT_FOUND);
+    }
+
+    return boardingRepository.createStaffBoardingPet({
+      petId: createId("pet"),
+      ownerId: params.ownerId,
+      petName: payload.petName.trim(),
+      species: payload.species,
+      breed: payload.breed.trim(),
+      gender: payload.gender,
+      birthDate: payload.birthDate ?? null,
+      estimatedAge: payload.estimatedAge ?? null,
+      furColor: normalizeOptionalText(payload.furColor),
+      weightKg: payload.weightKg ?? null,
+      profileImageUrl: normalizeOptionalText(payload.profileImageUrl),
+      identifyingMarks: normalizeOptionalText(payload.identifyingMarks)
+    }, client);
+  });
+}
+
+export async function createStaffBoardingAtCounter(
+  authUser: AuthUser,
+  payload: CreateStaffBoardingAtCounterPayload
+) {
+  assertStaff(authUser);
+
+  const normalizeStaffBoardingDateTime = (
+    dateTimeValue: unknown,
+    dateValue: string | undefined,
+    timeValue: string | undefined,
+    defaultTime: string
+  ): string | undefined => {
+    if (dateTimeValue instanceof Date) return dateTimeValue.toISOString();
+    if (typeof dateTimeValue === "string" && dateTimeValue.trim()) return dateTimeValue;
+    if (!dateValue) return undefined;
+
+    return dateValue.includes("T")
+      ? dateValue
+      : `${dateValue}T${timeValue || defaultTime}:00`;
+  };
+
+  const plannedCheckInAtStr = normalizeStaffBoardingDateTime(
+    payload.plannedCheckInAt,
+    payload.plannedCheckInDate,
+    payload.plannedCheckInTime,
+    "08:00"
+  );
+  const plannedCheckOutAtStr = normalizeStaffBoardingDateTime(
+    payload.plannedCheckOutAt,
+    payload.plannedCheckOutDate,
+    payload.plannedCheckOutTime,
+    "18:00"
+  );
+
+  if (!plannedCheckInAtStr || !plannedCheckOutAtStr) {
+    throw new AppError("Thiếu thời gian nhận phòng hoặc trả phòng", "INVALID_BOARDING_TIME", httpStatus.BAD_REQUEST);
+  }
+
+  const plannedCheckInAt = new Date(plannedCheckInAtStr);
+  const plannedCheckOutAt = new Date(plannedCheckOutAtStr);
+
+  if (isNaN(plannedCheckInAt.getTime()) || isNaN(plannedCheckOutAt.getTime())) {
+    throw new AppError("Thời gian không hợp lệ", "INVALID_BOARDING_TIME", httpStatus.BAD_REQUEST);
+  }
+
+  if (plannedCheckOutAt <= plannedCheckInAt) {
+    throw new AppError("Thời gian trả phòng phải sau thời gian nhận phòng", "INVALID_BOARDING_TIME", httpStatus.BAD_REQUEST);
+  }
+
+  const stayDays = calculateStayDays(plannedCheckInAt, plannedCheckOutAt);
+
+  return withTransaction(async (client) => {
+    await boardingRepository.lockBoardingRecordsForAvailability(client);
+
+    const ownerExists = await boardingRepository.verifyOwnerExists(payload.ownerId, client);
+    if (!ownerExists) throw new AppError("Chủ nuôi không tồn tại", "OWNER_NOT_FOUND", httpStatus.NOT_FOUND);
+
+    const petExists = await boardingRepository.verifyPetBelongsToOwner(payload.petId, payload.ownerId, client);
+    if (!petExists) throw new AppError("Thú cưng không tồn tại hoặc không thuộc về chủ nuôi này", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+
+    const overlappingPetRecords = await boardingRepository.countOverlappingBoardingRecordsByPet(
+      payload.petId,
+      plannedCheckInAt,
+      plannedCheckOutAt,
+      client
+    );
+    if (overlappingPetRecords > 0) {
+      throw new AppError("Thú cưng này đã có lịch lưu trú trùng thời gian đã chọn", "BOARDING_PET_TIME_CONFLICT", httpStatus.CONFLICT);
+    }
+
+    const roomType = await boardingRepository.findRoomTypeById(payload.roomTypeId, client);
+    if (!roomType || roomType.room_type_status !== "active") {
+      throw new AppError("Loại phòng không tồn tại hoặc không còn hoạt động", "ROOM_TYPE_NOT_FOUND", httpStatus.NOT_FOUND);
+    }
+
+    const bookedUnits = await boardingRepository.countBookedUnitsByRoomType(payload.roomTypeId, plannedCheckInAt, plannedCheckOutAt, client);
+    if (bookedUnits >= roomType.capacity) {
+      throw new AppError("Phòng đã hết chỗ trong thời gian này", "ROOM_TYPE_FULL", httpStatus.CONFLICT);
+    }
+
+    const boardingRecordId = createId("brd");
+    const invoiceId = createId("inv");
+    const paymentId = createId("pay");
+    const invoiceLineId = createId("inl");
+    const updateId = createId("bup");
+
+    const totalAmount = Number(roomType.pricePerDay) * stayDays;
+    const careRequest = (payload.specialRequests?.length) ? payload.specialRequests.join(", ") : payload.careRequest || null;
+
+    await boardingRepository.createBoardingRecordAtCounter({
+      boardingRecordId,
+      petId: payload.petId,
+      ownerId: payload.ownerId,
+      roomTypeId: payload.roomTypeId,
+      plannedCheckInAt,
+      plannedCheckOutAt,
+      careRequest,
+      estimatedTotal: totalAmount,
+      handledByStaffId: authUser.userId
+    }, client);
+
+    await boardingRepository.createBoardingInvoice({
+      invoiceId,
+      ownerId: payload.ownerId,
+      petId: payload.petId,
+      totalAmount
+    }, client);
+
+    await boardingRepository.createBoardingInvoiceLine({
+      invoiceLineId,
+      invoiceId,
+      boardingRecordId,
+      description: `Lưu trú - ${stayDays} ngày`,
+      quantity: stayDays,
+      unitPrice: Number(roomType.pricePerDay),
+      lineAmount: totalAmount
+    }, client);
+
+    await boardingRepository.createBoardingPayment({
+      paymentId,
+      invoiceId,
+      paidAmount: totalAmount
+    }, client);
+
+    const note = payload.note ? `\nGhi chú thêm: ${payload.note}` : "";
+    await boardingRepository.createInitialBoardingUpdate({
+      boardingUpdateId: updateId,
+      boardingRecordId,
+      createdByUserId: authUser.userId,
+      updateNote: `[SYSTEM_CHECKIN] Thú cưng đã được nhận tại quầy.${note}`
+    }, client);
+
+    return {
+      boardingId: boardingRecordId,
+      boardingRecordId,
+      boardingCode: boardingRecordId,
+      status: "STAYING",
+      actualCheckInAt: new Date().toISOString(),
+      invoice: {
+        invoiceId,
+        invoiceCode: invoiceId,
+        subtotal: totalAmount,
+        discountAmount: 0,
+        taxAmount: 0,
+        totalAmount,
+        currency: "VND",
+        totalDays: stayDays,
+        pricePerDay: Number(roomType.pricePerDay),
+        paymentMethod: "AT_COUNTER",
+        paymentStatus: "PAID"
+      }
+    };
+  });
 }

@@ -149,7 +149,7 @@ export function OwnerPetDetailPage({ petId }: { petId: string }) {
   const subtitle = [pet.speciesLabel, pet.breed].filter(Boolean).join(" / ")
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-gutter">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-gutter">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <nav className="label-md flex flex-wrap items-center gap-2 text-petcenter-text-secondary">
           <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
@@ -216,10 +216,13 @@ export function OwnerPetDetailPage({ petId }: { petId: string }) {
               <Edit3 className="h-4 w-4" />
               Chỉnh sửa hồ sơ
             </Link>
-            <button className="label-md inline-flex h-11 items-center justify-center gap-2 rounded-control bg-petcenter-cta px-5 font-semibold text-white shadow-card transition hover:bg-petcenter-cta-hover">
+            <Link
+              className="label-md inline-flex h-11 items-center justify-center gap-2 rounded-control bg-petcenter-cta px-5 font-semibold text-white shadow-card transition hover:bg-petcenter-cta-hover"
+              href={`/owner/appointments/create?petId=${encodeURIComponent(pet.petId)}`}
+            >
               <CalendarPlus className="h-4 w-4" />
               Đặt lịch khám
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -1498,7 +1501,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 function PetDetailSkeleton() {
   return (
-    <div className="mx-auto flex w-full max-w-7xl animate-pulse flex-col gap-gutter">
+    <div className="mx-auto flex w-full max-w-[1440px] animate-pulse flex-col gap-gutter">
       <div className="h-10 w-64 rounded bg-petcenter-sidebar" />
       <section className="h-56 rounded-card border border-petcenter-border bg-white shadow-card" />
       <div className="h-11 rounded bg-petcenter-sidebar" />

@@ -81,6 +81,14 @@ boardingRouter.get(
   asyncHandler(boardingController.getOwnerBoardingRecordDetail)
 );
 
+boardingRouter.patch(
+  "/boarding/records/:boardingRecordId/cancel",
+  authMiddleware,
+  requireRole("OWNER"),
+  validateRequest({ params: boardingRecordParamsSchema }),
+  asyncHandler(boardingController.cancelOwnerBoardingRecord)
+);
+
 boardingRouter.post(
   "/boarding/records",
   authMiddleware,
@@ -100,7 +108,12 @@ import {
   rejectStaffBoardingSchema,
   checkInStaffBoardingSchema,
   checkOutStaffBoardingSchema,
-  staffBoardingIdParamsSchema
+  staffBoardingIdParamsSchema,
+  getStaffBoardingCreateOptionsQuerySchema,
+  createStaffBoardingAtCounterSchema,
+  createStaffBoardingOwnerSchema,
+  createStaffBoardingPetSchema,
+  staffBoardingOwnerParamsSchema
 } from "./boarding.schema.js";
 
 // Keep existing routes mounted at "/boarding/staff/records" or "/staff/boarding" depending on setup
@@ -119,6 +132,38 @@ boardingRouter.get(
   authMiddleware,
   requireRole("STAFF", "ADMIN"),
   asyncHandler(boardingController.getRoomTypes)
+);
+
+boardingRouter.get(
+  "/staff/boarding/create-options",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ query: getStaffBoardingCreateOptionsQuerySchema }),
+  asyncHandler(boardingController.getStaffBoardingCreateOptions)
+);
+
+boardingRouter.post(
+  "/staff/boarding/owners",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ body: createStaffBoardingOwnerSchema }),
+  asyncHandler(boardingController.createStaffBoardingOwner)
+);
+
+boardingRouter.post(
+  "/staff/boarding/owners/:ownerId/pets",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ params: staffBoardingOwnerParamsSchema, body: createStaffBoardingPetSchema }),
+  asyncHandler(boardingController.createStaffBoardingPet)
+);
+
+boardingRouter.post(
+  "/staff/boarding",
+  authMiddleware,
+  requireRole("STAFF", "ADMIN"),
+  validateRequest({ body: createStaffBoardingAtCounterSchema }),
+  asyncHandler(boardingController.createStaffBoardingAtCounter)
 );
 
 boardingRouter.get(

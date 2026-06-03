@@ -14,7 +14,15 @@ import type {
   StaffBoardingListQuery,
   StaffBoardingDraftUpdate,
   StaffBoardingDetail,
+  StaffBoardingCreateOptions,
+  CreateStaffBoardingPayload,
+  CreateStaffBoardingResult,
+  CreateStaffBoardingOwnerPayload,
+  CreateStaffBoardingPetPayload,
+  StaffBoardingPetOption,
+  StaffBoardingOwnerOption,
 } from "../types/boarding.types"
+
 
 function buildQuery(params: Record<string, string | number | undefined>): string {
   const searchParams = new URLSearchParams()
@@ -181,5 +189,73 @@ export const boardingApi = {
     )
 
     return response.data
+  },
+
+  async getStaffBoardingCreateOptions(
+    query?: {
+      plannedCheckInAt?: string;
+      plannedCheckOutAt?: string;
+      plannedCheckInDate?: string;
+      plannedCheckOutDate?: string;
+      searchOwner?: string;
+    },
+    init: RequestInit = {}
+  ): Promise<StaffBoardingCreateOptions> {
+    const response = await apiRequest<StaffBoardingCreateOptions>(
+      `/staff/boarding/create-options${buildQuery(query || {})}`,
+      { method: "GET", ...init }
+    );
+    return response.data;
+  },
+
+  async createStaffBoardingOwner(
+    payload: CreateStaffBoardingOwnerPayload,
+    init: RequestInit = {}
+  ): Promise<StaffBoardingOwnerOption> {
+    const response = await apiRequest<StaffBoardingOwnerOption>(
+      "/staff/boarding/owners",
+      {
+        ...init,
+        method: "POST",
+        body: JSON.stringify(payload)
+      }
+    );
+    return response.data;
+  },
+
+  async createStaffBoardingPet(
+    ownerId: string,
+    payload: CreateStaffBoardingPetPayload,
+    init: RequestInit = {}
+  ): Promise<StaffBoardingPetOption> {
+    const response = await apiRequest<StaffBoardingPetOption>(
+      `/staff/boarding/owners/${encodeURIComponent(ownerId)}/pets`,
+      {
+        ...init,
+        method: "POST",
+        body: JSON.stringify(payload)
+      }
+    );
+    return response.data;
+  },
+
+  async createStaffBoardingAtCounter(
+    payload: CreateStaffBoardingPayload
+  ): Promise<CreateStaffBoardingResult> {
+    const response = await apiRequest<CreateStaffBoardingResult>(
+      "/staff/boarding",
+      {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }
+    );
+    return response.data;
+  },
+
+  async cancelRecord(boardingRecordId: string, init: RequestInit = {}): Promise<void> {
+    await apiRequest(`/boarding/records/${encodeURIComponent(boardingRecordId)}/cancel`, {
+      ...init,
+      method: "PATCH",
+    })
   },
 }

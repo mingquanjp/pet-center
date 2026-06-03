@@ -1,6 +1,12 @@
 import type { QueryResultRow } from "pg";
 import { query } from "../../db/query.js";
 import type {
+  AdminDashboardAlertDto,
+  AdminDashboardRecentActivityDto,
+  AdminDashboardRevenuePointDto,
+  AdminDashboardServiceRevenueDto,
+  AdminDashboardStatDto,
+  AdminDashboardTrendDto,
   OwnerDashboardActivity,
   OwnerDashboardAppointment,
   OwnerDashboardDto,
@@ -12,6 +18,10 @@ import type {
 
 type CountRow = QueryResultRow & {
   total: string;
+};
+
+type NumberRow = QueryResultRow & {
+  value: string | number | null;
 };
 
 type PetRow = QueryResultRow & {
@@ -81,9 +91,66 @@ type AppointmentTaskRow = QueryResultRow & {
   type_label: string;
 };
 
+type AdminRecentActivityRow = QueryResultRow & {
+  activity_log_id: string;
+  occurred_at: Date;
+  code: string;
+  customer_name: string;
+  pet_name: string | null;
+  action: string;
+  status: AdminDashboardRecentActivityDto["status"];
+  category: string;
+  source_type: string;
+  source_id: string;
+};
+
+type AdminRevenuePointRow = QueryResultRow & {
+  period_date: string;
+  revenue: string;
+};
+
+type AdminServiceRevenueRow = QueryResultRow & {
+  category: AdminDashboardServiceRevenueDto["category"];
+  revenue: string;
+};
+
+type AdminBoardingCapacityAlertRow = QueryResultRow & {
+  room_type_id: string;
+  room_type_name: string;
+  capacity: string;
+  occupied_count: string;
+};
+
+type AdminPaymentAlertRow = QueryResultRow & {
+  id: string;
+  invoice_id: string;
+  amount: string;
+  occurred_at: Date;
+  source_kind: "payment" | "online_payment_attempt";
+};
+
+type AdminAppointmentDelayAlertRow = QueryResultRow & {
+  id: string;
+  code: string;
+  pet_name: string;
+  owner_name: string;
+  scheduled_at: Date;
+  source_kind: "medical_appointment" | "grooming_ticket";
+};
+
 function toNumber(value: string | number | null): number | null {
   if (value === null) return null;
   return Number(value);
+}
+
+function toFiniteNumber(value: string | number | null | undefined): number {
+  const numberValue = value === undefined || value === null ? 0 : Number(value);
+
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function roundPercentage(value: number): number {
+  return Math.round(value * 10) / 10;
 }
 
 function getSpeciesLabel(species: PetRow["species"]): string {
@@ -212,7 +279,7 @@ function mapReminder(row: ReminderRow): OwnerDashboardReminder {
     title: row.title,
     dueDate: row.due_date,
     tone: row.tone,
-    actionHref: "/owner/appointments",
+    actionHref: `/owner/appointments/create?petId=${encodeURIComponent(row.pet_id)}&date=${encodeURIComponent(row.due_date)}`,
   };
 }
 
@@ -246,6 +313,48 @@ function mapAppointmentTask(row: AppointmentTaskRow): StaffDashboardAppointmentT
     typeLabel: row.type_label,
     status: "pending",
     statusLabel: "Chờ xác nhận",
+  };
+}
+
+function getAdminActivityStatusLabel(status: AdminDashboardRecentActivityDto["status"]): string {
+  const labels: Record<AdminDashboardRecentActivityDto["status"], string> = {
+    scheduled: "\u0110\u00e3 l\u00ean l\u1ecbch",
+    pending: "\u0110ang ch\u1edd",
+    confirmed: "\u0110\u00e3 x\u00e1c nh\u1eadn",
+    completed: "Ho\u00e0n th\u00e0nh",
+    cancelled: "\u0110\u00e3 h\u1ee7y",
+    rejected: "T\u1eeb ch\u1ed1i",
+    failed: "Th\u1ea5t b\u1ea1i",
+  };
+
+  return labels[status] ?? status;
+}
+
+function getAdminServiceCategoryLabel(category: AdminDashboardServiceRevenueDto["category"]): string {
+  const labels: Record<AdminDashboardServiceRevenueDto["category"], string> = {
+    medical: "Kh\u00e1m b\u1ec7nh",
+    grooming: "Grooming",
+    boarding: "Boarding",
+    medicine: "Medicine",
+    other: "Kh\u00e1c",
+  };
+
+  return labels[category];
+}
+
+function mapAdminRecentActivity(row: AdminRecentActivityRow): AdminDashboardRecentActivityDto {
+  return {
+    activityLogId: row.activity_log_id,
+    occurredAt: row.occurred_at.toISOString(),
+    code: row.code,
+    customerName: row.customer_name,
+    petName: row.pet_name,
+    action: row.action,
+    status: row.status,
+    statusLabel: getAdminActivityStatusLabel(row.status),
+    category: row.category,
+    sourceType: row.source_type,
+    sourceId: row.source_id,
   };
 }
 
@@ -592,4 +701,465 @@ export async function findPendingAppointmentTasks(limit: number): Promise<StaffD
   );
 
   return result.rows.map(mapAppointmentTask);
+}
+
+export async function getAdminStats(range: {
+  startDate: string;
+  endDate: string;
+  previousStartDate: string;
+  previousEndDate: string;
+}): Promise<{ stats: AdminDashboardStatDto; trends: AdminDashboardTrendDto }> {
+  const [
+    totalUsersResult,
+    previousUsersResult,
+    totalPetsResult,
+    appointmentResult,
+    previousAppointmentResult,
+    roomCapacity,
+    revenueResult,
+    previousRevenueResult,
+    pendingInvoiceResult,
+    medicineRevenueResult,
+  ] = await Promise.all([
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.users
+       where account_status <> 'inactive'
+         and created_at::date <= $1::date`,
+      [range.endDate]
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.users
+       where account_status <> 'inactive'
+         and created_at::date <= $1::date`,
+      [range.previousEndDate]
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.pets
+       where pet_status = 'active'`
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.medical_appointments
+       where scheduled_at::date between $1::date and $2::date
+         and appointment_status in ('pending_payment', 'pending', 'confirmed')`,
+      [range.startDate, range.endDate]
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.medical_appointments
+       where scheduled_at::date between $1::date and $2::date
+         and appointment_status in ('pending_payment', 'pending', 'confirmed')`,
+      [range.previousStartDate, range.previousEndDate]
+    ),
+    getRoomCapacitySnapshot(),
+    query<NumberRow>(
+      `with paid_invoices as (
+         select
+           i.invoice_id,
+           i.total_amount,
+           coalesce(max(p.paid_at)::date, i.issued_at) as revenue_date
+         from pet_center.invoices i
+         left join pet_center.payments p
+           on p.invoice_id = i.invoice_id
+          and p.payment_status = 'success'
+         where i.invoice_status = 'paid' or p.payment_id is not null
+         group by i.invoice_id
+       )
+       select coalesce(sum(total_amount), 0)::text as value
+       from paid_invoices
+       where revenue_date between $1::date and $2::date`,
+      [range.startDate, range.endDate]
+    ),
+    query<NumberRow>(
+      `with paid_invoices as (
+         select
+           i.invoice_id,
+           i.total_amount,
+           coalesce(max(p.paid_at)::date, i.issued_at) as revenue_date
+         from pet_center.invoices i
+         left join pet_center.payments p
+           on p.invoice_id = i.invoice_id
+          and p.payment_status = 'success'
+         where i.invoice_status = 'paid' or p.payment_id is not null
+         group by i.invoice_id
+       )
+       select coalesce(sum(total_amount), 0)::text as value
+       from paid_invoices
+       where revenue_date between $1::date and $2::date`,
+      [range.previousStartDate, range.previousEndDate]
+    ),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.invoices
+       where invoice_status = 'pending_payment'`
+    ),
+    query<NumberRow>(
+      `with paid_invoices as (
+         select
+           i.invoice_id,
+           coalesce(max(p.paid_at)::date, i.issued_at) as revenue_date
+         from pet_center.invoices i
+         left join pet_center.payments p
+           on p.invoice_id = i.invoice_id
+          and p.payment_status = 'success'
+         where i.invoice_status = 'paid' or p.payment_id is not null
+         group by i.invoice_id
+       )
+       select coalesce(sum(il.line_amount), 0)::text as value
+       from pet_center.invoice_lines il
+       join paid_invoices pi on pi.invoice_id = il.invoice_id
+       left join pet_center.services s on s.service_id = il.service_id
+       where pi.revenue_date between $1::date and $2::date
+         and (
+           il.source_type = 'prescription'
+           or s.service_category = 'medicine'
+         )`,
+      [range.startDate, range.endDate]
+    ),
+  ]);
+
+  const totalUsers = Number(totalUsersResult.rows[0]?.total ?? 0);
+  const previousUsers = Number(previousUsersResult.rows[0]?.total ?? 0);
+  const medicalAppointments = Number(appointmentResult.rows[0]?.total ?? 0);
+  const previousMedicalAppointments = Number(previousAppointmentResult.rows[0]?.total ?? 0);
+  const monthlyRevenue = toFiniteNumber(revenueResult.rows[0]?.value);
+  const previousRevenue = toFiniteNumber(previousRevenueResult.rows[0]?.value);
+  const medicineRevenue = toFiniteNumber(medicineRevenueResult.rows[0]?.value);
+  const currentBoardingPets = Math.max(roomCapacity.totalRooms - roomCapacity.availableRooms, 0);
+  const bookingRate =
+    roomCapacity.totalRooms > 0 ? roundPercentage((currentBoardingPets / roomCapacity.totalRooms) * 100) : 0;
+
+  return {
+    stats: {
+      totalUsers,
+      totalPets: Number(totalPetsResult.rows[0]?.total ?? 0),
+      medicalAppointments,
+      currentBoardingPets,
+      totalBoardingCapacity: roomCapacity.totalRooms,
+      monthlyRevenue,
+      pendingInvoices: Number(pendingInvoiceResult.rows[0]?.total ?? 0),
+      medicineRevenue,
+      bookingRate,
+    },
+    trends: {
+      totalUsers: calculateTrend(totalUsers, previousUsers),
+      totalPets: null,
+      monthlyRevenue: calculateTrend(monthlyRevenue, previousRevenue),
+      bookingRate: null,
+    },
+  };
+}
+
+export async function findAdminRevenueTrend(endDate: string): Promise<AdminDashboardRevenuePointDto[]> {
+  const result = await query<AdminRevenuePointRow>(
+    `with months as (
+       select generate_series(
+         date_trunc('month', $1::date) - interval '5 months',
+         date_trunc('month', $1::date),
+         interval '1 month'
+       )::date as period_date
+     ),
+     paid_invoices as (
+       select
+         i.invoice_id,
+         i.total_amount,
+         coalesce(max(p.paid_at)::date, i.issued_at) as revenue_date
+       from pet_center.invoices i
+       left join pet_center.payments p
+         on p.invoice_id = i.invoice_id
+        and p.payment_status = 'success'
+       where i.invoice_status = 'paid' or p.payment_id is not null
+       group by i.invoice_id
+     )
+     select
+       months.period_date::text as period_date,
+       coalesce(sum(pi.total_amount), 0)::text as revenue
+     from months
+     left join paid_invoices pi
+       on date_trunc('month', pi.revenue_date)::date = months.period_date
+     group by months.period_date
+     order by months.period_date asc`,
+    [endDate]
+  );
+
+  return result.rows.map((row) => ({
+    label: row.period_date.slice(5, 7),
+    revenue: toFiniteNumber(row.revenue),
+  }));
+}
+
+export async function findAdminServiceRevenue(range: {
+  startDate: string;
+  endDate: string;
+}): Promise<AdminDashboardServiceRevenueDto[]> {
+  const result = await query<AdminServiceRevenueRow>(
+    `with paid_invoices as (
+       select
+         i.invoice_id,
+         coalesce(max(p.paid_at)::date, i.issued_at) as revenue_date
+       from pet_center.invoices i
+       left join pet_center.payments p
+         on p.invoice_id = i.invoice_id
+        and p.payment_status = 'success'
+       where i.invoice_status = 'paid' or p.payment_id is not null
+       group by i.invoice_id
+     )
+     select
+       coalesce(
+         s.service_category,
+         case
+           when il.source_type = 'medical_exam' then 'medical'
+           when il.source_type = 'grooming' then 'grooming'
+           when il.source_type = 'boarding' then 'boarding'
+           when il.source_type = 'prescription' then 'medicine'
+           else 'other'
+         end,
+         'other'
+       )::text as category,
+       coalesce(sum(il.line_amount), 0)::text as revenue
+     from pet_center.invoice_lines il
+     join paid_invoices pi on pi.invoice_id = il.invoice_id
+     left join pet_center.services s on s.service_id = il.service_id
+     where pi.revenue_date between $1::date and $2::date
+     group by coalesce(
+       s.service_category,
+       case
+         when il.source_type = 'medical_exam' then 'medical'
+         when il.source_type = 'grooming' then 'grooming'
+         when il.source_type = 'boarding' then 'boarding'
+         when il.source_type = 'prescription' then 'medicine'
+         else 'other'
+       end,
+       'other'
+     )
+     order by revenue desc`,
+    [range.startDate, range.endDate]
+  );
+  const totalRevenue = result.rows.reduce((sum, row) => sum + toFiniteNumber(row.revenue), 0);
+
+  return result.rows.map((row) => {
+    const revenue = toFiniteNumber(row.revenue);
+
+    return {
+      category: row.category,
+      label: getAdminServiceCategoryLabel(row.category),
+      revenue,
+      percentage: totalRevenue > 0 ? roundPercentage((revenue / totalRevenue) * 100) : 0,
+    };
+  });
+}
+
+export async function findAdminRecentActivities(range: {
+  startDate: string;
+  endDate: string;
+  limit: number;
+  offset?: number;
+}): Promise<AdminDashboardRecentActivityDto[]> {
+  const result = await query<AdminRecentActivityRow>(
+    `select
+       pal.activity_log_id,
+       pal.occurred_at,
+       pal.source_id as code,
+       owner.full_name as customer_name,
+       p.pet_name,
+       pal.title as action,
+       pal.activity_status as status,
+       pal.activity_category as category,
+       pal.source_type,
+       pal.source_id
+     from pet_center.pet_activity_logs pal
+     join pet_center.users owner on owner.user_id = pal.owner_user_id
+     left join pet_center.pets p on p.pet_id = pal.pet_id
+     where pal.visibility_status = 'visible'
+       and pal.occurred_at::date between $1::date and $2::date
+     order by pal.occurred_at desc, pal.activity_log_id desc
+     limit $3 offset $4`,
+    [range.startDate, range.endDate, range.limit, range.offset ?? 0]
+  );
+
+  return result.rows.map(mapAdminRecentActivity);
+}
+
+export async function findAdminActivityLogs(range: {
+  startDate: string;
+  endDate: string;
+  limit: number;
+  offset: number;
+}): Promise<{ activities: AdminDashboardRecentActivityDto[]; total: number }> {
+  const [listResult, countResult] = await Promise.all([
+    findAdminRecentActivities(range),
+    query<CountRow>(
+      `select count(*)::text as total
+       from pet_center.pet_activity_logs pal
+       where pal.visibility_status = 'visible'
+         and pal.occurred_at::date between $1::date and $2::date`,
+      [range.startDate, range.endDate]
+    ),
+  ]);
+
+  return {
+    activities: listResult,
+    total: Number(countResult.rows[0]?.total ?? 0),
+  };
+}
+
+export async function findAdminOperationAlerts(): Promise<AdminDashboardAlertDto[]> {
+  const [capacityAlerts, failedPayments, delayedAppointments] =
+    await Promise.all([
+      findBoardingCapacityAlerts(),
+      findFailedPaymentAlerts(),
+      findDelayedAppointmentAlerts(),
+    ]);
+
+  const alerts: AdminDashboardAlertDto[] = [
+    ...capacityAlerts,
+    ...failedPayments,
+    ...delayedAppointments,
+  ];
+
+  return alerts
+    .sort((left, right) => {
+      const leftTime = left.occurredAt ? new Date(left.occurredAt).getTime() : 0;
+      const rightTime = right.occurredAt ? new Date(right.occurredAt).getTime() : 0;
+
+      return rightTime - leftTime;
+    })
+    .slice(0, 10);
+}
+
+function calculateTrend(currentValue: number, previousValue: number): number | null {
+  if (previousValue === 0) {
+    return currentValue === 0 ? 0 : null;
+  }
+
+  return roundPercentage(((currentValue - previousValue) / previousValue) * 100);
+}
+
+async function findBoardingCapacityAlerts(): Promise<AdminDashboardAlertDto[]> {
+  const result = await query<AdminBoardingCapacityAlertRow>(
+    `select
+       rt.room_type_id,
+       rt.room_type_name,
+       rt.capacity::text,
+       count(br.boarding_record_id)::text as occupied_count
+     from pet_center.room_types rt
+     left join pet_center.boarding_records br
+       on br.room_type_id = rt.room_type_id
+      and br.boarding_status in ('confirmed', 'staying')
+      and br.planned_check_in_at <= now()
+      and br.planned_check_out_at > now()
+     where rt.room_type_status = 'active'
+     group by rt.room_type_id
+     having count(br.boarding_record_id) >= rt.capacity
+     order by count(br.boarding_record_id) desc, rt.room_type_name asc
+     limit 10`
+  );
+
+  return result.rows.map((row) => {
+    const occupiedCount = Number(row.occupied_count);
+    const capacity = Number(row.capacity);
+    const isOverCapacity = occupiedCount > capacity;
+
+    return {
+      id: `boarding-capacity-${row.room_type_id}`,
+      type: "boarding_capacity",
+      severity: isOverCapacity ? "danger" : "warning",
+      title: isOverCapacity ? "Lo\u1ea1i ph\u00f2ng l\u01b0u tr\u00fa qu\u00e1 t\u1ea3i" : "Lo\u1ea1i ph\u00f2ng l\u01b0u tr\u00fa \u0111\u00e3 \u0111\u1ea7y",
+      description: `${row.room_type_name}: ${occupiedCount}/${capacity} th\u00fa c\u01b0ng \u0111ang ho\u1eb7c s\u1eafp l\u01b0u tr\u00fa.`,
+      sourceType: "room_type",
+      sourceId: row.room_type_id,
+      occurredAt: null,
+    };
+  });
+}
+
+async function findFailedPaymentAlerts(): Promise<AdminDashboardAlertDto[]> {
+  const result = await query<AdminPaymentAlertRow>(
+    `select *
+     from (
+       select
+         p.payment_id as id,
+         p.invoice_id,
+         p.paid_amount::text as amount,
+         coalesce(p.paid_at, now()) as occurred_at,
+         'payment'::text as source_kind
+       from pet_center.payments p
+       where p.payment_status = 'failed'
+
+       union all
+
+       select
+         opa.payment_attempt_id as id,
+         opa.invoice_id,
+         opa.amount::text as amount,
+         coalesce(opa.completed_at, opa.created_at) as occurred_at,
+         'online_payment_attempt'::text as source_kind
+       from pet_center.online_payment_attempts opa
+       where opa.attempt_status = 'failed'
+     ) failed_payments
+     order by occurred_at desc
+     limit 10`
+  );
+
+  return result.rows.map((row) => ({
+    id: `payment-failed-${row.id}`,
+    type: "payment_failed",
+    severity: "danger",
+    title: "Thanh to\u00e1n th\u1ea5t b\u1ea1i",
+    description: `H\u00f3a \u0111\u01a1n ${row.invoice_id} l\u1ed7i thanh to\u00e1n ${Number(row.amount).toLocaleString("vi-VN")} VND.`,
+    sourceType: row.source_kind,
+    sourceId: row.id,
+    occurredAt: row.occurred_at.toISOString(),
+  }));
+}
+
+async function findDelayedAppointmentAlerts(): Promise<AdminDashboardAlertDto[]> {
+  const result = await query<AdminAppointmentDelayAlertRow>(
+    `select *
+     from (
+       select
+         ma.appointment_id as id,
+         ma.appointment_id as code,
+         p.pet_name,
+         owner.full_name as owner_name,
+         ma.scheduled_at,
+         'medical_appointment'::text as source_kind
+       from pet_center.medical_appointments ma
+       join pet_center.pets p on p.pet_id = ma.pet_id
+       join pet_center.users owner on owner.user_id = ma.owner_user_id
+       where ma.appointment_status = 'pending'
+         and ma.scheduled_at < now() - interval '30 minutes'
+
+       union all
+
+       select
+         gt.grooming_ticket_id as id,
+         gt.grooming_ticket_id as code,
+         p.pet_name,
+         owner.full_name as owner_name,
+         gt.scheduled_at,
+         'grooming_ticket'::text as source_kind
+       from pet_center.grooming_tickets gt
+       join pet_center.pets p on p.pet_id = gt.pet_id
+       join pet_center.users owner on owner.user_id = gt.owner_user_id
+       where gt.ticket_status = 'pending'
+         and gt.scheduled_at < now() - interval '30 minutes'
+     ) delayed_tasks
+     order by scheduled_at asc
+     limit 10`
+  );
+
+  return result.rows.map((row) => ({
+    id: `appointment-delay-${row.id}`,
+    type: "appointment_delay",
+    severity: "warning",
+    title: "L\u1ecbch h\u1eb9n ch\u1edd qu\u00e1 l\u00e2u",
+    description: `${row.code} c\u1ee7a ${row.owner_name} / ${row.pet_name} \u0111ang pending qu\u00e1 30 ph\u00fat.`,
+    sourceType: row.source_kind,
+    sourceId: row.id,
+    occurredAt: row.scheduled_at.toISOString(),
+  }));
 }
