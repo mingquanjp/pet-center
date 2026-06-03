@@ -50,10 +50,11 @@ function toDateInputValue(date: Date): string {
 }
 
 function getDefaultBookingDate(): string {
-  const nextDay = new Date()
-  nextDay.setDate(nextDay.getDate() + 1)
+  return getTodayDateInputValue()
+}
 
-  return toDateInputValue(nextDay)
+function getTodayDateInputValue(): string {
+  return toDateInputValue(new Date())
 }
 
 function buildScheduledAt(date: string, time: string): string {
@@ -302,7 +303,7 @@ export function StaffSpaCreatePage() {
   function handleDateChange(value: string) {
     setIsAvailabilityLoading(true)
     setTimeDropdownOpen(false)
-    setSelectedDate(value)
+    setSelectedDate(value < getTodayDateInputValue() ? getTodayDateInputValue() : value)
   }
 
   async function handleCreateRequest() {
@@ -457,6 +458,7 @@ export function StaffSpaCreatePage() {
                     <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-[#3e4946]" />
                     <Input
                       type="date"
+                      min={getTodayDateInputValue()}
                       value={selectedDate}
                       onChange={(event) => handleDateChange(event.target.value)}
                       className="h-12 rounded-[12px] border-[#bdc9c5] bg-[#fbfaee] pl-12 text-base text-[#1b1c15] shadow-none focus-visible:ring-[#005e53]"

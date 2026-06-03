@@ -158,6 +158,7 @@ const timeZone = "Asia/Ho_Chi_Minh";
 const slotStartHour = 8;
 const slotEndHour = 17;
 const slotEndMinute = 30;
+const lateArrivalGraceMinutes = 15;
 
 function getPricingConditionLabel(condition: string): string {
   const labels: Record<string, string> = {
@@ -322,7 +323,7 @@ function mapStaffGroomingTicket(row: StaffGroomingTicketRow): StaffGroomingTicke
     sourceType: row.source_type,
     sourceLabel: getSourceLabel(row.source_type),
     paymentMethodLabel: getStaffPaymentMethodLabel(row.payment_option, row.source_type),
-    paymentStatusLabel: isPaid ? "Đã TT" : "Chưa TT",
+    paymentStatusLabel: isPaid ? "Đã thanh toán" : "Chưa thanh toán",
     paymentStatusTone: isPaid ? "paid" : "pending",
     specialRequest: row.special_request,
     totalAmount: Number(row.estimated_total),
@@ -1362,6 +1363,36 @@ export async function listStaffGroomingTickets(input: {
     },
     tickets: ticketsResult.rows.map(mapStaffGroomingTicket)
   };
+}
+
+export async function expireLatePendingGroomingTickets(): Promise<number> {
+  const result = await query<{ expired_count: string }>(
+    `with expired_tickets as (
+       update pet_center.grooming_tickets gt
+       set ticket_status = 'cancelled'
+       where gt.ticket_status in ('pending', 'pending_payment')
+         and gt.scheduled_at + ($1::int * interval '1 minute') <= now()
+       returning gt.grooming_ticket_id
+     ),
+     cancelled_invoices as (
+       update pet_center.invoices i
+       set invoice_status = 'cancelled'
+       where i.invoice_status in ('draft', 'pending_payment')
+         and exists (
+           select 1
+           from pet_center.invoice_lines il
+           join expired_tickets et on et.grooming_ticket_id = il.source_id
+           where il.invoice_id = i.invoice_id
+             and il.source_type = 'grooming'
+         )
+       returning i.invoice_id
+     )
+     select count(*)::text as expired_count
+     from expired_tickets`,
+    [lateArrivalGraceMinutes]
+  );
+
+  return Number(result.rows[0]?.expired_count ?? 0);
 }
 
 export async function findGroomingTicketStatus(ticketId: string): Promise<GroomingTicketStatus | null> {

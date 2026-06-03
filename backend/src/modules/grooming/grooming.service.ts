@@ -198,6 +198,8 @@ export async function getStaffCounterAvailability(authUser: AuthUser, query: Ava
 export async function listBookedTickets(authUser: AuthUser, query: ListGroomingTicketsQuery) {
   assertOwner(authUser);
 
+  await groomingRepository.expireLatePendingGroomingTickets();
+
   const page = query.page;
   const limit = query.limit;
   const result = await groomingRepository.findBookedGroomingTickets({
@@ -224,6 +226,8 @@ export async function listBookedTickets(authUser: AuthUser, query: ListGroomingT
 export async function listTicketHistory(authUser: AuthUser, query: ListGroomingTicketHistoryQuery) {
   assertOwner(authUser);
 
+  await groomingRepository.expireLatePendingGroomingTickets();
+
   const page = query.page;
   const limit = query.limit;
   const result = await groomingRepository.findGroomingTicketHistory({
@@ -249,6 +253,8 @@ export async function listTicketHistory(authUser: AuthUser, query: ListGroomingT
 
 export async function getBookedTicket(authUser: AuthUser, ticketId: string) {
   assertOwner(authUser);
+
+  await groomingRepository.expireLatePendingGroomingTickets();
 
   const ticket = await groomingRepository.findBookedGroomingTicketById(authUser.userId, ticketId);
 
@@ -404,11 +410,15 @@ export async function createStaffCounterTicket(
 export async function listStaffTickets(authUser: AuthUser, query: StaffGroomingTicketQuery) {
   assertStaff(authUser);
 
+  await groomingRepository.expireLatePendingGroomingTickets();
+
   return groomingRepository.listStaffGroomingTickets(query);
 }
 
 export async function acceptStaffTicket(authUser: AuthUser, ticketId: string) {
   assertStaff(authUser);
+
+  await groomingRepository.expireLatePendingGroomingTickets();
 
   const currentStatus = await groomingRepository.findGroomingTicketStatus(ticketId);
 

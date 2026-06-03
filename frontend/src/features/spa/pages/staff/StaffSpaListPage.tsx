@@ -48,7 +48,7 @@ type StaffSpaPageCache = {
 }
 
 const staffSpaPageCacheTtlMs = 30 * 1000
-const staffSpaPageSize = 10
+const staffSpaPageSize = 5
 let staffSpaPageCache: StaffSpaPageCache | null = null
 let staffSpaPageCacheTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -192,8 +192,10 @@ export function StaffSpaListPage() {
     })
   }, [search, species, status, timeRange])
 
-  const loadTickets = React.useCallback(async () => {
-    setIsLoading(true)
+  const loadTickets = React.useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) {
+      setIsLoading(true)
+    }
 
     try {
       const nextData = await spaApi.listStaffTickets({
@@ -220,7 +222,9 @@ export function StaffSpaListPage() {
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể tải danh sách dịch vụ spa")
     } finally {
-      setIsLoading(false)
+      if (!silent) {
+        setIsLoading(false)
+      }
     }
   }, [page, search, species, status, timeRange])
 
@@ -230,6 +234,14 @@ export function StaffSpaListPage() {
     }, 250)
 
     return () => window.clearTimeout(timeoutId)
+  }, [loadTickets])
+
+  React.useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void loadTickets({ silent: true })
+    }, 60_000)
+
+    return () => window.clearInterval(intervalId)
   }, [loadTickets])
 
   async function handlePrimaryAction(ticket: StaffGroomingTicket) {
@@ -419,9 +431,6 @@ export function StaffSpaListPage() {
 
       {data.tickets.length > 0 ? (
         <div className="flex flex-col items-center gap-3 py-2">
-          <p className="text-sm leading-5 text-[#52605c]">
-            Hiển thị {data.tickets.length} trong {pagination.total} yêu cầu spa
-          </p>
           <AppPagination
             ariaLabel="Phân trang yêu cầu spa"
             currentPage={pagination.page}
