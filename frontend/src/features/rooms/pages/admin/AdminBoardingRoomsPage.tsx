@@ -9,6 +9,7 @@ import { AdminRoomStatCard } from "../../components/admin/AdminRoomStatCard";
 import { AdminRoomCard } from "../../components/admin/AdminRoomCard";
 import { AdminRoomFormDialog } from "../../components/admin/AdminRoomFormDialog";
 import { AdminRoomDetailDialog } from "../../components/admin/AdminRoomDetailDialog";
+import { AdminRoomDeleteDialog } from "../../components/admin/AdminRoomDeleteDialog";
 export function AdminBoardingRoomsPage() {
   const {
     filteredRooms,
@@ -29,6 +30,8 @@ export function AdminBoardingRoomsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<AdminBoardingRoom | null>(null);
+  const [detailRoomId, setDetailRoomId] = useState<string | null>(null);
+  const [roomToDelete, setRoomToDelete] = useState<AdminBoardingRoom | null>(null);
 
   const handleOpenCreate = () => {
     setSelectedRoom(null);
@@ -50,9 +53,7 @@ export function AdminBoardingRoomsPage() {
       alert("Không thể xóa loại phòng đang có thú cưng lưu trú.");
       return;
     }
-    if (confirm(`Bạn có chắc muốn xóa phòng ${room.name}?`)) {
-      await deleteRoom(room.id);
-    }
+    setRoomToDelete(room);
   };
 
   return (
@@ -259,6 +260,17 @@ export function AdminBoardingRoomsPage() {
             if (selectedRoom) await updateRoom({ ...data, id: selectedRoom.id } as any);
             else await createRoom(data as any);
             setIsFormOpen(false);
+          }}
+        />
+      )}
+
+      {roomToDelete && (
+        <AdminRoomDeleteDialog
+          room={roomToDelete}
+          onClose={() => setRoomToDelete(null)}
+          onConfirm={async () => {
+            await deleteRoom(roomToDelete.id);
+            setRoomToDelete(null);
           }}
         />
       )}
