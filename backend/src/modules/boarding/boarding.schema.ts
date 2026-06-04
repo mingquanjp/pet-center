@@ -174,3 +174,51 @@ export type CreateStaffBoardingOwnerPayload = z.infer<typeof createStaffBoarding
 export type StaffBoardingOwnerParams = z.infer<typeof staffBoardingOwnerParamsSchema>;
 export type CreateStaffBoardingPetPayload = z.infer<typeof createStaffBoardingPetSchema>;
 
+// ==================================================
+// ADMIN BOARDING ROOM SCHEMAS
+// ==================================================
+
+export const getAdminBoardingRoomsQuerySchema = z.object({
+  search: z.string().trim().max(100).optional(),
+  status: z.enum(["ALL", "active", "inactive"]).optional().default("ALL"),
+  capacityLevel: z.enum(["ALL", "AVAILABLE", "NEAR_FULL", "FULL"]).optional().default("ALL"),
+  priceRange: z.enum(["ALL", "UNDER_200K", "FROM_200K_TO_400K", "OVER_400K"]).optional().default("ALL"),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(20)
+});
+
+export type GetAdminBoardingRoomsQuery = z.infer<typeof getAdminBoardingRoomsQuerySchema>;
+export const getAdminBoardingRoomUsageHistoryQuerySchema = z.object({
+  search: z.string().max(100).optional(),
+  boardingStatus: z.enum(["ALL", "pending_payment", "pending", "confirmed", "staying", "checked_out", "rejected", "cancelled"]).optional(),
+  paymentStatus: z.enum(["ALL", "paid", "unpaid", "refunded"]).optional(),
+  timeRange: z.enum(["ALL", "TODAY", "THIS_WEEK", "THIS_MONTH"]).optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional()
+});
+
+export const createAdminBoardingRoomSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().max(500).nullable().optional(),
+  capacity: z.number().int().min(1),
+  boardingUnitPrice: z.number().min(0),
+  status: z.enum(["active", "inactive"]).optional().default("active")
+});
+
+export const updateAdminBoardingRoomSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).nullable().optional(),
+  capacity: z.number().int().min(1).optional(),
+  boardingUnitPrice: z.number().min(0).optional(),
+  status: z.enum(["active", "inactive"]).optional()
+}).refine(data => Object.keys(data).length > 0, {
+  message: "Phải có ít nhất một trường dữ liệu để cập nhật"
+});
+
+export const updateAdminBoardingRoomStatusSchema = z.object({
+  status: z.enum(["active", "inactive"])
+});
+
+export const roomTypeIdParamSchema = z.object({
+  roomTypeId: z.string().min(1)
+});
