@@ -39,7 +39,7 @@ export function StaffBoardingUpdatePetSummary({ record }: StaffBoardingUpdatePet
   const currentDayLabel = getCurrentDayLabel(record);
 
   return (
-    <section className="rounded-xl border border-[#0D9488]/10 bg-gradient-to-br from-[#0D9488]/5 to-transparent p-5">
+    <section className="rounded-xl border border-[#0D9488]/10 bg-linear-to-br from-[#0D9488]/5 to-transparent p-5">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <p className="text-[13px] font-medium text-[#64748B] mb-1">Thú cưng</p>
