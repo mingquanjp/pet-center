@@ -466,7 +466,7 @@ function FollowUpDetailDialog({
           <div className="flex shrink-0 items-center gap-3">
             <span
               className={cn(
-                "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold leading-4",
+                "inline-flex min-w-[88px] items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 py-1 text-xs font-bold leading-4",
                 status.pillClassName
               )}
             >
