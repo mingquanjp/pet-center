@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { AdminBoardingRoom } from "../../types/room.types";
 import { X, Home } from "lucide-react";
 
-export function AdminRoomFormDialog({ room, onClose, onSave }: { room: AdminBoardingRoom | null, onClose: () => void, onSave: (data: any) => Promise<void> }) {
+export function AdminRoomFormDialog({ room, onClose, onSave }: { room: AdminBoardingRoom | null, onClose: () => void, onSave: (data: Partial<AdminBoardingRoom>) => Promise<void> }) {
   const [formData, setFormData] = useState({
     name: room?.name || "",
     description: room?.description || "",
@@ -19,7 +19,11 @@ export function AdminRoomFormDialog({ room, onClose, onSave }: { room: AdminBoar
       return;
     }
     setLoading(true);
-    await onSave(formData);
+    await onSave({
+      ...formData,
+      capacity: Number(formData.capacity) || 1,
+      boardingUnitPrice: Number(formData.boardingUnitPrice) || 0,
+    });
     setLoading(false);
   };
 
@@ -70,7 +74,7 @@ export function AdminRoomFormDialog({ room, onClose, onSave }: { room: AdminBoar
             {room && (
               <div>
                 <label className="block text-sm font-semibold text-petcenter-text mb-2">Trạng thái</label>
-                <select className="w-full bg-petcenter-background border border-petcenter-border rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 transition-all outline-none" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value as any })}>
+                <select className="w-full bg-petcenter-background border border-petcenter-border rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 transition-all outline-none" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value as "active" | "inactive" })}>
                   <option value="active">Đang hoạt động</option>
                   <option value="inactive">Tạm ngưng</option>
                 </select>
