@@ -20,7 +20,7 @@ export function DoctorSidebar() {
           <SquarePlus className="w-5 h-5" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-petcenter-primary leading-tight">PetCare Center</h1>
+          <h1 className="text-xl font-bold text-petcenter-primary leading-tight">PetCenter</h1>
           <p className="text-sm text-petcenter-text-secondary leading-tight">{"B\u00e1c s\u0129 th\u00fa y"}</p>
         </div>
       </div>
