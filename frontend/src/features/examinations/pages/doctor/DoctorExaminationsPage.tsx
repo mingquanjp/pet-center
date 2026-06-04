@@ -55,7 +55,7 @@ export function DoctorExaminationsPage() {
           <div>
             <h2 className="heading-lg text-petcenter-text">Phiếu khám</h2>
             <p className="body-md mt-1 max-w-3xl text-petcenter-text-secondary">
-              Quản lý các phiếu khám được phân công, theo dõi trạng thái và cập nhật kết quả khám cho thú cưng.
+              Quản lý các phiếu khám sắp tới, theo dõi trạng thái và cập nhật kết quả khám cho thú cưng.
             </p>
           </div>
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,30 @@ export function OwnerAppointmentDetailPage({
 
   return (
     <div className="flex w-full max-w-[1280px] flex-col gap-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <nav className="label-md flex flex-wrap items-center gap-2 text-petcenter-text-secondary">
+          <Link className="transition-colors hover:text-petcenter-primary" href="/owner/appointments">
+            Lịch hẹn
+          </Link>
+          <ChevronRight className="h-4 w-4" />
+          <Link className="transition-colors hover:text-petcenter-primary" href="/owner/appointments">
+            Danh sách lịch hẹn
+          </Link>
+          <ChevronRight className="h-4 w-4" />
+          <span className="font-semibold text-petcenter-text">{appointment.appointmentCode}</span>
+        </nav>
+
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-end">
+          {canCancel ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 rounded-[0.75rem] border-petcenter-border bg-petcenter-card px-4 body-md font-semibold text-petcenter-danger-text hover:bg-petcenter-danger-bg"
+              onClick={() => setIsCancelModalOpen(true)}
+            >
+              Hủy lịch hẹn
+            </Button>
+          ) : null}
         <Button
           asChild
           variant="outline"
@@ -84,10 +107,13 @@ export function OwnerAppointmentDetailPage({
             Quay lại danh sách
           </Link>
         </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <h1 className="heading-lg text-petcenter-text">Chi tiết lịch hẹn</h1>
+        <h1 className="heading-lg text-petcenter-text">
+          Chi tiết lịch hẹn: {appointment.appointmentCode}
+        </h1>
         <AppointmentStatusBadge status={appointment.status} />
       </div>
 
@@ -102,26 +128,6 @@ export function OwnerAppointmentDetailPage({
           <OwnerAppointmentContentCard appointment={appointment} />
           <OwnerAppointmentStatusTimeline timeline={appointment.timeline} />
         </div>
-      </div>
-
-      <div className="flex flex-col-reverse gap-3 border-t border-petcenter-border pt-6 sm:flex-row sm:justify-end">
-        {canCancel ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 rounded-[0.75rem] border-petcenter-border bg-petcenter-card px-6 body-md font-semibold text-petcenter-danger-text hover:bg-petcenter-danger-bg"
-            onClick={() => setIsCancelModalOpen(true)}
-          >
-            Hủy lịch
-          </Button>
-        ) : null}
-        <Button
-          asChild
-          variant="outline"
-          className="h-11 rounded-[0.75rem] border-petcenter-primary bg-petcenter-card px-6 body-md font-semibold text-petcenter-primary hover:bg-petcenter-primary hover:text-white"
-        >
-          <Link href="/owner/appointments">Quay lại danh sách</Link>
-        </Button>
       </div>
 
       <OwnerCancelAppointmentModal

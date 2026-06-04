@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Check, ChevronDown, PawPrint, Search } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { OwnerAppointmentPetOption } from "../../types/appointment.types";
 
@@ -120,6 +122,14 @@ export function OwnerPetSelection({
                   </p>
                 ) : null}
               </div>
+              <Button
+                asChild
+                type="button"
+                variant="ghost"
+                className="h-[42px] w-full justify-start rounded-none border-t border-petcenter-border px-3 body-sm font-normal text-petcenter-text-secondary hover:bg-petcenter-filter"
+              >
+                <Link href="/owner/pets/add">+ Thêm hồ sơ thú cưng</Link>
+              </Button>
             </div>
           ) : null}
         </div>

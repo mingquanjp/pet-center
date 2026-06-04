@@ -15,7 +15,7 @@ export function OwnerInvoicePagination({
   totalPages,
   onPageChange,
 }: OwnerInvoicePaginationProps) {
-  const pages = buildPaginationItems(totalPages);
+  const pages = buildPaginationItems(page, totalPages);
 
   return (
     <nav
@@ -83,10 +83,18 @@ function PaginationButton({
   );
 }
 
-function buildPaginationItems(totalPages: number): Array<number | "ellipsis"> {
+function buildPaginationItems(page: number, totalPages: number): Array<number | "ellipsis"> {
   if (totalPages <= 4) {
     return Array.from({ length: totalPages }, (_, index) => index + 1);
   }
 
-  return [1, 2, 3, "ellipsis"];
+  if (page <= 3) {
+    return [1, 2, 3, "ellipsis", totalPages];
+  }
+
+  if (page >= totalPages - 2) {
+    return [1, "ellipsis", totalPages - 2, totalPages - 1, totalPages];
+  }
+
+  return [1, "ellipsis", page - 1, page, page + 1, "ellipsis", totalPages];
 }
