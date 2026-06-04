@@ -23,7 +23,7 @@ export function StaffBoardingCheckOutDialog({
 }: Props) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px] bg-white rounded-[24px] p-0 overflow-hidden !border-0 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] outline-none">
+      <DialogContent className="sm:max-w-105 bg-white rounded-3xl p-0 overflow-hidden border-0! shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] outline-none">
         <DialogHeader className="px-7 pt-7 pb-5">
           <DialogTitle className="text-xl font-bold tracking-tight text-[#111827]">Tiến hành Check-out</DialogTitle>
           <DialogDescription className="text-[15px] leading-relaxed text-[#4B5563] mt-2">
