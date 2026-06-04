@@ -8,6 +8,8 @@ import { invoicesRouter } from "../modules/invoices/invoices.routes.js";
 import { appointmentsRouter } from "../modules/appointments/appointments.routes.js";
 import { boardingRouter } from "../modules/boarding/boarding.routes.js";
 import { dashboardRouter } from "../modules/dashboard/dashboard.routes.js";
+import { followUpsRouter } from "../modules/follow-ups/follow-ups.routes.js";
+import { prescriptionsRouter } from "../modules/prescriptions/prescriptions.routes.js";
 import { usersRouter } from "../modules/users/users.routes.js";
 
 export const apiRouter = Router();
@@ -19,6 +21,8 @@ apiRouter.use(petsRouter);
 apiRouter.use(uploadsRouter);
 apiRouter.use(invoicesRouter);
 apiRouter.use(appointmentsRouter);
+apiRouter.use(prescriptionsRouter);
+apiRouter.use(followUpsRouter);
 apiRouter.use(boardingRouter);
 apiRouter.use(dashboardRouter);
 apiRouter.use(usersRouter);
