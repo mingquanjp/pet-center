@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Clock3,
   Eye,
+  LoaderCircle,
   Loader2,
   Lock,
   LockOpen,
@@ -38,6 +39,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { LoadingState } from "@/components/ui/loading-state"
+import { normalizeSearchText } from "@/lib/search"
 import { cn } from "@/lib/utils"
 import { adminUsersApi } from "../../api/admin-users.api"
 import { useAdminUsers } from "../../hooks/useAdminUsers"
@@ -233,7 +235,12 @@ export function AdminUsersPage() {
         <UserStats stats={stats} />
 
         <div className="relative flex flex-col overflow-hidden rounded-2xl border border-petcenter-border bg-petcenter-card shadow-card">
-          <UserFilterBar filters={filters} onChange={handleFilterChange} />
+          <UserFilterBar
+            filters={filters}
+            isLoading={isLoading}
+            isInitialLoading={isInitialLoading}
+            onChange={handleFilterChange}
+          />
 
           <div className={cn("relative flex-1", isLoading && !isInitialLoading && "opacity-50")}>
             {isInitialLoading ? (
@@ -370,12 +377,18 @@ function StatCard({
 
 function UserFilterBar({
   filters,
+  isInitialLoading,
+  isLoading,
   onChange,
 }: {
   filters: AdminUserFilters
+  isInitialLoading: boolean
+  isLoading: boolean
   onChange: (filters: AdminUserFilters) => void
 }) {
   const [searchValue, setSearchValue] = React.useState(filters.search)
+  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(filters.search)
+  const isRefreshingResults = !isInitialLoading && (isLoading || isSearchSettling)
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -391,7 +404,11 @@ function UserFilterBar({
     <div className="w-full border-b border-petcenter-border p-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative min-w-50 flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary" />
+          {isRefreshingResults ? (
+            <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-petcenter-primary" />
+          ) : (
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary" />
+          )}
           <input
             className="body-md w-full rounded-[0.75rem] border border-petcenter-border bg-petcenter-background py-2 pl-9 pr-3 text-petcenter-text placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
             onChange={(event) => setSearchValue(event.target.value)}
@@ -429,6 +446,14 @@ function UserFilterBar({
             <option value="inactive">Không hoạt động</option>
           </select>
         </label>
+      </div>
+      <div
+        className={cn(
+          "mt-3 h-0.5 overflow-hidden rounded-full bg-petcenter-border transition-opacity duration-200",
+          isRefreshingResults ? "opacity-100" : "opacity-0"
+        )}
+      >
+        <div className="h-full w-1/3 animate-[search-progress_1.1s_ease-in-out_infinite] rounded-full bg-petcenter-primary" />
       </div>
     </div>
   )
