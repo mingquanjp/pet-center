@@ -38,15 +38,49 @@ export const doctorExaminationIdParamsSchema = z.object({
   appointmentId: z.string().min(1, "Appointment ID is required"),
 });
 
+const doctorExaminationFieldValueSchema = z.object({
+  fieldDefinitionId: z.string().min(1),
+  valueText: z.string().optional(),
+  valueNumber: z.number().optional(),
+  valueDate: z.string().optional(),
+  fileUrl: z.string().optional(),
+});
+
+const doctorPrescriptionItemSchema = z.object({
+  medicineId: z.string().min(1, "Medicine is required"),
+  quantity: z.number().positive().optional(),
+  dosage: z.string().trim().min(1, "Dosage is required").max(120),
+  frequency: z.string().trim().min(1, "Frequency is required").max(120),
+  duration: z.string().trim().min(1, "Duration is required").max(120),
+  usageInstruction: z.string().trim().min(1, "Usage instruction is required").max(1000),
+  note: z.string().trim().max(1000).optional(),
+});
+
+const doctorVaccinationSchema = z.object({
+  vaccineName: z.string().trim().min(1, "Vaccine name is required").max(150),
+  vaccinationDate: z.string().min(1, "Vaccination date is required"),
+  note: z.string().trim().max(1000).optional(),
+});
+
+const doctorFollowUpSchema = z.object({
+  followUpDate: z.string().min(1, "Follow-up date is required"),
+  reason: z.string().trim().min(1, "Follow-up reason is required").max(3000),
+  ownerNote: z.string().trim().max(3000).optional(),
+});
+
+export const saveDraftDoctorExaminationSchema = z.object({
+  diagnosis: z.string().trim().max(3000).optional(),
+  conclusion: z.string().trim().max(3000).optional(),
+  healthNote: z.string().trim().max(3000).optional(),
+  fieldValues: z.array(doctorExaminationFieldValueSchema).optional(),
+});
+
 export const completeDoctorExaminationSchema = z.object({
   diagnosis: z.string().trim().min(1, "Diagnosis is required").max(3000),
   conclusion: z.string().trim().min(1, "Conclusion is required").max(3000),
   healthNote: z.string().trim().max(3000).optional(),
-  fieldValues: z.array(z.object({
-    fieldDefinitionId: z.string().min(1),
-    valueText: z.string().optional(),
-    valueNumber: z.number().optional(),
-    valueDate: z.string().optional(),
-    fileUrl: z.string().optional(),
-  })).optional(),
+  fieldValues: z.array(doctorExaminationFieldValueSchema).optional(),
+  prescriptionItems: z.array(doctorPrescriptionItemSchema).optional(),
+  vaccination: doctorVaccinationSchema.optional(),
+  followUp: doctorFollowUpSchema.optional(),
 });

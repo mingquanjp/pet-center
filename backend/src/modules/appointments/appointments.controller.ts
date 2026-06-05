@@ -48,6 +48,20 @@ export async function startDoctorExamination(req: Request, res: Response) {
   });
 }
 
+export async function saveDraftDoctorExamination(req: Request, res: Response) {
+  const doctorUserId = req.user?.userId;
+  const result = await appointmentsService.saveDraftDoctorExamination(
+    doctorUserId as string,
+    req.params.appointmentId as string,
+    req.body
+  );
+  res.json({
+    success: true,
+    data: result,
+    message: "Lưu nháp phiếu khám thành công",
+  });
+}
+
 export async function completeDoctorExamination(req: Request, res: Response) {
   const doctorUserId = req.user?.userId;
   const result = await appointmentsService.completeDoctorExamination(

@@ -14,6 +14,7 @@ import type {
   DoctorExaminationListRow,
   PendingAppointmentAssignmentRow,
   RejectStaffAppointmentBody,
+  SaveDraftDoctorExaminationBody,
   StaffAppointmentDetailDto,
   StaffAssignedDoctorDto,
 } from "./appointments.types.js";
@@ -239,9 +240,17 @@ function mapDoctorExaminationFieldDefinition(
 }
 
 async function mapDoctorExaminationDetail(row: DoctorExaminationDetailRow) {
-  const [fieldDefinitions, fieldValues] = await Promise.all([
+  await repo.ensureStandardExamFieldDefinitions(row.exam_type_id, row.type_code);
+
+  const [fieldDefinitions, fieldValues, recentHistory, medicines, prescription, vaccination, followUp, recheckContext] = await Promise.all([
     repo.getDoctorExaminationFieldDefinitions(row.exam_type_id),
     repo.getDoctorExaminationFieldValues(row.exam_id),
+    repo.getDoctorExaminationHistory(row.pet_id, row.id),
+    repo.getActiveMedicineOptions(),
+    repo.getPrescriptionByExamId(row.exam_id),
+    repo.getVaccinationByExamId(row.exam_id),
+    repo.getFollowUpByExamId(row.exam_id),
+    row.type_code === "recheck" ? repo.getRecheckContext(row.pet_id, row.id) : Promise.resolve(null),
   ]);
 
   return {
@@ -266,6 +275,10 @@ async function mapDoctorExaminationDetail(row: DoctorExaminationDetailRow) {
       phoneNumber: row.owner_phone || undefined,
       email: row.owner_email || undefined,
     },
+    doctor: {
+      id: row.doctor_id || undefined,
+      fullName: row.doctor_name || undefined,
+    },
     examType: {
       id: row.exam_type_id,
       code: mapTypeCode(row.type_code),
@@ -279,6 +292,64 @@ async function mapDoctorExaminationDetail(row: DoctorExaminationDetailRow) {
     healthNote: row.health_note || "",
     examDate: row.exam_date || undefined,
     fields: fieldDefinitions.map((definition) => mapDoctorExaminationFieldDefinition(definition, fieldValues)),
+    recentHistory: recentHistory.map((item) => ({
+      appointmentId: item.appointment_id,
+      examinationCode: formatExaminationCode(item.appointment_id),
+      scheduledAt: new Date(item.scheduled_at).toISOString(),
+      examTypeName: item.type_name,
+      diagnosis: item.diagnosis || undefined,
+    })),
+    medicines: medicines.map((medicine) => ({
+      id: medicine.medicine_id,
+      name: medicine.medicine_name,
+      unit: medicine.unit,
+      status: medicine.medicine_status,
+    })),
+    prescription: prescription
+      ? {
+          id: prescription.prescription_id,
+          prescribedAt: prescription.prescribed_at,
+          generalNote: prescription.general_note || undefined,
+          items: prescription.items.map((item) => ({
+            id: item.prescription_item_id,
+            medicineId: item.medicine_id,
+            medicineName: item.medicine_name,
+            quantity: item.quantity ? Number(item.quantity) : undefined,
+            dosage: item.dosage,
+            frequency: item.frequency,
+            duration: item.duration,
+            usageInstruction: item.usage_instruction || "",
+            note: item.note || undefined,
+          })),
+        }
+      : null,
+    vaccination: vaccination
+      ? {
+          id: vaccination.vaccination_id,
+          vaccineName: vaccination.vaccine_name,
+          vaccinationDate: vaccination.vaccination_date,
+          note: vaccination.note || undefined,
+        }
+      : null,
+    followUp: followUp
+      ? {
+          id: followUp.follow_up_id,
+          followUpDate: followUp.follow_up_date,
+          reason: followUp.reason,
+          ownerNote: followUp.owner_note || undefined,
+        }
+      : null,
+    recheckContext: recheckContext
+      ? {
+          previousExamId: recheckContext.previous_exam_id || undefined,
+          previousAppointmentId: recheckContext.previous_appointment_id || undefined,
+          previousExaminationCode: recheckContext.previous_appointment_id
+            ? formatExaminationCode(recheckContext.previous_appointment_id)
+            : undefined,
+          previousDiagnosis: recheckContext.previous_diagnosis || undefined,
+          followUpReason: recheckContext.follow_up_reason || undefined,
+        }
+      : null,
   };
 }
 
@@ -309,6 +380,33 @@ export async function startDoctorExamination(doctorUserId: string, appointmentId
         client
       );
     }
+
+    await repo.updateAppointmentExaminationStatus(row.appointment_id, "examining", client);
+  });
+
+  return getDoctorExaminationDetail(doctorUserId, appointmentId);
+}
+
+export async function saveDraftDoctorExamination(
+  doctorUserId: string,
+  appointmentId: string,
+  body: SaveDraftDoctorExaminationBody
+) {
+  await withTransaction(async (client) => {
+    const row = await repo.findDoctorExaminationForUpdate(doctorUserId, appointmentId, client);
+
+    if (!row) {
+      throw new AppError("Examination not found", "EXAMINATION_NOT_FOUND", 404);
+    }
+
+    const examId = row.exam_id || createId("mex");
+    if (!row.exam_id) {
+      await repo.createMedicalExamForAppointment(examId, row.appointment_id, row.exam_type_id, doctorUserId, client);
+    }
+
+    await repo.saveMedicalExamDraft(examId, body.diagnosis, body.conclusion, body.healthNote, client);
+    await repo.replaceMedicalExamFieldValues(examId, normalizeFieldValues(body.fieldValues), client);
+    await repo.updateAppointmentExaminationStatus(row.appointment_id, "examining", client);
   });
 
   return getDoctorExaminationDetail(doctorUserId, appointmentId);
@@ -344,8 +442,16 @@ export async function completeDoctorExamination(
       await repo.createMedicalExamForAppointment(examId, row.appointment_id, row.exam_type_id, doctorUserId, client);
     }
 
-    await repo.completeMedicalExam(examId, body.diagnosis, body.conclusion, body.healthNote, client);
+    const hasFollowUp = Boolean(body.followUp);
+    const hasPrescription = Boolean(body.prescriptionItems?.length);
+    const examStatus = hasFollowUp ? "follow_up_required" : hasPrescription ? "prescribed" : "result_recorded";
+
+    await repo.completeMedicalExam(examId, body.diagnosis, body.conclusion, body.healthNote, examStatus, client);
     await repo.replaceMedicalExamFieldValues(examId, normalizeFieldValues(body.fieldValues), client);
+    await repo.replacePrescription(examId, body.prescriptionItems, client);
+    await repo.replaceVaccination(examId, row.pet_id, body.vaccination, client);
+    await repo.replaceFollowUpInstruction(examId, body.followUp, client);
+    await repo.updateAppointmentExaminationStatus(row.appointment_id, hasFollowUp ? "follow_up" : "completed", client);
   });
 
   return getDoctorExaminationDetail(doctorUserId, appointmentId);

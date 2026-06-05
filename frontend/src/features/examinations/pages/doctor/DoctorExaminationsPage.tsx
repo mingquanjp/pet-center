@@ -75,6 +75,7 @@ export function DoctorExaminationsPage() {
           waiting={stats.waitingCount}
           examining={stats.examiningCount}
           completed={stats.completedCount}
+          followUp={stats.followUpCount}
         />
 
         <div className="relative flex flex-col overflow-hidden rounded-2xl bg-petcenter-card shadow-card">
