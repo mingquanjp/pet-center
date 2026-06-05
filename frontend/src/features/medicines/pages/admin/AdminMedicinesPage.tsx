@@ -44,7 +44,7 @@ export function AdminMedicinesPage() {
       <div className="flex flex-col items-center justify-center p-12 text-center">
         <p className="text-red-500 mb-4">Không thể tải danh sách thuốc.</p>
         <button
-          onClick={refetch}
+          onClick={() => refetch(true)}
           className="px-4 py-2 bg-petcenter-primary text-white rounded-lg"
         >
           Thử lại
