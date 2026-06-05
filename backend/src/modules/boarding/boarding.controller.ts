@@ -217,7 +217,7 @@ import type {
 } from "./boarding.types.js";
 
 export async function getAdminBoardingRoomDetailController(req: Request, res: Response): Promise<void> {
-  const result = await boardingService.getAdminBoardingRoomDetail(req.user!, req.params.roomTypeId);
+  const result = await boardingService.getAdminBoardingRoomDetail(req.user!, req.params.roomTypeId as string);
   res.status(httpStatus.OK).json({
     success: true,
     data: result,
@@ -228,7 +228,7 @@ export async function getAdminBoardingRoomDetailController(req: Request, res: Re
 export async function getAdminBoardingRoomUsageHistoryController(req: Request, res: Response): Promise<void> {
   const result = await boardingService.getAdminBoardingRoomUsageHistory(
     req.user!,
-    req.params.roomTypeId,
+    req.params.roomTypeId as string,
     req.query as unknown as AdminBoardingRoomUsageHistoryQueryDto
   );
   res.status(httpStatus.OK).json({
@@ -253,7 +253,7 @@ export async function createAdminBoardingRoomController(req: Request, res: Respo
 export async function updateAdminBoardingRoomController(req: Request, res: Response): Promise<void> {
   const result = await boardingService.updateAdminBoardingRoom(
     req.user!,
-    req.params.roomTypeId,
+    req.params.roomTypeId as string,
     req.body as UpdateAdminBoardingRoomBody
   );
   res.status(httpStatus.OK).json({
@@ -266,7 +266,7 @@ export async function updateAdminBoardingRoomController(req: Request, res: Respo
 export async function updateAdminBoardingRoomStatusController(req: Request, res: Response): Promise<void> {
   const result = await boardingService.updateAdminBoardingRoomStatus(
     req.user!,
-    req.params.roomTypeId,
+    req.params.roomTypeId as string,
     req.body as UpdateAdminBoardingRoomStatusBody
   );
   res.status(httpStatus.OK).json({
@@ -277,7 +277,7 @@ export async function updateAdminBoardingRoomStatusController(req: Request, res:
 }
 
 export async function deleteAdminBoardingRoomController(req: Request, res: Response): Promise<void> {
-  const result = await boardingService.deleteAdminBoardingRoom(req.user!, req.params.roomTypeId);
+  const result = await boardingService.deleteAdminBoardingRoom(req.user!, req.params.roomTypeId as string);
   res.status(httpStatus.OK).json({
     success: true,
     data: result,
