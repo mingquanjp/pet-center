@@ -25,6 +25,10 @@ export interface DoctorExamination {
     phoneNumber?: string
     email?: string
   }
+  doctor?: {
+    id?: string
+    fullName?: string
+  }
   scheduledAt: string
   examType: {
     id: string
@@ -62,11 +66,71 @@ export interface DoctorExaminationDetail extends DoctorExamination {
   healthNote: string
   examDate?: string
   fields: DoctorExaminationField[]
+  recentHistory: Array<{
+    appointmentId: string
+    examinationCode: string
+    scheduledAt: string
+    examTypeName: string
+    diagnosis?: string
+  }>
+  medicines: DoctorMedicineOption[]
+  prescription: DoctorPrescription | null
+  vaccination: DoctorVaccination | null
+  followUp: DoctorFollowUpInstruction | null
+  recheckContext: DoctorRecheckContext | null
 }
 
-export interface CompleteDoctorExaminationPayload {
-  diagnosis: string
-  conclusion: string
+export interface DoctorMedicineOption {
+  id: string
+  name: string
+  unit: string
+  status: string
+}
+
+export interface DoctorPrescriptionItem {
+  id?: string
+  medicineId: string
+  medicineName?: string
+  quantity?: number
+  dosage: string
+  frequency: string
+  duration: string
+  usageInstruction: string
+  note?: string
+}
+
+export interface DoctorPrescription {
+  id: string
+  prescribedAt: string
+  generalNote?: string
+  items: DoctorPrescriptionItem[]
+}
+
+export interface DoctorVaccination {
+  id?: string
+  vaccineName: string
+  vaccinationDate: string
+  note?: string
+}
+
+export interface DoctorFollowUpInstruction {
+  id?: string
+  followUpDate: string
+  reason: string
+  ownerNote?: string
+}
+
+export interface DoctorRecheckContext {
+  previousExamId?: string
+  previousAppointmentId?: string
+  previousExaminationCode?: string
+  previousDiagnosis?: string
+  followUpReason?: string
+}
+
+export interface SaveDraftDoctorExaminationPayload {
+  diagnosis?: string
+  conclusion?: string
   healthNote?: string
   fieldValues?: Array<{
     fieldDefinitionId: string
@@ -75,6 +139,14 @@ export interface CompleteDoctorExaminationPayload {
     valueDate?: string
     fileUrl?: string
   }>
+}
+
+export interface CompleteDoctorExaminationPayload extends SaveDraftDoctorExaminationPayload {
+  diagnosis: string
+  conclusion: string
+  prescriptionItems?: DoctorPrescriptionItem[]
+  vaccination?: DoctorVaccination
+  followUp?: DoctorFollowUpInstruction
 }
 
 export interface DoctorExaminationFilters {

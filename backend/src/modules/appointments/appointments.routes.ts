@@ -9,6 +9,7 @@ import {
   listStaffAppointmentsQuerySchema,
   listDoctorExaminationsQuerySchema,
   doctorExaminationIdParamsSchema,
+  saveDraftDoctorExaminationSchema,
   completeDoctorExaminationSchema,
   staffAppointmentIdParamsSchema,
   confirmStaffAppointmentSchema,
@@ -188,6 +189,17 @@ appointmentsRouter.post(
   requireRole("DOCTOR"),
   validateRequest({ params: doctorExaminationIdParamsSchema }),
   asyncHandler(appointmentsController.startDoctorExamination)
+);
+
+appointmentsRouter.patch(
+  "/doctor/examinations/:appointmentId/draft",
+  authMiddleware,
+  requireRole("DOCTOR"),
+  validateRequest({
+    params: doctorExaminationIdParamsSchema,
+    body: saveDraftDoctorExaminationSchema,
+  }),
+  asyncHandler(appointmentsController.saveDraftDoctorExamination)
 );
 
 appointmentsRouter.patch(

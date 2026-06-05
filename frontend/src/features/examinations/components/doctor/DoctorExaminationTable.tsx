@@ -169,7 +169,7 @@ export function DoctorExaminationTable({ examinations, pagination, onPageChange,
                           className={
                             primaryAction
                               ? "h-9 whitespace-nowrap rounded-control bg-petcenter-primary px-4 text-white shadow-sm hover:bg-petcenter-primary-hover active:scale-95"
-                              : "h-9 whitespace-nowrap rounded-control border-petcenter-border bg-white px-4 text-petcenter-primary hover:bg-petcenter-background"
+                              : "h-9 whitespace-nowrap rounded-control bg-petcenter-cta px-4 font-semibold text-white shadow-sm transition-all hover:bg-petcenter-cta-hover active:scale-95 active:bg-petcenter-cta-active"
                           }
                           type="button"
                         >
