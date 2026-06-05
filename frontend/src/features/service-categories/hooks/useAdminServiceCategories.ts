@@ -69,8 +69,9 @@ export function useAdminServiceCategories(filters: ServiceCategoryFilters, page:
   }
 
   const deleteServiceCategory = async (id: string) => {
-    await adminServiceCategoriesApi.deleteServiceCategory(id)
+    const result = await adminServiceCategoriesApi.deleteServiceCategory(id)
     await fetchServiceCategories()
+    return result
   }
 
   return {

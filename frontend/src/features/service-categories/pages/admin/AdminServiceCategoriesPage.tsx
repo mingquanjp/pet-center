@@ -7,19 +7,35 @@ import {
   Clock3,
   Eye,
   Layers3,
+  LoaderCircle,
   Loader2,
   Pencil,
   Plus,
   RotateCcw,
+  Save,
   Search,
   SearchX,
+  SlidersHorizontal,
   Stethoscope,
   Tags,
   Trash2,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { AppPagination } from "@/components/ui/app-pagination"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
+import { normalizeSearchText } from "@/lib/search"
+import { cn } from "@/lib/utils"
 import { useAdminServiceCategories } from "../../hooks/useAdminServiceCategories"
 import {
   AdminServiceCategory,
@@ -43,7 +59,7 @@ const defaultFilters: ServiceCategoryFilters = {
   status: "ALL",
 }
 
-const pageSize = 10
+const pageSize = 5
 
 export function AdminServiceCategoriesPage() {
   const [filters, setFilters] = useState<ServiceCategoryFilters>(defaultFilters)
@@ -52,7 +68,8 @@ export function AdminServiceCategoriesPage() {
   const [selectedService, setSelectedService] = useState<AdminServiceCategory | null>(null)
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | "detail" | "delete" | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const debouncedSearch = useDebouncedValue(searchValue, 400)
+  const debouncedSearch = useDebouncedValue(searchValue, 500)
+  const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(debouncedSearch)
 
   const apiFilters = useMemo(
     () => ({ ...filters, search: debouncedSearch.trim() }),
@@ -112,14 +129,18 @@ export function AdminServiceCategoriesPage() {
     try {
       if (dialogMode === "edit" && selectedService) {
         await updateServiceCategory({ id: selectedService.id, ...values })
+        toast.success("Đã cập nhật dịch vụ.")
       } else {
         await createServiceCategory(values)
         setPage(1)
+        toast.success("Đã tạo dịch vụ mới.")
       }
 
       closeDialog()
     } catch (saveError) {
-      setActionError(saveError instanceof Error ? saveError.message : "Không thể lưu dịch vụ.")
+      const message = saveError instanceof Error ? saveError.message : "Không thể lưu dịch vụ."
+      setActionError(message)
+      toast.error(message)
     }
   }
 
@@ -128,29 +149,36 @@ export function AdminServiceCategoriesPage() {
     setActionError(null)
 
     try {
-      await deleteServiceCategory(selectedService.id)
+      const result = await deleteServiceCategory(selectedService.id)
+      if (result.deactivated) {
+        toast.warning("Dịch vụ đã phát sinh dữ liệu nên đã được chuyển sang ngừng hoạt động.")
+      } else {
+        toast.success("Đã xóa dịch vụ.")
+      }
       closeDialog()
     } catch (deleteError) {
-      setActionError(deleteError instanceof Error ? deleteError.message : "Không thể xóa dịch vụ.")
+      const message = deleteError instanceof Error ? deleteError.message : "Không thể xóa dịch vụ."
+      setActionError(message)
+      toast.error(message)
     }
   }
 
   const showInitialLoading = isLoading && services.length === 0
+  const isRefreshingResults = !showInitialLoading && (isLoading || isSearchSettling)
 
   return (
     <div className="flex-1 space-y-6">
       <PageHeader onCreate={openCreate} />
 
-      <section className="grid grid-cols-1 gap-gutter sm:grid-cols-2 lg:grid-cols-4 w-full">
-        <StatCard title="Tổng dịch vụ" value={stats.totalServices} icon={<Layers3 className="w-5 h-5 text-petcenter-primary" />} color="bg-petcenter-info-bg" />
-        <StatCard title="Đang hoạt động" value={stats.activeServices} icon={<Activity className="w-5 h-5 text-petcenter-success-text" />} color="bg-petcenter-success-bg" />
-        <StatCard title="Khám & điều trị" value={stats.medicalServices} icon={<Stethoscope className="w-5 h-5 text-petcenter-info-text" />} color="bg-petcenter-info-bg" />
-        <StatCard title="Giá trung bình" value={formatVnd(stats.averagePrice)} icon={<Tags className="w-5 h-5 text-petcenter-cta" />} color="bg-petcenter-cta/15" />
-      </section>
+      <ServiceStats stats={stats} />
 
       <FilterBar
         filters={filters}
+        isRefreshingResults={isRefreshingResults}
+        resultCount={services.length}
         searchValue={searchValue}
+        shouldShowLoadingText={showInitialLoading}
+        totalCount={pagination.total}
         onSearchChange={(value) => {
           setSearchValue(value)
           setPage(1)
@@ -169,13 +197,14 @@ export function AdminServiceCategoriesPage() {
       ) : services.length === 0 ? (
         <EmptyState onReset={resetFilters} />
       ) : (
-        <div className={isLoading ? "opacity-60 pointer-events-none transition-opacity" : "transition-opacity"}>
+        <div className={cn("transition-opacity duration-200", isRefreshingResults && "opacity-80 pointer-events-none")}>
           <ServiceTable
             services={services}
             page={pagination.page}
             limit={pagination.limit}
             total={pagination.total}
             totalPages={pagination.totalPages}
+            isLoading={isLoading}
             onPageChange={setPage}
             onView={openDetail}
             onEdit={openEdit}
@@ -210,7 +239,7 @@ function PageHeader({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
       <div>
-        <h2 className="heading-lg text-petcenter-text tracking-tight">Quản lý Danh mục dịch vụ</h2>
+        <h2 className="heading-lg text-petcenter-text tracking-tight">Quản lý danh mục dịch vụ</h2>
         <p className="body-md text-petcenter-text-secondary mt-1">
           Quản lý nhóm dịch vụ, thời lượng, giá cơ bản và trạng thái sử dụng trong trung tâm.
         </p>
@@ -226,49 +255,94 @@ function PageHeader({ onCreate }: { onCreate: () => void }) {
   )
 }
 
-function StatCard({ title, value, icon, color }: { title: string; value: number | string; icon: React.ReactNode; color: string }) {
+function ServiceStats({
+  stats,
+}: {
+  stats: {
+    totalServices: number
+    activeServices: number
+    inactiveServices: number
+    medicalServices: number
+    averagePrice: number
+  }
+}) {
   return (
-    <div className="h-26 p-5 bg-white rounded-2xl shadow-sm border border-petcenter-border flex flex-col justify-between">
-      <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center`}>{icon}</div>
-      <div>
-        <p className="text-2xl font-bold leading-none text-petcenter-text">{value}</p>
-        <p className="body-sm text-petcenter-text-secondary mt-1">{title}</p>
-      </div>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+      <StatCard icon={Layers3} iconClassName="bg-petcenter-info-bg text-petcenter-info-text" label="Tổng dịch vụ" value={stats.totalServices} />
+      <StatCard icon={Activity} iconClassName="bg-petcenter-success-bg text-petcenter-success-text" label="Đang hoạt động" value={stats.activeServices} />
+      <StatCard icon={AlertCircle} iconClassName="bg-petcenter-danger-bg text-petcenter-danger-text" label="Ngừng hoạt động" value={stats.inactiveServices} />
+      <StatCard icon={Stethoscope} iconClassName="bg-petcenter-primary/10 text-petcenter-primary" label="Khám & điều trị" value={stats.medicalServices} />
+      <StatCard icon={Tags} iconClassName="bg-petcenter-warning-bg text-petcenter-warning-text" label="Giá trung bình" value={formatVnd(stats.averagePrice)} />
     </div>
+  )
+}
+function StatCard({
+  icon: Icon,
+  iconClassName,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  iconClassName: string
+  label: string
+  value: number | string
+}) {
+  return (
+    <article className="flex items-center gap-4 rounded-2xl border border-petcenter-border bg-petcenter-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${iconClassName}`}>
+        <Icon className="h-6 w-6" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-petcenter-text-secondary">{label}</p>
+        <p className="truncate text-2xl font-bold text-petcenter-text">{value}</p>
+      </div>
+    </article>
   )
 }
 
 function FilterBar({
   filters,
+  isRefreshingResults,
   searchValue,
+  resultCount,
+  shouldShowLoadingText,
+  totalCount,
   onSearchChange,
   onFiltersChange,
   onReset,
 }: {
   filters: ServiceCategoryFilters
+  isRefreshingResults: boolean
   searchValue: string
+  resultCount: number
+  shouldShowLoadingText: boolean
+  totalCount: number
   onSearchChange: (value: string) => void
   onFiltersChange: (filters: Partial<ServiceCategoryFilters>) => void
   onReset: () => void
 }) {
   return (
-    <div className="w-full bg-white p-4 rounded-2xl shadow-sm border border-petcenter-border">
-      <div className="flex flex-wrap items-center gap-4 w-full">
-        <div className="relative flex-[2] min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-petcenter-text-secondary" />
+    <div className="rounded-card border border-petcenter-border bg-petcenter-filter p-4 shadow-card">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+        <div className="relative min-w-0 flex-1">
+          {isRefreshingResults ? (
+            <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-petcenter-primary" />
+          ) : (
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+          )}
           <input
-            type="text"
-            placeholder="Tìm mã, tên hoặc mô tả dịch vụ..."
-            className="w-full pl-9 pr-3 py-2.5 bg-petcenter-background body-md border border-petcenter-border rounded-xl focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary placeholder:text-petcenter-text-secondary text-petcenter-text"
-            value={searchValue}
+            className="body-md h-11 w-full rounded-pill border border-petcenter-border-strong bg-white pl-11 pr-4 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
             onChange={(event) => onSearchChange(event.target.value)}
+            placeholder="Tìm mã, tên hoặc mô tả dịch vụ..."
+            type="search"
+            value={searchValue}
           />
         </div>
 
-        <label className="flex items-center gap-2 flex-1 min-w-[200px]">
-          <span className="text-sm font-medium text-petcenter-text-secondary whitespace-nowrap">Danh mục:</span>
+        <label className="flex items-center gap-2">
+          <span className="label-md whitespace-nowrap text-petcenter-text-muted">Danh mục:</span>
           <select
-            className="flex-1 min-w-0 w-full py-2.5 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-xl text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary"
+            className="body-md h-10 rounded-control border border-petcenter-border-strong bg-white px-3 pr-9 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
             value={filters.category}
             onChange={(event) => onFiltersChange({ category: event.target.value as ServiceCategoryFilters["category"] })}
           >
@@ -281,10 +355,10 @@ function FilterBar({
           </select>
         </label>
 
-        <label className="flex items-center gap-2 flex-1 min-w-[190px]">
-          <span className="text-sm font-medium text-petcenter-text-secondary whitespace-nowrap">Trạng thái:</span>
+        <label className="flex items-center gap-2">
+          <span className="label-md whitespace-nowrap text-petcenter-text-muted">Trạng thái:</span>
           <select
-            className="flex-1 min-w-0 w-full py-2.5 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-xl text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary"
+            className="body-md h-10 rounded-control border border-petcenter-border-strong bg-white px-3 pr-9 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
             value={filters.status}
             onChange={(event) => onFiltersChange({ status: event.target.value as ServiceCategoryFilters["status"] })}
           >
@@ -294,20 +368,33 @@ function FilterBar({
           </select>
         </label>
 
-        <button onClick={onReset} className="shrink-0 p-2.5 px-5 gap-2 bg-petcenter-background text-petcenter-text-secondary border border-petcenter-border rounded-xl hover:bg-petcenter-border hover:text-petcenter-text transition-colors flex items-center justify-center body-md font-medium">
+        <button onClick={onReset} className="body-md flex h-10 shrink-0 items-center justify-center gap-2 rounded-control border border-petcenter-border-strong bg-white px-4 font-medium text-petcenter-text-secondary transition hover:bg-petcenter-sidebar hover:text-petcenter-text">
           <RotateCcw className="w-4 h-4" /> <span className="hidden sm:inline">Đặt lại</span>
         </button>
+
+        <div className="label-md flex min-w-[170px] items-center justify-start gap-2 text-petcenter-text-secondary xl:ml-auto xl:justify-end">
+          <SlidersHorizontal className="h-4 w-4" />
+          {shouldShowLoadingText ? "Đang tải..." : isRefreshingResults ? "Đang tìm..." : `Hiển thị ${resultCount}/${totalCount} dịch vụ`}
+        </div>
+      </div>
+      <div
+        className={cn(
+          "mt-3 h-0.5 overflow-hidden rounded-full bg-petcenter-border transition-opacity duration-200",
+          isRefreshingResults ? "opacity-100" : "opacity-0"
+        )}
+      >
+        <div className="h-full w-1/3 animate-[search-progress_1.1s_ease-in-out_infinite] rounded-full bg-petcenter-primary" />
       </div>
     </div>
   )
 }
-
 function ServiceTable({
   services,
   page,
   limit,
   total,
   totalPages,
+  isLoading,
   onPageChange,
   onView,
   onEdit,
@@ -318,6 +405,7 @@ function ServiceTable({
   limit: number
   total: number
   totalPages: number
+  isLoading: boolean
   onPageChange: (page: number) => void
   onView: (service: AdminServiceCategory) => void
   onEdit: (service: AdminServiceCategory) => void
@@ -393,6 +481,7 @@ function ServiceTable({
           totalPages={totalPages}
           onPageChange={onPageChange}
           ariaLabel="Phân trang danh sách dịch vụ"
+          isLoading={isLoading}
           size="sm"
         />
       </div>
@@ -496,7 +585,7 @@ function ServiceFormDialog({
   })
   const [isSaving, setIsSaving] = useState(false)
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setIsSaving(true)
 
@@ -511,117 +600,148 @@ function ServiceFormDialog({
     setIsSaving(false)
   }
 
+  const isEdit = Boolean(service)
+  const HeaderIcon = isEdit ? Pencil : Plus
+
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose()
+    <Dialog
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !isSaving) onClose()
       }}
     >
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-stone-200/50 animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-5 border-b border-petcenter-border flex justify-between items-center bg-stone-50/50">
-          <div>
-            <h2 className="text-lg font-bold text-petcenter-text leading-none">{service ? "Sửa dịch vụ" : "Thêm dịch vụ mới"}</h2>
-            <p className="text-sm text-petcenter-text-secondary mt-1">{service ? "Cập nhật thông tin dịch vụ đang cung cấp" : "Mã dịch vụ sẽ được hệ thống tự sinh sau khi tạo"}</p>
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-hidden rounded-2xl border border-petcenter-border bg-white p-0 text-petcenter-text shadow-[0_18px_48px_rgba(31,38,31,0.14)] outline-none ring-0 sm:max-w-[560px]">
+        <DialogHeader className="border-b border-petcenter-border bg-petcenter-background px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-[0.75rem] bg-petcenter-primary/10 text-petcenter-primary">
+              <HeaderIcon className="h-5 w-5" />
+            </span>
+            <div>
+              <DialogTitle className="title-md text-petcenter-text">{isEdit ? "Chỉnh sửa dịch vụ" : "Thêm dịch vụ"}</DialogTitle>
+              <DialogDescription className="body-sm mt-1 text-petcenter-text-secondary">
+                {isEdit
+                  ? "Cập nhật danh mục, thời lượng, giá và trạng thái dịch vụ."
+                  : "Khai báo dịch vụ mới. Mã dịch vụ sẽ được hệ thống tự sinh sau khi tạo."}
+              </DialogDescription>
+            </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors">
-            <span className="text-xl leading-none">×</span>
-          </button>
-        </div>
+        </DialogHeader>
 
-        <form id="service-category-form" onSubmit={handleSubmit} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Field label="Tên dịch vụ" required>
-            <input
-              required
-              maxLength={150}
-              type="text"
-              placeholder="VD: Khám tổng quát"
-              className="w-full bg-petcenter-background border border-petcenter-border rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 transition-all outline-none"
-              value={formData.serviceName}
-              onChange={(event) => setFormData((current) => ({ ...current, serviceName: event.target.value }))}
-            />
-          </Field>
-          <Field label="Danh mục" required>
-            <select
-              className="w-full bg-petcenter-background border border-petcenter-border rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 transition-all outline-none"
-              value={formData.category}
-              onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value as ServiceCategoryKind }))}
-            >
-              {categoryOptions.map((category) => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Trạng thái" required>
-            <select
-              className="w-full bg-petcenter-background border border-petcenter-border rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 transition-all outline-none"
-              value={formData.status}
-              onChange={(event) => setFormData((current) => ({ ...current, status: event.target.value as ServiceCategoryStatus }))}
-            >
-              <option value="active">Đang hoạt động</option>
-              <option value="inactive">Ngừng hoạt động</option>
-            </select>
-          </Field>
-          <Field label="Thời lượng (phút)">
-            <input
-              min={1}
-              type="number"
-              placeholder="Để trống nếu không áp dụng"
-              className="w-full bg-petcenter-background border border-petcenter-border rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 transition-all outline-none"
-              value={formData.durationMinutes ?? ""}
-              onChange={(event) =>
-                setFormData((current) => ({
-                  ...current,
-                  durationMinutes: event.target.value === "" ? null : Number(event.target.value),
-                }))
-              }
-            />
-          </Field>
-          <Field label="Giá cơ bản (đ)" required>
-            <input
-              required
-              min={0}
-              step={1000}
-              type="number"
-              className="w-full bg-petcenter-background border border-petcenter-border rounded-xl px-4 py-3 text-sm focus:bg-white focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 transition-all outline-none"
-              value={formData.basePrice}
-              onChange={(event) => setFormData((current) => ({ ...current, basePrice: Number(event.target.value) }))}
-            />
-          </Field>
-          <div className="md:col-span-2">
-            <Field label="Mô tả">
-              <textarea
-                maxLength={500}
-                placeholder="Ghi chú phạm vi áp dụng, điều kiện sử dụng hoặc lưu ý vận hành..."
-                className="w-full bg-petcenter-background border border-petcenter-border rounded-xl px-4 py-3 text-sm h-28 resize-none focus:bg-white focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 transition-all outline-none"
-                value={formData.description ?? ""}
-                onChange={(event) => setFormData((current) => ({ ...current, description: event.target.value }))}
-              />
-            </Field>
+        <form onSubmit={handleSubmit}>
+          <div className="max-h-[min(560px,calc(100vh-12rem))] overflow-y-auto px-5 py-5">
+            <div className="flex flex-col gap-4">
+              <FormField label="Tên dịch vụ" required>
+                <Input
+                  autoFocus
+                  className="h-10 rounded-[0.75rem] border-petcenter-border-strong bg-white"
+                  maxLength={150}
+                  onChange={(event) => setFormData((current) => ({ ...current, serviceName: event.target.value }))}
+                  placeholder="Ví dụ: Khám tổng quát"
+                  required
+                  value={formData.serviceName}
+                />
+              </FormField>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField label="Danh mục" required>
+                  <select
+                    className="h-10 w-full rounded-[0.75rem] border border-petcenter-border-strong bg-white px-3 text-sm text-petcenter-text outline-none focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
+                    onChange={(event) => setFormData((current) => ({ ...current, category: event.target.value as ServiceCategoryKind }))}
+                    value={formData.category}
+                  >
+                    {categoryOptions.map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+
+                <FormField label="Trạng thái" required>
+                  <select
+                    className="h-10 w-full rounded-[0.75rem] border border-petcenter-border-strong bg-white px-3 text-sm text-petcenter-text outline-none focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
+                    onChange={(event) => setFormData((current) => ({ ...current, status: event.target.value as ServiceCategoryStatus }))}
+                    value={formData.status}
+                  >
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Ngừng hoạt động</option>
+                  </select>
+                </FormField>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField label="Thời lượng (phút)">
+                  <Input
+                    className="h-10 rounded-[0.75rem] border-petcenter-border-strong bg-white"
+                    min={1}
+                    onChange={(event) =>
+                      setFormData((current) => ({
+                        ...current,
+                        durationMinutes: event.target.value === "" ? null : Number(event.target.value),
+                      }))
+                    }
+                    placeholder="Để trống nếu không áp dụng"
+                    type="number"
+                    value={formData.durationMinutes ?? ""}
+                  />
+                </FormField>
+
+                <FormField label="Giá cơ bản (đ)" required>
+                  <Input
+                    className="h-10 rounded-[0.75rem] border-petcenter-border-strong bg-white"
+                    min={0}
+                    onChange={(event) => setFormData((current) => ({ ...current, basePrice: Number(event.target.value) }))}
+                    required
+                    step={1000}
+                    type="number"
+                    value={formData.basePrice}
+                  />
+                </FormField>
+              </div>
+
+              <FormField label="Mô tả">
+                <textarea
+                  className="min-h-26 w-full resize-none rounded-[0.75rem] border border-petcenter-border-strong bg-white px-3 py-2 text-sm text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
+                  maxLength={500}
+                  onChange={(event) => setFormData((current) => ({ ...current, description: event.target.value }))}
+                  placeholder="Ghi chú phạm vi áp dụng, điều kiện sử dụng hoặc lưu ý vận hành..."
+                  value={formData.description ?? ""}
+                />
+              </FormField>
+
+              {error && <p className="text-sm font-medium text-petcenter-danger-text">{error}</p>}
+            </div>
           </div>
-          {error && <p className="md:col-span-2 text-sm font-medium text-petcenter-danger-text">{error}</p>}
+
+          <DialogFooter className="m-0 gap-3 border-t border-petcenter-border bg-petcenter-background px-6 py-5 sm:justify-end">
+            <Button
+              className="h-10 rounded-[0.75rem] border-petcenter-border bg-white px-5 text-petcenter-text hover:bg-petcenter-sidebar"
+              disabled={isSaving}
+              onClick={onClose}
+              type="button"
+              variant="outline"
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              className="h-10 rounded-[0.75rem] bg-petcenter-primary px-5 font-semibold text-white hover:bg-petcenter-primary-hover"
+              disabled={isSaving}
+              type="submit"
+            >
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {isEdit ? "Lưu thay đổi" : "Tạo dịch vụ"}
+            </Button>
+          </DialogFooter>
         </form>
-
-        <div className="px-6 py-4 border-t border-petcenter-border bg-stone-50/50 flex justify-end gap-3 items-center">
-          <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-petcenter-text-secondary hover:text-petcenter-text hover:bg-stone-200/50 rounded-xl transition-colors">
-            Hủy bỏ
-          </button>
-          <button type="submit" form="service-category-form" disabled={isSaving} className="px-6 py-2.5 text-sm font-bold bg-petcenter-primary text-white rounded-xl hover:bg-petcenter-primary-hover disabled:opacity-60 transition-all shadow-sm shadow-petcenter-primary/20 flex items-center gap-2">
-            {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-            {service ? "Lưu thay đổi" : "Tạo dịch vụ"}
-          </button>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function Field({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function FormField({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-sm font-semibold text-petcenter-text mb-2">
+      <span className="mb-2 block text-sm font-semibold text-petcenter-text">
         {label} {required && <span className="text-red-500">*</span>}
       </span>
       {children}
@@ -699,34 +819,58 @@ function ServiceDeleteDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose()
+    <Dialog
+      open
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !isDeleting) onClose()
       }}
     >
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-4 text-petcenter-danger-text">
-            <Trash2 className="w-6 h-6" />
-            <h3 className="text-lg font-bold text-petcenter-text tracking-tight">Xác nhận xóa dịch vụ</h3>
+      <DialogContent className="overflow-hidden rounded-2xl border border-petcenter-border bg-white p-0 text-petcenter-text shadow-[0_18px_48px_rgba(31,38,31,0.14)] outline-none ring-0 sm:max-w-[460px]">
+        <DialogHeader className="border-b border-petcenter-border bg-petcenter-background px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-[0.75rem] bg-petcenter-danger-bg text-petcenter-danger-text">
+              <AlertCircle className="h-5 w-5" />
+            </span>
+            <div>
+              <DialogTitle className="title-md text-petcenter-text">Xóa dịch vụ?</DialogTitle>
+              <DialogDescription className="body-sm mt-1 text-petcenter-text-secondary">
+                Nếu dịch vụ đã phát sinh dữ liệu, hệ thống sẽ chuyển sang ngừng hoạt động.
+              </DialogDescription>
+            </div>
           </div>
-          <p className="text-petcenter-text-secondary body-md">
-            Bạn có chắc muốn xóa <strong>{service.serviceName}</strong> không? Nếu dịch vụ đã phát sinh dữ liệu, hệ thống sẽ chuyển sang ngừng hoạt động.
-          </p>
-          {error && <p className="text-sm font-medium text-petcenter-danger-text mt-3">{error}</p>}
+        </DialogHeader>
+
+        <div className="space-y-3 px-5 py-5">
+          <div className="rounded-[0.75rem] border border-petcenter-border bg-petcenter-background p-4">
+            <p className="font-semibold text-petcenter-text">{service.serviceName}</p>
+            <p className="body-sm mt-1 break-all text-petcenter-text-secondary">{service.code}</p>
+          </div>
+          <p className="body-sm text-petcenter-text-secondary">Bạn có chắc chắn muốn xóa dịch vụ này không?</p>
+          {error && <p className="text-sm font-medium text-petcenter-danger-text">{error}</p>}
         </div>
-        <div className="px-6 py-4 bg-stone-50/80 border-t border-petcenter-border flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-petcenter-text-secondary hover:bg-stone-200 rounded-xl transition-colors">
-            Hủy
-          </button>
-          <button onClick={handleConfirm} disabled={isDeleting} className="px-4 py-2 text-sm font-semibold text-white bg-petcenter-danger-text hover:bg-[#DC2626] disabled:opacity-60 rounded-xl transition-colors shadow-sm flex items-center gap-2">
-            {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+
+        <DialogFooter className="m-0 gap-3 border-t border-petcenter-border bg-petcenter-background px-5 py-4 sm:justify-end">
+          <Button
+            className="h-10 rounded-[0.75rem] border-petcenter-border bg-white px-5 text-petcenter-text hover:bg-petcenter-sidebar"
+            disabled={isDeleting}
+            onClick={onClose}
+            type="button"
+            variant="outline"
+          >
+            Hủy bỏ
+          </Button>
+          <Button
+            className="h-10 rounded-[0.75rem] bg-petcenter-danger-text px-5 font-semibold text-white hover:bg-petcenter-danger-text/90"
+            disabled={isDeleting}
+            onClick={handleConfirm}
+            type="button"
+          >
+            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
             Xóa dịch vụ
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

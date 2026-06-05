@@ -17,17 +17,45 @@ export interface AdminServiceCategoryRow {
   usage_count: number;
 }
 
+const vietnameseAccentChars =
+  "àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ";
+const vietnamesePlainChars =
+  "aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyyd";
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .trim();
+}
+
+function normalizedServiceSearchExpression() {
+  return `
+    translate(
+      lower(
+        concat_ws(
+          ' ',
+          s.service_id,
+          s.service_name,
+          coalesce(s.description, '')
+        )
+      ),
+      '${vietnameseAccentChars}',
+      '${vietnamesePlainChars}'
+    )
+  `;
+}
+
 function appendFilters(sql: string, params: unknown[], filters: AdminServiceCategoriesQueryDto) {
   let nextSql = sql;
   let paramIndex = params.length + 1;
 
   if (filters.search && filters.search.trim() !== "") {
-    nextSql += ` AND (
-      s.service_id ILIKE $${paramIndex} OR
-      s.service_name ILIKE $${paramIndex} OR
-      s.description ILIKE $${paramIndex}
-    )`;
-    params.push(`%${filters.search.trim()}%`);
+    nextSql += ` AND ${normalizedServiceSearchExpression()} LIKE $${paramIndex}`;
+    params.push(`%${normalizeSearchText(filters.search)}%`);
     paramIndex++;
   }
 
