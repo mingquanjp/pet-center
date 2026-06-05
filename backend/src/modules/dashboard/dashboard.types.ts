@@ -90,6 +90,69 @@ export type StaffDashboardOverviewDto = {
   appointmentTasks: StaffDashboardAppointmentTaskDto[];
 };
 
+export type DoctorExamStatusDto = "WAITING" | "EXAMINING";
+
+export type DoctorDashboardStatDto = {
+  todayExamCount: number;
+  waitingExamCount: number;
+  inProgressExamCount: number;
+  followUpCount: number;
+};
+
+export type DoctorAssignedExamDto = {
+  id: string;
+  examId: string | null;
+  examinationCode: string;
+  appointmentCode: string;
+  examCode: string;
+  pet: {
+    id: string;
+    name: string;
+    species: "Dog" | "Cat" | "Other";
+    breed?: string;
+    ageText?: string;
+    avatarUrl: string | null;
+    imageUrl?: string;
+    description: string;
+  };
+  owner: {
+    id: string;
+    fullName: string;
+    phoneNumber?: string;
+    email?: string;
+  };
+  scheduledAt: string;
+  scheduledTime: string;
+  examType: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  status: DoctorExamStatusDto;
+};
+
+export type DoctorRecentActivityDto = {
+  id: string;
+  timeLabel: string;
+  title: string;
+  description: string;
+  note?: string;
+  tag?: string;
+  type: "MEDICAL_RECORD" | "SURGERY_REQUEST" | "PRESCRIPTION" | "FOLLOW_UP";
+};
+
+export type DoctorDashboardOverviewDto = {
+  doctor: {
+    id: string;
+    fullName: string;
+    roleLabel: string;
+    avatarUrl?: string;
+  };
+  stats: DoctorDashboardStatDto;
+  assignedExams: DoctorAssignedExamDto[];
+  recentActivities: DoctorRecentActivityDto[];
+};
+
 export type AdminDashboardStatDto = {
   totalUsers: number;
   totalPets: number;

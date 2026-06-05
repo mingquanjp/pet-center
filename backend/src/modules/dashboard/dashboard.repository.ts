@@ -7,6 +7,9 @@ import type {
   AdminDashboardServiceRevenueDto,
   AdminDashboardStatDto,
   AdminDashboardTrendDto,
+  DoctorAssignedExamDto,
+  DoctorDashboardStatDto,
+  DoctorRecentActivityDto,
   OwnerDashboardActivity,
   OwnerDashboardAppointment,
   OwnerDashboardDto,
@@ -89,6 +92,45 @@ type AppointmentTaskRow = QueryResultRow & {
   owner_name: string;
   scheduled_at: Date;
   type_label: string;
+};
+
+type DoctorAssignedExamRow = QueryResultRow & {
+  appointment_id: string;
+  exam_id: string | null;
+  pet_id: string;
+  pet_name: string;
+  species: string;
+  breed: string | null;
+  birth_date: Date | null;
+  estimated_age: string | number | null;
+  profile_image_url: string | null;
+  owner_user_id: string;
+  owner_name: string;
+  owner_phone: string | null;
+  owner_email: string | null;
+  scheduled_at: Date;
+  exam_type_id: string;
+  type_code: string;
+  type_name: string;
+  appointment_status: "pending" | "confirmed";
+};
+
+type DoctorStatsRow = QueryResultRow & {
+  today_exam_count: string;
+  waiting_exam_count: string;
+  in_progress_exam_count: string;
+  follow_up_count: string;
+};
+
+type DoctorActivityRow = QueryResultRow & {
+  activity_log_id: string;
+  activity_type: string;
+  title: string;
+  summary: string | null;
+  occurred_at: Date;
+  source_type: string;
+  source_id: string;
+  metadata: Record<string, unknown> | null;
 };
 
 type AdminRecentActivityRow = QueryResultRow & {
@@ -299,6 +341,148 @@ function getTaskPetDescription(row: AppointmentTaskRow): string {
   const age = formatTaskAge(row.estimated_age);
 
   return age ? `${breed} • ${age}` : breed;
+}
+
+function formatDoctorAppointmentCode(appointmentId: string): string {
+  const suffix = appointmentId.replace(/^appt_/, "").toUpperCase();
+
+  return `LH-${suffix}`;
+}
+
+function formatDoctorExaminationCode(appointmentId: string): string {
+  const suffix = appointmentId.replace(/^appt_/, "").toUpperCase();
+
+  return `PK-${suffix}`;
+}
+
+function normalizeDoctorSpecies(species: string): DoctorAssignedExamDto["pet"]["species"] {
+  return species === "Dog" || species === "Cat" ? species : "Other";
+}
+
+function formatDoctorPetAge(row: Pick<DoctorAssignedExamRow, "birth_date" | "estimated_age">): string | undefined {
+  if (row.birth_date) {
+    const now = new Date();
+    const birthDate = new Date(row.birth_date);
+    let age = now.getFullYear() - birthDate.getFullYear();
+    const monthDiff = now.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) {
+      age -= 1;
+    }
+
+    return age > 0 ? `${age} tuổi` : "Dưới 1 tuổi";
+  }
+
+  if (!row.estimated_age) return undefined;
+
+  const estimatedAge = Number(row.estimated_age);
+
+  if (!Number.isFinite(estimatedAge)) return undefined;
+
+  const ageText = Number.isInteger(estimatedAge) ? String(estimatedAge) : estimatedAge.toFixed(1);
+
+  return estimatedAge >= 1 ? `${ageText} tuổi` : "Dưới 1 tuổi";
+}
+
+function getDoctorPetDescription(row: DoctorAssignedExamRow): string {
+  return [normalizeDoctorSpecies(row.species), row.breed, formatDoctorPetAge(row)].filter(Boolean).join(" · ");
+}
+
+function formatDoctorScheduledTime(value: Date): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(value);
+}
+
+function mapDoctorExamStatus(status: DoctorAssignedExamRow["appointment_status"]): DoctorAssignedExamDto["status"] {
+  return status === "confirmed" ? "EXAMINING" : "WAITING";
+}
+
+function mapDoctorAssignedExam(row: DoctorAssignedExamRow): DoctorAssignedExamDto {
+  return {
+    id: row.appointment_id,
+    examId: row.exam_id,
+    examinationCode: formatDoctorExaminationCode(row.appointment_id),
+    appointmentCode: formatDoctorAppointmentCode(row.appointment_id),
+    examCode: formatDoctorExaminationCode(row.appointment_id),
+    pet: {
+      id: row.pet_id,
+      name: row.pet_name,
+      species: normalizeDoctorSpecies(row.species),
+      breed: row.breed || undefined,
+      ageText: formatDoctorPetAge(row),
+      avatarUrl: row.profile_image_url,
+      imageUrl: row.profile_image_url || undefined,
+      description: getDoctorPetDescription(row),
+    },
+    owner: {
+      id: row.owner_user_id,
+      fullName: row.owner_name,
+      phoneNumber: row.owner_phone || undefined,
+      email: row.owner_email || undefined,
+    },
+    scheduledAt: row.scheduled_at.toISOString(),
+    scheduledTime: formatDoctorScheduledTime(row.scheduled_at),
+    examType: {
+      id: row.exam_type_id,
+      code: row.type_code.toUpperCase(),
+      name: row.type_name,
+    },
+    status: mapDoctorExamStatus(row.appointment_status),
+  };
+}
+
+function getDoctorActivityType(row: DoctorActivityRow): DoctorRecentActivityDto["type"] {
+  if (row.source_type === "prescription") return "PRESCRIPTION";
+  if (row.source_type === "follow_up_instruction" || row.activity_type.includes("follow")) return "FOLLOW_UP";
+  if (row.activity_type.includes("surgery")) return "SURGERY_REQUEST";
+
+  return "MEDICAL_RECORD";
+}
+
+function formatDoctorActivityTime(value: Date): string {
+  const time = new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(value);
+  const dateFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const activityDate = dateFormatter.format(value);
+  const today = dateFormatter.format(new Date());
+
+  if (activityDate === today) return `${time} Hôm nay`;
+
+  return `${time} ${new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    day: "2-digit",
+    month: "2-digit",
+  }).format(value)}`;
+}
+
+function mapDoctorRecentActivity(row: DoctorActivityRow): DoctorRecentActivityDto {
+  const metadataNote =
+    row.metadata && typeof row.metadata.note === "string" ? row.metadata.note : undefined;
+  const metadataTag =
+    row.metadata && typeof row.metadata.tag === "string" ? row.metadata.tag : undefined;
+
+  return {
+    id: row.activity_log_id,
+    timeLabel: formatDoctorActivityTime(row.occurred_at),
+    title: row.title,
+    description: row.summary ?? row.source_id,
+    note: metadataNote,
+    tag: metadataTag,
+    type: getDoctorActivityType(row),
+  };
 }
 
 function mapAppointmentTask(row: AppointmentTaskRow): StaffDashboardAppointmentTaskDto {
@@ -701,6 +885,108 @@ export async function findPendingAppointmentTasks(limit: number): Promise<StaffD
   );
 
   return result.rows.map(mapAppointmentTask);
+}
+
+export async function getDoctorDashboardStats(doctorUserId: string): Promise<DoctorDashboardStatDto> {
+  const result = await query<DoctorStatsRow>(
+    `select
+       count(*) filter (
+         where (ma.scheduled_at at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date
+           and ma.appointment_status in ('pending', 'confirmed')
+       )::text as today_exam_count,
+       count(*) filter (
+         where (ma.scheduled_at at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date
+           and ma.appointment_status = 'pending'
+       )::text as waiting_exam_count,
+       count(*) filter (
+         where (ma.scheduled_at at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date
+           and ma.appointment_status = 'confirmed'
+       )::text as in_progress_exam_count,
+       (
+         select count(*)::text
+         from pet_center.follow_up_instructions fui
+         join pet_center.medical_exams me on me.exam_id = fui.exam_id
+         where me.examined_by_veterinarian_id = $1
+           and fui.follow_up_date >= current_date
+       ) as follow_up_count
+     from pet_center.medical_appointments ma
+     where ma.veterinarian_user_id = $1`,
+    [doctorUserId]
+  );
+  const row = result.rows[0];
+
+  return {
+    todayExamCount: Number(row?.today_exam_count ?? 0),
+    waitingExamCount: Number(row?.waiting_exam_count ?? 0),
+    inProgressExamCount: Number(row?.in_progress_exam_count ?? 0),
+    followUpCount: Number(row?.follow_up_count ?? 0),
+  };
+}
+
+export async function findDoctorAssignedExams(
+  doctorUserId: string,
+  limit: number
+): Promise<DoctorAssignedExamDto[]> {
+  const result = await query<DoctorAssignedExamRow>(
+     `select
+       ma.appointment_id,
+       me.exam_id,
+       p.pet_id,
+       p.pet_name,
+       p.species,
+       p.breed,
+       p.birth_date,
+       p.estimated_age,
+       p.profile_image_url,
+       owner.user_id as owner_user_id,
+       owner.full_name as owner_name,
+       owner.phone_number as owner_phone,
+       owner.email as owner_email,
+       ma.scheduled_at,
+       et.exam_type_id,
+       et.type_code,
+       et.type_name,
+       ma.appointment_status
+     from pet_center.medical_appointments ma
+     join pet_center.pets p on p.pet_id = ma.pet_id
+     join pet_center.users owner on owner.user_id = ma.owner_user_id
+     join pet_center.exam_types et on et.exam_type_id = ma.exam_type_id
+     left join pet_center.medical_exams me on me.appointment_id = ma.appointment_id
+     where ma.veterinarian_user_id = $1
+       and ma.appointment_status in ('pending', 'confirmed')
+       and ma.scheduled_at >= now()
+     order by ma.scheduled_at asc, ma.appointment_id asc
+     limit $2`,
+    [doctorUserId, limit]
+  );
+
+  return result.rows.map(mapDoctorAssignedExam);
+}
+
+export async function findDoctorRecentActivities(
+  doctorUserId: string,
+  limit: number
+): Promise<DoctorRecentActivityDto[]> {
+  const result = await query<DoctorActivityRow>(
+    `select
+       pal.activity_log_id,
+       pal.activity_type,
+       pal.title,
+       pal.summary,
+       pal.occurred_at,
+       pal.source_type,
+       pal.source_id,
+       pal.metadata
+     from pet_center.pet_activity_logs pal
+     where pal.actor_user_id = $1
+       and pal.visibility_status = 'visible'
+       and pal.activity_category = 'medical'
+     order by pal.occurred_at desc, pal.activity_log_id desc
+     limit $2`,
+    [doctorUserId, limit]
+  );
+
+  return result.rows.map(mapDoctorRecentActivity);
 }
 
 export async function getAdminStats(range: {

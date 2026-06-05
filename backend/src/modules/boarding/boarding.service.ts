@@ -1617,7 +1617,7 @@ export async function createAdminBoardingRoom(
     throw new AppError("Tên loại phòng đã tồn tại.", "ROOM_TYPE_NAME_EXISTS", httpStatus.BAD_REQUEST);
   }
 
-  const roomTypeId = createId("room_type_");
+  const roomTypeId = createId("rt");
   const row = await boardingRepository.createAdminBoardingRoom(roomTypeId, body);
 
   return {

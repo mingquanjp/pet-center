@@ -13,7 +13,6 @@ import { StaffBoardingSpecialRequestCard } from "../../components/staff/detail/S
 import { StaffBoardingTimelineCard } from "../../components/staff/detail/StaffBoardingTimelineCard";
 import { StaffBoardingPaymentCard } from "../../components/staff/detail/StaffBoardingPaymentCard";
 import { StaffBoardingUnsupportedState } from "../../components/staff/detail/StaffBoardingUnsupportedState";
-import { StaffBoardingActiveDetailContent } from "../../components/staff/detail/StaffBoardingActiveDetailContent";
 import { StaffBoardingConfirmDialog } from "../../components/staff/StaffBoardingConfirmDialog";
 import { StaffBoardingRejectDialog } from "../../components/staff/StaffBoardingRejectDialog";
 import { StaffBoardingCheckInDialog } from "../../components/staff/StaffBoardingCheckInDialog";

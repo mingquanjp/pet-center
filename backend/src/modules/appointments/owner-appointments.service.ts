@@ -34,7 +34,7 @@ const FIXED_TIME_SLOTS = [
   "17:00",
 ];
 const timeZone = "Asia/Ho_Chi_Minh";
-const MIN_BOOKING_LEAD_TIME_MS = 60 * 60 * 1000;
+const MIN_BOOKING_LEAD_TIME_MS = 30 * 60 * 1000;
 
 function getVietnamDateInputValue(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -278,11 +278,11 @@ async function buildTimeSlots(date: string): Promise<OwnerAppointmentTimeSlotDto
 
   return FIXED_TIME_SLOTS.map((slot) => {
     const slotStartsAt = buildVietnamSlotDate(date, slot);
-    const isPastSlot = slotStartsAt.getTime() - now.getTime() <= MIN_BOOKING_LEAD_TIME_MS;
-    const availableUnits = isPastSlot
+    const isCutoffPassed = slotStartsAt.getTime() - now.getTime() <= MIN_BOOKING_LEAD_TIME_MS;
+    const availableUnits = isCutoffPassed
       ? 0
       : Math.max(slotCapacity - (bookedBySlot.get(slot) ?? 0), 0);
-    const disabledReason = isPastSlot ? "past" : availableUnits <= 0 ? "full" : undefined;
+    const disabledReason = isCutoffPassed ? "cutoff" : availableUnits <= 0 ? "full" : undefined;
 
     return {
       value: slot,
@@ -344,7 +344,7 @@ export async function createOwnerAppointment(
 ): Promise<CreateOwnerAppointmentResultDto> {
   const scheduledAt = new Date(body.scheduledAt);
   if (scheduledAt.getTime() - Date.now() <= MIN_BOOKING_LEAD_TIME_MS) {
-    throw new AppError("Vui lòng đặt lịch trước giờ khám ít nhất 1 tiếng", "APPOINTMENT_TIME_TOO_SOON", httpStatus.BAD_REQUEST);
+    throw new AppError("Vui lòng đặt lịch trước giờ khám ít nhất 30 phút", "APPOINTMENT_TIME_TOO_SOON", httpStatus.BAD_REQUEST);
   }
 
   const result = await withTransaction(async (client) => {
@@ -361,10 +361,15 @@ export async function createOwnerAppointment(
       throw new AppError("Không tìm thấy loại khám", "EXAM_TYPE_NOT_FOUND", httpStatus.NOT_FOUND);
     }
 
-    const [doctorCount, bookedCount] = await Promise.all([
+    const [doctorCount, bookedCount, duplicatePetAppointmentCount] = await Promise.all([
       repo.countActiveDoctors(client),
       repo.countBookedAppointmentsAt(scheduledAt, client),
+      repo.countPetAppointmentsAt(body.petId, scheduledAt, client),
     ]);
+    if (duplicatePetAppointmentCount > 0) {
+      throw new AppError("Thú cưng này đã có lịch hẹn trong khung giờ đã chọn", "PET_APPOINTMENT_TIME_DUPLICATED", httpStatus.CONFLICT);
+    }
+
     const slotCapacity = doctorCount;
     if (slotCapacity <= 0 || bookedCount >= slotCapacity) {
       throw new AppError("Khung giờ này đã có lịch hẹn", "APPOINTMENT_SLOT_UNAVAILABLE", httpStatus.CONFLICT);

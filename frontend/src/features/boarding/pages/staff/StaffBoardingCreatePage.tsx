@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useStaffBoardingCreateOptions } from "../../hooks/useStaffBoardingCreateOptions";
 import { useCreateStaffBoarding } from "../../hooks/useCreateStaffBoarding";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { Dog3DScene } from "@/components/ui/dog-3d";
 
 import { StaffBoardingCreateHeader } from "../../components/staff/create/StaffBoardingCreateHeader";
 import { StaffBoardingOwnerSection } from "../../components/staff/create/StaffBoardingOwnerSection";
@@ -27,15 +25,13 @@ import {
 } from "../../types/boarding.types";
 
 export function StaffBoardingCreatePage() {
-  // We will call useStaffBoardingCreateOptions after state declarations
+  const { data: options, isLoading: isLoadingOptions } = useStaffBoardingCreateOptions();
   const createMutation = useCreateStaffBoarding();
 
   // Form State
   const [selectedOwnerId, setSelectedOwnerId] = useState<string>("");
   const [selectedPetId, setSelectedPetId] = useState<string>("");
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>("");
-  const [localOwners, setLocalOwners] = useState<StaffBoardingOwnerOption[]>([]);
-  const [localPets, setLocalPets] = useState<StaffBoardingPetOption[]>([]);
   const [plannedCheckInDate, setPlannedCheckInDate] = useState<string>(() => {
     // Default to today
     const today = new Date();
@@ -45,46 +41,30 @@ export function StaffBoardingCreatePage() {
   const [careRequest, setCareRequest] = useState<string>("");
   const [internalNote, setInternalNote] = useState<string>("");
 
-  const { data: options, isLoading: isLoadingOptions, isRefreshing, refetch: refetchOptions } = useStaffBoardingCreateOptions({
-    plannedCheckInDate,
-    plannedCheckOutDate
-  });
-
-  useEffect(() => {
-    if (options && selectedRoomTypeId) {
-      const room = options.roomTypes.find((r: StaffBoardingRoomTypeOption) => r.id === selectedRoomTypeId);
-      if (!room || room.availableCount <= 0) {
-        setSelectedRoomTypeId("");
-      }
-    }
-  }, [options, selectedRoomTypeId]);
-
   // Dialog State
   const [isSuccessDialogOpen, setIsSuccessDialogOpen] = useState(false);
   const [createResult, setCreateResult] = useState<CreateStaffBoardingResult | null>(null);
 
-  if (isLoadingOptions && !options) {
+  if (isLoadingOptions) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Dog3DScene />
+      <div className="flex flex-col items-center justify-center min-h-100">
+        <Loader2 className="h-8 w-8 animate-spin text-petcenter-primary mb-4" />
+        <p className="text-petcenter-text-secondary">Đang tải dữ liệu...</p>
       </div>
     );
   }
 
   if (!options) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-red-500">
+      <div className="flex flex-col items-center justify-center min-h-100 text-red-500">
         <p>Không thể tải dữ liệu. Vui lòng thử lại sau.</p>
-        {/* We can show the actual error temporarily */}
       </div>
     );
   }
 
   // Derived State for Summary
-  const allOwners = [...localOwners.filter((o) => !options.owners.some((opt: StaffBoardingOwnerOption) => opt.id === o.id)), ...options.owners];
-  const allPets = [...localPets.filter((p) => !options.pets.some((opt: StaffBoardingPetOption) => opt.id === p.id)), ...options.pets];
-  const selectedOwner = allOwners.find((o: StaffBoardingOwnerOption) => o.id === selectedOwnerId) || null;
-  const selectedPet = allPets.find((p: StaffBoardingPetOption) => p.id === selectedPetId) || null;
+  const selectedOwner = options.owners.find((o: StaffBoardingOwnerOption) => o.id === selectedOwnerId) || null;
+  const selectedPet = options.pets.find((p: StaffBoardingPetOption) => p.id === selectedPetId) || null;
   const selectedRoomType = options.roomTypes.find((r: StaffBoardingRoomTypeOption) => r.id === selectedRoomTypeId) || null;
 
   const handleSubmit = () => {
@@ -92,16 +72,10 @@ export function StaffBoardingCreatePage() {
       return;
     }
 
-    if (selectedRoomType && selectedRoomType.availableCount <= 0) {
-      return;
-    }
-
     const payload: CreateStaffBoardingPayload = {
       ownerId: selectedOwnerId,
       petId: selectedPetId,
       roomTypeId: selectedRoomTypeId,
-      plannedCheckInAt: plannedCheckInDate,
-      plannedCheckOutAt: plannedCheckOutDate,
       plannedCheckInDate,
       plannedCheckOutDate,
       careRequest: careRequest || null,
@@ -117,21 +91,9 @@ export function StaffBoardingCreatePage() {
         setCreateResult(data);
         setIsSuccessDialogOpen(true);
       },
-      onError: (error: Error & { code?: string }) => {
+      onError: (error: Error) => {
         console.error("Failed to create boarding:", error);
-        if (error.message.includes("BOARDING_PET_TIME_CONFLICT") || error.code === "BOARDING_PET_TIME_CONFLICT") {
-          toast.error("Thú cưng này đã có lịch lưu trú trùng thời gian đã chọn.");
-          refetchOptions();
-          return;
-        }
-
-        if (error.message.includes("ROOM_TYPE_FULL") || error.code === "ROOM_TYPE_FULL") {
-          toast.error("Loại phòng này vừa hết chỗ. Vui lòng chọn loại phòng khác.");
-          refetchOptions();
-          setSelectedRoomTypeId("");
-        } else {
-          toast.error(error.message || "Tạo lưu trú thất bại");
-        }
+        // Toast error could be added here
       }
     });
   };
@@ -143,7 +105,7 @@ export function StaffBoardingCreatePage() {
   };
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 px-6 pt-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Left Column - Form Sections */}
         <div className="lg:col-span-2 pb-10">
@@ -154,12 +116,6 @@ export function StaffBoardingCreatePage() {
               options={options.owners}
               selectedOwnerId={selectedOwnerId}
               onOwnerSelect={handleOwnerSelect}
-              onOwnerCreated={(owner) => {
-                setLocalOwners((prev) => [owner, ...prev.filter((o) => o.id !== owner.id)]);
-                setSelectedOwnerId(owner.id);
-                setSelectedPetId("");
-                refetchOptions();
-              }}
             />
 
             <StaffBoardingPetSection
@@ -167,11 +123,6 @@ export function StaffBoardingCreatePage() {
               pets={options.pets}
               selectedPetId={selectedPetId}
               onPetSelect={setSelectedPetId}
-              onPetCreated={(pet) => {
-                setLocalPets((prev) => [pet, ...prev.filter((p) => p.id !== pet.id)]);
-                setSelectedPetId(pet.id);
-                refetchOptions();
-              }}
             />
 
             <StaffBoardingDateSection
@@ -200,7 +151,7 @@ export function StaffBoardingCreatePage() {
         {/* Right Column - Sticky Summary */}
         <div className="lg:col-span-1 sticky top-6 z-10">
           <div className="relative w-full">
-            <div className="h-[72px] w-full pointer-events-none" />
+            <div className="h-27 w-full pointer-events-none" />
 
             <div className="absolute top-0 right-0 h-10 flex items-center justify-end">
               <Button variant="outline" asChild className="rounded-control border-petcenter-primary text-petcenter-primary hover:bg-petcenter-primary hover:text-white px-4 py-2 h-auto flex gap-1.5 font-medium text-base transition-colors shrink-0">

@@ -3,7 +3,7 @@ import { StaffAppointment } from "../types/appointment.types";
 const APPOINTMENT_TIME_ZONE = "Asia/Ho_Chi_Minh";
 const VI_LOCALE = "vi-VN";
 const LAST_APPOINTMENT_SLOT_HOUR = 17;
-const MIN_BOOKING_LEAD_TIME_HOURS = 1;
+const MIN_BOOKING_LEAD_TIME_MINUTES = 30;
 
 export function formatAppointmentDate(dateString: string): string {
   const date = new Date(dateString);
@@ -178,14 +178,19 @@ export function getMinAppointmentDateInputValue(date = new Date()): string {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
+    minute: "2-digit",
     hour12: false,
   }).formatToParts(date);
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? "";
   const minimumDate = new Date(date);
   const currentHour = Number(value("hour"));
+  const currentMinute = Number(value("minute"));
+  const lastSlotCutoffMinutes =
+    LAST_APPOINTMENT_SLOT_HOUR * 60 - MIN_BOOKING_LEAD_TIME_MINUTES;
+  const currentTimeMinutes = currentHour * 60 + currentMinute;
 
-  if (currentHour >= LAST_APPOINTMENT_SLOT_HOUR - MIN_BOOKING_LEAD_TIME_HOURS) {
+  if (currentTimeMinutes >= lastSlotCutoffMinutes) {
     minimumDate.setDate(minimumDate.getDate() + 1);
   }
 

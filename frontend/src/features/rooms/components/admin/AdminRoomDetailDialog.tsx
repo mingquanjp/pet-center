@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { AdminBoardingRoom, AdminBoardingRoomUsageRecord, AdminBoardingRoomUsageFilters } from "../../types/room.types";
 import { formatVnd, calculateOccupancyRate } from "../../utils/room-format";
-import { X, Search, FileText, Settings, History } from "lucide-react";
+import { X, Search, FileText, History } from "lucide-react";
 import { adminBoardingRoomsApi } from "../../api/rooms.api";
 
 // Helper for date formatting
@@ -10,7 +10,7 @@ const formatDate = (isoString: string) => {
   return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-export function AdminRoomDetailDialog({ room, onClose, onEdit }: { room: AdminBoardingRoom, onClose: () => void, onEdit: () => void }) {
+export function AdminRoomDetailDialog({ room, onClose }: { room: AdminBoardingRoom, onClose: () => void, onEdit: () => void }) {
   const [activeTab, setActiveTab] = useState<"overview" | "history">("overview");
   const [records, setRecords] = useState<AdminBoardingRoomUsageRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,7 +87,7 @@ export function AdminRoomDetailDialog({ room, onClose, onEdit }: { room: AdminBo
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-[1000px] max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-[20px] shadow-2xl w-full max-w-250 max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="px-6 py-5 border-b border-petcenter-border bg-stone-50/50 flex flex-col gap-4">
@@ -196,7 +196,7 @@ export function AdminRoomDetailDialog({ room, onClose, onEdit }: { room: AdminBo
                   <span className="text-xs text-stone-500 uppercase font-semibold mb-1">Đã hủy/Từ chối</span>
                   <span className="text-xl font-bold text-stone-400">{stats.cancelled}</span>
                 </div>
-                <div className="bg-white border border-petcenter-border rounded-xl p-4 shadow-sm flex flex-col justify-center items-center text-center bg-petcenter-primary/5">
+                <div className="border border-petcenter-border rounded-xl p-4 shadow-sm flex flex-col justify-center items-center text-center bg-petcenter-primary/5">
                   <span className="text-xs text-petcenter-primary uppercase font-semibold mb-1">Doanh thu (Ước tính)</span>
                   <span className="text-xl font-bold text-petcenter-primary">{formatVnd(stats.revenue).replace("₫", "đ")}</span>
                 </div>
@@ -209,7 +209,7 @@ export function AdminRoomDetailDialog({ room, onClose, onEdit }: { room: AdminBo
             <div className="flex flex-col gap-4 h-full">
               {/* Filter Bar */}
               <div className="flex flex-wrap gap-3 items-center bg-white p-3 rounded-xl border border-petcenter-border shadow-sm">
-                <div className="relative flex-1 min-w-[200px]">
+                <div className="relative flex-1 min-w-50">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
                   <input 
                     type="text" 
@@ -220,7 +220,7 @@ export function AdminRoomDetailDialog({ room, onClose, onEdit }: { room: AdminBo
                   />
                 </div>
                 <select 
-                  className="px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-lg focus:bg-white outline-none min-w-[150px]"
+                  className="px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-lg focus:bg-white outline-none min-w-37.5"
                   value={filters.boardingStatus}
                   onChange={e => setFilters(prev => ({ ...prev, boardingStatus: e.target.value as AdminBoardingRoomUsageFilters["boardingStatus"] }))}
                 >
@@ -234,7 +234,7 @@ export function AdminRoomDetailDialog({ room, onClose, onEdit }: { room: AdminBo
                   <option value="cancelled">Đã hủy</option>
                 </select>
                 <select 
-                  className="px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-lg focus:bg-white outline-none min-w-[150px]"
+                  className="px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-lg focus:bg-white outline-none min-w-37.5"
                   value={filters.paymentStatus}
                   onChange={e => setFilters(prev => ({ ...prev, paymentStatus: e.target.value as AdminBoardingRoomUsageFilters["paymentStatus"] }))}
                 >

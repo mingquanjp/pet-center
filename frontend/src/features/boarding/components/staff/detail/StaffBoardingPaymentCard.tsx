@@ -1,4 +1,4 @@
-import { CreditCard, Receipt, Banknote, ShieldCheck } from "lucide-react";
+import { CreditCard, Receipt, Banknote } from "lucide-react";
 import { StaffBoardingDetail } from "../../../types/boarding.types";
 import { getBoardingPaymentMethodLabel, getBoardingPaymentStatusLabel, formatBoardingMoney } from "../../../utils/boarding-format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

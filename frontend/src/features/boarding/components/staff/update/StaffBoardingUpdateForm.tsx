@@ -359,7 +359,7 @@ export function StaffBoardingUpdateForm({
               if (validationError) setValidationError(null);
             }}
             placeholder="Ví dụ: Bé ăn uống bình thường, đi vệ sinh tốt, tinh thần ổn định..."
-            className="min-h-[140px] resize-none rounded-xl border-[#E2E8F0] bg-white px-4 py-3 text-[15px] text-[#0F172A] placeholder:text-[#94A3B8] shadow-sm focus-visible:border-[#0D9488] focus-visible:ring-4 focus-visible:ring-[#0D9488]/10 transition-all"
+            className="min-h-35 resize-none rounded-xl border-[#E2E8F0] bg-white px-4 py-3 text-[15px] text-[#0F172A] placeholder:text-[#94A3B8] shadow-sm focus-visible:border-[#0D9488] focus-visible:ring-4 focus-visible:ring-[#0D9488]/10 transition-all"
           />
           {validationError ? (
             <p className="text-sm font-medium text-[#EF4444] mt-1.5">{validationError}</p>
