@@ -819,7 +819,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                           <th className="px-3 py-3">Thời gian</th>
                           <th className="px-3 py-3">Hướng dẫn</th>
                           <th className="px-3 py-3">Ghi chú</th>
-                          <th className="px-3 py-3 text-right">Thao tác</th>
+                          <th className="w-32 px-3 py-3 text-center">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -834,8 +834,8 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                             <td className="px-3 py-3">{item.duration}</td>
                             <td className="px-3 py-3">{item.usageInstruction}</td>
                             <td className="px-3 py-3">{item.note || "Không có"}</td>
-                            <td className="px-3 py-3">
-                              <div className="flex justify-end gap-2">
+                            <td className="w-32 px-3 py-3 text-center align-middle">
+                              <div className="flex justify-center gap-2">
                                 <Button
                                   className="h-9 rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background"
                                   onClick={() => openEditPrescriptionDialog(index)}
