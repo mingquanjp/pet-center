@@ -460,3 +460,134 @@ export interface CreateStaffBoardingAtCounterBody {
   note?: string | null;
 }
 
+// ==================================================
+// ADMIN BOARDING ROOM TYPES
+// ==================================================
+
+export type AdminBoardingRoomStatus = "active" | "inactive";
+
+export type AdminBoardingRoomCapacityLevel =
+  | "AVAILABLE"
+  | "NEAR_FULL"
+  | "FULL";
+
+export type AdminBoardingRoomPriceRange =
+  | "ALL"
+  | "UNDER_200K"
+  | "FROM_200K_TO_400K"
+  | "OVER_400K";
+
+export interface AdminBoardingRoomsQueryDto {
+  search?: string;
+  status?: "ALL" | AdminBoardingRoomStatus;
+  capacityLevel?: "ALL" | AdminBoardingRoomCapacityLevel;
+  priceRange?: AdminBoardingRoomPriceRange;
+  page?: number;
+  limit?: number;
+}
+
+export interface AdminBoardingRoomListItemDto {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  currentOccupancy: number;
+  availableSlots: number;
+  occupancyRate: number;
+  capacityLevel: AdminBoardingRoomCapacityLevel;
+  boardingUnitPrice: number;
+  status: AdminBoardingRoomStatus;
+}
+
+export interface AdminBoardingRoomsStatsDto {
+  totalRoomTypes: number;
+  activeRoomTypes: number;
+  inactiveRoomTypes: number;
+  stayingPets: number;
+  totalCapacity: number;
+  todayOccupancyRate: number;
+}
+
+export interface AdminBoardingRoomsResultDto {
+  items: AdminBoardingRoomListItemDto[];
+  stats: AdminBoardingRoomsStatsDto;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+export type AdminBoardingRecordStatus =
+  | "pending_payment"
+  | "pending"
+  | "confirmed"
+  | "staying"
+  | "checked_out"
+  | "rejected"
+  | "cancelled";
+
+export type AdminBoardingPaymentStatus =
+  | "paid"
+  | "unpaid"
+  | "refunded";
+
+export interface AdminBoardingRoomUsageStatsDto {
+  totalRecords: number;
+  currentlyStaying: number;
+  checkedOut: number;
+  cancelledOrRejected: number;
+  estimatedRevenue: number;
+  averageOccupancyRate: number;
+}
+
+export interface AdminBoardingRoomDetailDto extends AdminBoardingRoomListItemDto {
+  usageStats: AdminBoardingRoomUsageStatsDto;
+}
+
+export interface AdminBoardingRoomUsageHistoryQueryDto {
+  search?: string;
+  boardingStatus?: "ALL" | AdminBoardingRecordStatus;
+  paymentStatus?: "ALL" | AdminBoardingPaymentStatus;
+  timeRange?: "ALL" | "TODAY" | "THIS_WEEK" | "THIS_MONTH";
+  page?: number;
+  limit?: number;
+}
+
+export interface AdminBoardingRoomUsageRecordDto {
+  id: string;
+  boardingCode: string;
+  roomTypeId: string;
+  petName: string;
+  petSpecies: string;
+  ownerName: string;
+  plannedCheckInAt: string;
+  plannedCheckOutAt: string;
+  actualCheckInAt: string | null;
+  actualCheckOutAt: string | null;
+  totalDays: number;
+  boardingStatus: AdminBoardingRecordStatus;
+  paymentStatus: AdminBoardingPaymentStatus;
+  totalAmount: number;
+}
+
+export interface CreateAdminBoardingRoomBody {
+  name: string;
+  description?: string | null;
+  capacity: number;
+  boardingUnitPrice: number;
+  status?: AdminBoardingRoomStatus;
+}
+
+export interface UpdateAdminBoardingRoomBody {
+  name?: string;
+  description?: string | null;
+  capacity?: number;
+  boardingUnitPrice?: number;
+  status?: AdminBoardingRoomStatus;
+}
+
+export interface UpdateAdminBoardingRoomStatusBody {
+  status: AdminBoardingRoomStatus;
+}

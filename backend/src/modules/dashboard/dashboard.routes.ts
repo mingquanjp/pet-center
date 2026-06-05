@@ -4,7 +4,7 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as dashboardController from "./dashboard.controller.js";
-import { adminDashboardActivityLogsQuerySchema, adminDashboardQuerySchema, staffDashboardQuerySchema } from "./dashboard.schema.js";
+import { adminDashboardActivityLogsQuerySchema, adminDashboardQuerySchema, doctorDashboardQuerySchema, staffDashboardQuerySchema } from "./dashboard.schema.js";
 
 export const dashboardRouter = Router();
 
@@ -14,6 +14,14 @@ dashboardRouter.get(
   requireRole("STAFF", "ADMIN"),
   validateRequest({ query: staffDashboardQuerySchema }),
   asyncHandler(dashboardController.getStaffOverview)
+);
+
+dashboardRouter.get(
+  "/dashboards/doctor/overview",
+  authMiddleware,
+  requireRole("DOCTOR"),
+  validateRequest({ query: doctorDashboardQuerySchema }),
+  asyncHandler(dashboardController.getDoctorOverview)
 );
 
 dashboardRouter.get(

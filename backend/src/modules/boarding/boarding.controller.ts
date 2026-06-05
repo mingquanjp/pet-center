@@ -69,7 +69,8 @@ import type {
   CreateStaffBoardingAtCounterPayload,
   CreateStaffBoardingOwnerPayload,
   CreateStaffBoardingPetPayload,
-  StaffBoardingOwnerParams
+  StaffBoardingOwnerParams,
+  GetAdminBoardingRoomsQuery
 } from "./boarding.schema.js";
 
 export async function listStaffBoardingRecords(req: Request, res: Response): Promise<void> {
@@ -190,4 +191,96 @@ export async function createStaffBoardingAtCounter(req: Request, res: Response):
     req.body as CreateStaffBoardingAtCounterPayload
   );
   sendSuccess(res, result, "Tạo lưu trú tại quầy thành công", httpStatus.CREATED);
+}
+
+// ==========================================
+// ADMIN BOARDING CONTROLLERS
+// ==========================================
+
+export async function getAdminBoardingRoomsController(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.getAdminBoardingRooms(
+    req.user!,
+    req.query as unknown as GetAdminBoardingRoomsQuery
+  );
+
+  res.status(httpStatus.OK).json({
+    success: true,
+    data: result,
+    message: "Lấy danh sách phòng lưu trú thành công."
+  });
+}
+import type {
+  AdminBoardingRoomUsageHistoryQueryDto,
+  CreateAdminBoardingRoomBody,
+  UpdateAdminBoardingRoomBody,
+  UpdateAdminBoardingRoomStatusBody
+} from "./boarding.types.js";
+
+export async function getAdminBoardingRoomDetailController(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.getAdminBoardingRoomDetail(req.user!, req.params.roomTypeId as string);
+  res.status(httpStatus.OK).json({
+    success: true,
+    data: result,
+    message: "Lấy chi tiết phòng lưu trú thành công."
+  });
+}
+
+export async function getAdminBoardingRoomUsageHistoryController(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.getAdminBoardingRoomUsageHistory(
+    req.user!,
+    req.params.roomTypeId as string,
+    req.query as unknown as AdminBoardingRoomUsageHistoryQueryDto
+  );
+  res.status(httpStatus.OK).json({
+    success: true,
+    data: result,
+    message: "Lấy lịch sử sử dụng phòng thành công."
+  });
+}
+
+export async function createAdminBoardingRoomController(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.createAdminBoardingRoom(
+    req.user!,
+    req.body as CreateAdminBoardingRoomBody
+  );
+  res.status(httpStatus.CREATED).json({
+    success: true,
+    data: result,
+    message: "Tạo phòng lưu trú thành công."
+  });
+}
+
+export async function updateAdminBoardingRoomController(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.updateAdminBoardingRoom(
+    req.user!,
+    req.params.roomTypeId as string,
+    req.body as UpdateAdminBoardingRoomBody
+  );
+  res.status(httpStatus.OK).json({
+    success: true,
+    data: result,
+    message: "Cập nhật phòng lưu trú thành công."
+  });
+}
+
+export async function updateAdminBoardingRoomStatusController(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.updateAdminBoardingRoomStatus(
+    req.user!,
+    req.params.roomTypeId as string,
+    req.body as UpdateAdminBoardingRoomStatusBody
+  );
+  res.status(httpStatus.OK).json({
+    success: true,
+    data: result,
+    message: req.body.status === "active" ? "Kích hoạt phòng lưu trú thành công." : "Tạm ngưng phòng lưu trú thành công."
+  });
+}
+
+export async function deleteAdminBoardingRoomController(req: Request, res: Response): Promise<void> {
+  const result = await boardingService.deleteAdminBoardingRoom(req.user!, req.params.roomTypeId as string);
+  res.status(httpStatus.OK).json({
+    success: true,
+    data: result,
+    message: result.message
+  });
 }

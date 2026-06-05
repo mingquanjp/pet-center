@@ -16,7 +16,8 @@ import type {
   ListBoardingRecordsQuery,
   GetStaffBoardingCreateOptionsQuery,
   CreateStaffBoardingAtCounterPayload,
-  StaffBoardingOwnerParams
+  StaffBoardingOwnerParams,
+  GetAdminBoardingRoomsQuery
 } from "./boarding.schema.js";
 import * as boardingRepository from "./boarding.repository.js";
 import type {
@@ -35,7 +36,16 @@ import type {
   BoardingRecordStatus,
   BoardingRoomTypeAvailabilityRow,
   BoardingRoomTypeBookingDto,
-  BoardingUpdateRow
+  BoardingUpdateRow,
+  AdminBoardingRoomsResultDto,
+  AdminBoardingRoomCapacityLevel,
+  AdminBoardingRoomStatus,
+  AdminBoardingRoomDetailDto,
+  AdminBoardingRoomUsageHistoryQueryDto,
+  AdminBoardingPaymentStatus,
+  CreateAdminBoardingRoomBody,
+  UpdateAdminBoardingRoomBody,
+  UpdateAdminBoardingRoomStatusBody
 } from "./boarding.types.js";
 
 const minimumStayDays = 1;
@@ -1392,4 +1402,328 @@ export async function createStaffBoardingAtCounter(
       }
     };
   });
+}
+
+// ==================================================
+// ADMIN BOARDING ROOM SERVICE FUNCTIONS
+// ==================================================
+
+export async function getAdminBoardingRooms(
+  authUser: AuthUser,
+  query: GetAdminBoardingRoomsQuery
+): Promise<AdminBoardingRoomsResultDto> {
+  if (authUser.role !== "ADMIN") {
+    throw new AppError("Bạn không có quyền truy cập", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+
+  const paginationInput = normalizePagination(query.page, query.limit);
+
+  const filters = {
+    search: query.search,
+    status: query.status,
+    priceRange: query.priceRange,
+  };
+
+  const rows = await boardingRepository.findAdminBoardingRoomsBase(filters);
+
+  let items = rows.map((row: any, index: number) => {
+    const capacity = Number(row.capacity);
+    const currentOccupancy = Number(row.current_occupancy);
+    const availableSlots = Math.max(capacity - currentOccupancy, 0);
+    const occupancyRate = capacity > 0 ? Math.round((currentOccupancy / capacity) * 100) : 0;
+    
+    let capacityLevel: AdminBoardingRoomCapacityLevel = "AVAILABLE";
+    if (occupancyRate >= 100) {
+      capacityLevel = "FULL";
+    } else if (occupancyRate >= 70) {
+      capacityLevel = "NEAR_FULL";
+    }
+
+    return {
+      id: row.room_type_id,
+      code: `RT-${String(index + 1).padStart(3, '0')}`,
+      name: row.room_type_name,
+      description: row.description,
+      capacity,
+      currentOccupancy,
+      availableSlots,
+      occupancyRate,
+      capacityLevel,
+      boardingUnitPrice: Number(row.boarding_unit_price),
+      status: row.room_type_status as AdminBoardingRoomStatus
+    };
+  });
+
+  if (query.capacityLevel && query.capacityLevel !== "ALL") {
+    items = items.filter(item => item.capacityLevel === query.capacityLevel);
+  }
+
+  const total = items.length;
+  const paginatedItems = items.slice(paginationInput.offset, paginationInput.offset + paginationInput.limit);
+
+  const statsRows = await boardingRepository.findAdminBoardingRoomsStatsBase();
+  
+  let totalRoomTypes = statsRows.length;
+  let activeRoomTypes = 0;
+  let inactiveRoomTypes = 0;
+  let stayingPets = 0;
+  let totalCapacity = 0;
+
+  for (const sr of statsRows) {
+    if (sr.room_type_status === "active") activeRoomTypes++;
+    else inactiveRoomTypes++;
+
+    stayingPets += Number(sr.current_occupancy);
+    totalCapacity += Number(sr.capacity);
+  }
+
+  const todayOccupancyRate = totalCapacity > 0 ? Math.round((stayingPets / totalCapacity) * 100) : 0;
+
+  return {
+    items: paginatedItems,
+    stats: {
+      totalRoomTypes,
+      activeRoomTypes,
+      inactiveRoomTypes,
+      stayingPets,
+      totalCapacity,
+      todayOccupancyRate
+    },
+    pagination: createPagination(paginationInput.page, paginationInput.limit, total)
+  };
+}
+export async function getAdminBoardingRoomDetail(
+  authUser: AuthUser,
+  roomTypeId: string
+): Promise<AdminBoardingRoomDetailDto> {
+  if (authUser.role !== "ADMIN") {
+    throw new AppError("Bạn không có quyền truy cập", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+
+  const row = await boardingRepository.findAdminBoardingRoomDetailRow(roomTypeId);
+  if (!row) {
+    throw new AppError("Không tìm thấy loại phòng lưu trú.", "ROOM_TYPE_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  const usageStatsRow = await boardingRepository.findAdminBoardingRoomUsageStats(roomTypeId);
+
+  const capacity = Number(row.capacity);
+  const currentOccupancy = Number(row.current_occupancy);
+  const availableSlots = Math.max(capacity - currentOccupancy, 0);
+  const occupancyRate = capacity > 0 ? Math.round((currentOccupancy / capacity) * 100) : 0;
+  
+  let capacityLevel: AdminBoardingRoomCapacityLevel = "AVAILABLE";
+  if (occupancyRate >= 100) {
+    capacityLevel = "FULL";
+  } else if (occupancyRate >= 70) {
+    capacityLevel = "NEAR_FULL";
+  }
+
+  const averageOccupancyRate = capacity > 0 ? Math.round((Number(usageStatsRow.currently_staying) / capacity) * 100) : 0;
+
+  return {
+    id: row.room_type_id,
+    code: `RT-${roomTypeId.slice(-3).padStart(3, '0')}`,
+    name: row.room_type_name,
+    description: row.description,
+    capacity,
+    currentOccupancy,
+    availableSlots,
+    occupancyRate,
+    capacityLevel,
+    boardingUnitPrice: Number(row.boarding_unit_price),
+    status: row.room_type_status as AdminBoardingRoomStatus,
+    usageStats: {
+      totalRecords: Number(usageStatsRow.total_records),
+      currentlyStaying: Number(usageStatsRow.currently_staying),
+      checkedOut: Number(usageStatsRow.checked_out),
+      cancelledOrRejected: Number(usageStatsRow.cancelled_or_rejected),
+      estimatedRevenue: Number(usageStatsRow.estimated_revenue),
+      averageOccupancyRate
+    }
+  };
+}
+
+export async function getAdminBoardingRoomUsageHistory(
+  authUser: AuthUser,
+  roomTypeId: string,
+  query: AdminBoardingRoomUsageHistoryQueryDto
+) {
+  if (authUser.role !== "ADMIN") {
+    throw new AppError("Bạn không có quyền truy cập", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+
+  const room = await boardingRepository.findRoomTypeById(roomTypeId);
+  if (!room) {
+    throw new AppError("Không tìm thấy loại phòng lưu trú.", "ROOM_TYPE_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  const paginationInput = normalizePagination(query.page, query.limit);
+
+  const filters = {
+    search: query.search,
+    boardingStatus: query.boardingStatus,
+    paymentStatus: query.paymentStatus,
+    timeRange: query.timeRange,
+  };
+
+  const rows = await boardingRepository.findAdminBoardingRoomUsageHistoryRows(roomTypeId, filters, paginationInput.offset, paginationInput.limit);
+  const total = await boardingRepository.countAdminBoardingRoomUsageHistory(roomTypeId, filters);
+
+  const items = rows.map((row: any) => {
+    const plannedCheckIn = new Date(row.planned_check_in_at);
+    const plannedCheckOut = new Date(row.planned_check_out_at);
+    const diffTime = Math.abs(plannedCheckOut.getTime() - plannedCheckIn.getTime());
+    const totalDays = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 1);
+
+    let paymentStatus = "unpaid";
+    if (row.invoice_status === "paid") paymentStatus = "paid";
+    else if (row.invoice_status === "refunded") paymentStatus = "refunded";
+
+    return {
+      id: row.boarding_record_id,
+      boardingCode: row.boarding_record_id,
+      roomTypeId: row.room_type_id,
+      petName: row.pet_name,
+      petSpecies: row.pet_species,
+      ownerName: row.owner_name,
+      plannedCheckInAt: row.planned_check_in_at,
+      plannedCheckOutAt: row.planned_check_out_at,
+      actualCheckInAt: row.actual_check_in_at,
+      actualCheckOutAt: row.actual_check_out_at,
+      totalDays,
+      boardingStatus: row.boarding_status,
+      paymentStatus: paymentStatus as AdminBoardingPaymentStatus,
+      totalAmount: Number(row.invoice_total) > 0 ? Number(row.invoice_total) : Number(row.estimated_total)
+    };
+  });
+
+  return {
+    items,
+    pagination: createPagination(paginationInput.page, paginationInput.limit, total)
+  };
+}
+
+export async function createAdminBoardingRoom(
+  authUser: AuthUser,
+  body: CreateAdminBoardingRoomBody
+) {
+  if (authUser.role !== "ADMIN") {
+    throw new AppError("Bạn không có quyền truy cập", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+
+  const exists = await boardingRepository.checkRoomTypeNameExists(body.name);
+  if (exists) {
+    throw new AppError("Tên loại phòng đã tồn tại.", "ROOM_TYPE_NAME_EXISTS", httpStatus.BAD_REQUEST);
+  }
+
+  const roomTypeId = createId("rt");
+  const row = await boardingRepository.createAdminBoardingRoom(roomTypeId, body);
+
+  return {
+    id: row.room_type_id,
+    code: `RT-${roomTypeId.slice(-3).padStart(3, '0')}`,
+    name: row.room_type_name,
+    description: row.description,
+    capacity: Number(row.capacity),
+    currentOccupancy: 0,
+    availableSlots: Number(row.capacity),
+    occupancyRate: 0,
+    capacityLevel: "AVAILABLE" as AdminBoardingRoomCapacityLevel,
+    boardingUnitPrice: Number(row.boarding_unit_price),
+    status: row.room_type_status as AdminBoardingRoomStatus
+  };
+}
+
+export async function updateAdminBoardingRoom(
+  authUser: AuthUser,
+  roomTypeId: string,
+  body: UpdateAdminBoardingRoomBody
+) {
+  if (authUser.role !== "ADMIN") {
+    throw new AppError("Bạn không có quyền truy cập", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+
+  const room = await boardingRepository.findRoomTypeById(roomTypeId);
+  if (!room) {
+    throw new AppError("Không tìm thấy loại phòng lưu trú.", "ROOM_TYPE_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  if (body.name && body.name !== room.room_type_name) {
+    const exists = await boardingRepository.checkRoomTypeNameExists(body.name, roomTypeId);
+    if (exists) {
+      throw new AppError("Tên loại phòng đã tồn tại.", "ROOM_TYPE_NAME_EXISTS", httpStatus.BAD_REQUEST);
+    }
+  }
+
+  if (body.capacity !== undefined) {
+    const currentOccupancy = await boardingRepository.countStayingPetsByRoomType(roomTypeId);
+    if (body.capacity < currentOccupancy) {
+      throw new AppError("Sức chứa không được nhỏ hơn số thú cưng đang lưu trú.", "ROOM_TYPE_CAPACITY_TOO_SMALL", httpStatus.BAD_REQUEST);
+    }
+  }
+
+  await boardingRepository.updateAdminBoardingRoom(roomTypeId, body);
+
+  return await getAdminBoardingRoomDetail(authUser, roomTypeId);
+}
+
+export async function updateAdminBoardingRoomStatus(
+  authUser: AuthUser,
+  roomTypeId: string,
+  body: UpdateAdminBoardingRoomStatusBody
+) {
+  if (authUser.role !== "ADMIN") {
+    throw new AppError("Bạn không có quyền truy cập", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+
+  const room = await boardingRepository.findRoomTypeById(roomTypeId);
+  if (!room) {
+    throw new AppError("Không tìm thấy loại phòng lưu trú.", "ROOM_TYPE_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  if (room.room_type_status !== body.status) {
+    await boardingRepository.updateAdminBoardingRoomStatus(roomTypeId, body.status);
+  }
+
+  return await getAdminBoardingRoomDetail(authUser, roomTypeId);
+}
+
+export async function deleteAdminBoardingRoom(
+  authUser: AuthUser,
+  roomTypeId: string
+) {
+  if (authUser.role !== "ADMIN") {
+    throw new AppError("Bạn không có quyền truy cập", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+
+  const room = await boardingRepository.findRoomTypeById(roomTypeId);
+  if (!room) {
+    throw new AppError("Không tìm thấy loại phòng lưu trú.", "ROOM_TYPE_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  const currentOccupancy = await boardingRepository.countStayingPetsByRoomType(roomTypeId);
+  if (currentOccupancy > 0) {
+    throw new AppError("Không thể xóa loại phòng đang có thú cưng lưu trú.", "ROOM_TYPE_HAS_STAYING_PETS", httpStatus.BAD_REQUEST);
+  }
+
+  const totalRecords = await boardingRepository.countBoardingRecordsByRoomType(roomTypeId);
+  
+  if (totalRecords > 0) {
+    await boardingRepository.updateAdminBoardingRoomStatus(roomTypeId, "inactive");
+    return {
+      deleted: false,
+      deactivated: true,
+      id: roomTypeId,
+      message: "Loại phòng đã có lịch sử sử dụng nên đã được tạm ngưng."
+    };
+  }
+
+  await boardingRepository.deleteAdminBoardingRoom(roomTypeId);
+  return {
+    deleted: true,
+    deactivated: false,
+    id: roomTypeId,
+    message: "Xóa phòng lưu trú thành công."
+  };
 }

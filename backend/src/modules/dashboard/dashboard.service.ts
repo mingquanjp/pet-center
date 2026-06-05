@@ -3,8 +3,8 @@ import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
 import { createPagination, normalizePagination } from "../../shared/utils/pagination.js";
 import * as dashboardRepository from "./dashboard.repository.js";
-import type { AdminDashboardActivityLogsQuery, AdminDashboardQuery, StaffDashboardQuery } from "./dashboard.schema.js";
-import type { AdminDashboardOverviewDto, StaffDashboardOverviewDto } from "./dashboard.types.js";
+import type { AdminDashboardActivityLogsQuery, AdminDashboardQuery, DoctorDashboardQuery, StaffDashboardQuery } from "./dashboard.schema.js";
+import type { AdminDashboardOverviewDto, DoctorDashboardOverviewDto, StaffDashboardOverviewDto } from "./dashboard.types.js";
 
 function assertOwner(authUser: AuthUser): void {
   if (authUser.role !== "OWNER") {
@@ -15,6 +15,12 @@ function assertOwner(authUser: AuthUser): void {
 function assertStaffAccess(authUser: AuthUser): void {
   if (authUser.role !== "STAFF" && authUser.role !== "ADMIN") {
     throw new AppError("Bạn không có quyền xem tổng quan nhân viên", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+}
+
+function assertDoctor(authUser: AuthUser): void {
+  if (authUser.role !== "DOCTOR") {
+    throw new AppError("Bạn không có quyền xem tổng quan bác sĩ", "FORBIDDEN", httpStatus.FORBIDDEN);
   }
 }
 
@@ -83,6 +89,30 @@ export async function getStaffOverview(
       todayInvoices,
     },
     appointmentTasks,
+  };
+}
+
+export async function getDoctorOverview(
+  authUser: AuthUser,
+  query: DoctorDashboardQuery
+): Promise<DoctorDashboardOverviewDto> {
+  assertDoctor(authUser);
+
+  const [stats, assignedExams, recentActivities] = await Promise.all([
+    dashboardRepository.getDoctorDashboardStats(authUser.userId),
+    dashboardRepository.findDoctorAssignedExams(authUser.userId, query.examLimit),
+    dashboardRepository.findDoctorRecentActivities(authUser.userId, query.activityLimit),
+  ]);
+
+  return {
+    doctor: {
+      id: authUser.userId,
+      fullName: authUser.fullName,
+      roleLabel: "Bác sĩ thú y",
+    },
+    stats,
+    assignedExams,
+    recentActivities,
   };
 }
 

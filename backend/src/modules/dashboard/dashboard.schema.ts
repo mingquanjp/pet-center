@@ -8,6 +8,13 @@ export const staffDashboardQuerySchema = z.object({
 
 export type StaffDashboardQuery = z.infer<typeof staffDashboardQuerySchema>;
 
+export const doctorDashboardQuerySchema = z.object({
+  examLimit: z.coerce.number().int().min(1).max(10).default(5),
+  activityLimit: z.coerce.number().int().min(1).max(10).default(3),
+});
+
+export type DoctorDashboardQuery = z.infer<typeof doctorDashboardQuerySchema>;
+
 export const adminDashboardQuerySchema = z
   .object({
     startDate: dateStringSchema.optional(),

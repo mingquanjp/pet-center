@@ -113,7 +113,13 @@ import {
   createStaffBoardingAtCounterSchema,
   createStaffBoardingOwnerSchema,
   createStaffBoardingPetSchema,
-  staffBoardingOwnerParamsSchema
+  staffBoardingOwnerParamsSchema,
+  getAdminBoardingRoomsQuerySchema,
+  getAdminBoardingRoomUsageHistoryQuerySchema,
+  createAdminBoardingRoomSchema,
+  updateAdminBoardingRoomSchema,
+  updateAdminBoardingRoomStatusSchema,
+  roomTypeIdParamSchema
 } from "./boarding.schema.js";
 
 // Keep existing routes mounted at "/boarding/staff/records" or "/staff/boarding" depending on setup
@@ -228,5 +234,65 @@ boardingRouter.patch(
   requireRole("STAFF", "ADMIN"),
   validateRequest({ params: staffBoardingIdParamsSchema, body: checkOutStaffBoardingSchema }),
   asyncHandler(boardingController.checkOutStaffBoarding)
+);
+
+// ==========================================
+// ADMIN BOARDING ROUTES
+// ==========================================
+
+boardingRouter.get(
+  "/admin/boarding-rooms",
+  authMiddleware,
+  requireRole("ADMIN"),
+  validateRequest({ query: getAdminBoardingRoomsQuerySchema }),
+  asyncHandler(boardingController.getAdminBoardingRoomsController)
+);
+
+boardingRouter.post(
+  "/admin/boarding-rooms",
+  authMiddleware,
+  requireRole("ADMIN"),
+  validateRequest({ body: createAdminBoardingRoomSchema }),
+  asyncHandler(boardingController.createAdminBoardingRoomController)
+);
+
+boardingRouter.get(
+  "/admin/boarding-rooms/:roomTypeId/usage-history",
+  authMiddleware,
+  requireRole("ADMIN"),
+  validateRequest({ params: roomTypeIdParamSchema, query: getAdminBoardingRoomUsageHistoryQuerySchema }),
+  asyncHandler(boardingController.getAdminBoardingRoomUsageHistoryController)
+);
+
+boardingRouter.get(
+  "/admin/boarding-rooms/:roomTypeId",
+  authMiddleware,
+  requireRole("ADMIN"),
+  validateRequest({ params: roomTypeIdParamSchema }),
+  asyncHandler(boardingController.getAdminBoardingRoomDetailController)
+);
+
+boardingRouter.patch(
+  "/admin/boarding-rooms/:roomTypeId/status",
+  authMiddleware,
+  requireRole("ADMIN"),
+  validateRequest({ params: roomTypeIdParamSchema, body: updateAdminBoardingRoomStatusSchema }),
+  asyncHandler(boardingController.updateAdminBoardingRoomStatusController)
+);
+
+boardingRouter.patch(
+  "/admin/boarding-rooms/:roomTypeId",
+  authMiddleware,
+  requireRole("ADMIN"),
+  validateRequest({ params: roomTypeIdParamSchema, body: updateAdminBoardingRoomSchema }),
+  asyncHandler(boardingController.updateAdminBoardingRoomController)
+);
+
+boardingRouter.delete(
+  "/admin/boarding-rooms/:roomTypeId",
+  authMiddleware,
+  requireRole("ADMIN"),
+  validateRequest({ params: roomTypeIdParamSchema }),
+  asyncHandler(boardingController.deleteAdminBoardingRoomController)
 );
 

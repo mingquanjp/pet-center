@@ -25,7 +25,6 @@ import {
   formatBoardingMoney,
   getBoardingPaymentMethodLabel,
   getBoardingPaymentStatusLabel,
-  getBoardingRoomTypeLabel,
 } from "../../../utils/boarding-format";
 
 interface Props {

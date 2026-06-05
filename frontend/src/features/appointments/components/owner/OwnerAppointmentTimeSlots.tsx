@@ -43,7 +43,7 @@ export function OwnerAppointmentTimeSlots({
             {timeSlots.map((slot) => {
               const selected = slot.value === selectedTimeSlot;
               const availableUnits = slot.availableUnits ?? (slot.disabled ? 0 : 1);
-              const slotStatus = slot.disabledReason === "past"
+              const slotStatus = slot.disabledReason === "cutoff"
                 ? "Quá hạn đặt"
                 : availableUnits > 0
                   ? `Còn ${availableUnits} Slot`

@@ -186,7 +186,7 @@ CREATE TABLE prescription_items (
     prescription_id VARCHAR(30) NOT NULL REFERENCES prescriptions(prescription_id) ON UPDATE CASCADE ON DELETE CASCADE,
     medicine_id VARCHAR(30) NOT NULL REFERENCES medicines(medicine_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     medicine_name VARCHAR(150) NOT NULL,
-    quantity NUMERIC(12,2) NOT NULL DEFAULT 1,
+    quantity VARCHAR(120),
     dosage VARCHAR(120) NOT NULL,
     frequency VARCHAR(120) NOT NULL,
     duration VARCHAR(120) NOT NULL,
@@ -201,7 +201,14 @@ CREATE TABLE follow_up_instructions (
     follow_up_date DATE NOT NULL,
     reason TEXT NOT NULL,
     owner_note TEXT,
-    CONSTRAINT chk_follow_up_date CHECK (follow_up_date >= CURRENT_DATE)
+    follow_up_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    completed_at TIMESTAMPTZ,
+    CONSTRAINT chk_follow_up_date CHECK (follow_up_date >= CURRENT_DATE),
+    CONSTRAINT chk_follow_up_status CHECK (follow_up_status IN ('pending', 'completed', 'cancelled')),
+    CONSTRAINT chk_follow_up_completed_at CHECK (
+        (follow_up_status = 'completed' AND completed_at IS NOT NULL)
+        OR (follow_up_status <> 'completed' AND completed_at IS NULL)
+    )
 );
 
 CREATE TABLE service_price_rules (
@@ -472,6 +479,7 @@ CREATE INDEX idx_prescriptions_exam ON prescriptions(exam_id);
 CREATE INDEX idx_prescription_items_prescription ON prescription_items(prescription_id);
 CREATE INDEX idx_prescription_items_medicine ON prescription_items(medicine_id);
 CREATE INDEX idx_follow_ups_date ON follow_up_instructions(follow_up_date);
+CREATE INDEX idx_follow_ups_status_date ON follow_up_instructions(follow_up_status, follow_up_date);
 CREATE INDEX idx_service_price_rules_service ON service_price_rules(service_id, effective_from DESC);
 CREATE INDEX idx_grooming_tickets_pet_time ON grooming_tickets(pet_id, scheduled_at);
 CREATE INDEX idx_grooming_tickets_owner_status ON grooming_tickets(owner_user_id, ticket_status);

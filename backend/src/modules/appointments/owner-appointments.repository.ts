@@ -285,6 +285,19 @@ export async function countBookedAppointmentsAt(scheduledAt: Date, client: PoolC
   return result.rows[0]?.total ?? 0;
 }
 
+export async function countPetAppointmentsAt(petId: string, scheduledAt: Date, client: PoolClient) {
+  const sql = `
+    SELECT COUNT(*)::int AS total
+    FROM pet_center.medical_appointments
+    WHERE pet_id = $1
+      AND scheduled_at = $2
+      AND appointment_status IN ('pending_payment', 'pending', 'confirmed')
+  `;
+
+  const result = await client.query<{ total: number }>(sql, [petId, scheduledAt]);
+  return result.rows[0]?.total ?? 0;
+}
+
 export async function insertOwnerAppointment(
   input: {
     appointmentId: string;

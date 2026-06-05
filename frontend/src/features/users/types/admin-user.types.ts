@@ -21,6 +21,70 @@ export type AdminUser = {
   petCount: number;
 };
 
+export type AdminUserPet = {
+  id: string;
+  name: string;
+  species: "Dog" | "Cat" | "Other";
+  speciesLabel: string;
+  breed: string | null;
+  gender: "male" | "female" | "unknown" | null;
+  genderLabel: string;
+  birthDate: string | null;
+  estimatedAge: number | null;
+  ageLabel: string;
+  profileImageUrl: string | null;
+  status: "active" | "inactive" | "deceased";
+  statusLabel: string;
+};
+
+export type AdminUserActivity = {
+  id: string;
+  petId: string | null;
+  petName: string | null;
+  actorName: string | null;
+  category: "medical" | "vaccination" | "grooming" | "boarding" | "invoice" | "payment" | "profile";
+  categoryLabel: string;
+  type: string;
+  status: "scheduled" | "pending" | "confirmed" | "completed" | "cancelled" | "rejected" | "failed";
+  statusLabel: string;
+  occurredAt: string;
+  title: string;
+  summary: string | null;
+  sourceType: string;
+  sourceId: string;
+};
+
+export type AdminUserDetail = {
+  user: AdminUser;
+  pets: AdminUserPet[];
+  activities: AdminUserActivity[];
+  activitiesPagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+};
+
+export type CreateAdminUserInput = {
+  fullName: string;
+  email: string;
+  password: string;
+  phoneNumber?: string;
+  address?: string;
+  role: AdminUserRole;
+  accountStatus: AdminUserStatus;
+};
+
+export type UpdateAdminUserInput = {
+  fullName?: string;
+  email?: string;
+  phoneNumber?: string | null;
+  address?: string | null;
+  role?: AdminUserRole;
+  accountStatus?: AdminUserStatus;
+};
+
 export type AdminUserStats = {
   totalCount: number;
   activeCount: number;
