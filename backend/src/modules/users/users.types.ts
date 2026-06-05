@@ -42,3 +42,85 @@ export type AdminUserDto = {
   createdAt: string;
   petCount: number;
 };
+
+export type AdminUserPetRow = {
+  pet_id: string;
+  pet_name: string;
+  species: "Dog" | "Cat" | "Other";
+  breed: string | null;
+  gender: "male" | "female" | "unknown" | null;
+  birth_date: string | null;
+  estimated_age: string | number | null;
+  profile_image_url: string | null;
+  pet_status: "active" | "inactive" | "deceased";
+};
+
+export type AdminUserActivityRow = {
+  activity_log_id: string;
+  pet_id: string | null;
+  pet_name: string | null;
+  actor_name: string | null;
+  activity_category: "medical" | "vaccination" | "grooming" | "boarding" | "invoice" | "payment" | "profile";
+  activity_type: string;
+  activity_status: "scheduled" | "pending" | "confirmed" | "completed" | "cancelled" | "rejected" | "failed";
+  occurred_at: string;
+  title: string;
+  summary: string | null;
+  source_type: string;
+  source_id: string;
+};
+
+export type AdminUserPetDto = {
+  id: string;
+  name: string;
+  species: AdminUserPetRow["species"];
+  speciesLabel: string;
+  breed: string | null;
+  gender: AdminUserPetRow["gender"];
+  genderLabel: string;
+  birthDate: string | null;
+  estimatedAge: number | null;
+  ageLabel: string;
+  profileImageUrl: string | null;
+  status: AdminUserPetRow["pet_status"];
+  statusLabel: string;
+};
+
+export type AdminUserActivityDto = {
+  id: string;
+  petId: string | null;
+  petName: string | null;
+  actorName: string | null;
+  category: AdminUserActivityRow["activity_category"];
+  categoryLabel: string;
+  type: string;
+  status: AdminUserActivityRow["activity_status"];
+  statusLabel: string;
+  occurredAt: string;
+  title: string;
+  summary: string | null;
+  sourceType: string;
+  sourceId: string;
+};
+
+export type AdminUserDetailDto = {
+  user: AdminUserDto;
+  pets: AdminUserPetDto[];
+  activities: AdminUserActivityDto[];
+  activitiesPagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+};
+
+export type AdminUserActivitiesDto = {
+  activities: AdminUserActivityDto[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+};

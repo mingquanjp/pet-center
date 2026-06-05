@@ -1,5 +1,5 @@
 import { query } from "../../db/query.js";
-import type { AdminUserListRow, AdminUsersQuery, AdminUserStatsRow } from "./users.types.js";
+import type { AdminUserActivityRow, AdminUserListRow, AdminUserPetRow, AdminUsersQuery, AdminUserStatsRow } from "./users.types.js";
 
 const vietnameseAccentChars =
   "àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ";
@@ -102,8 +102,7 @@ export async function countAdminUsers(filters: AdminUsersQuery) {
   return parseInt(result.rows[0]?.total ?? "0", 10);
 }
 
-export async function getAdminUserStats(filters: AdminUsersQuery) {
-  const { params, where } = buildAdminUserFilterClauses(filters);
+export async function getAdminUserStats() {
   const sql = `
     select
       count(*)::text as total_count,
@@ -114,9 +113,196 @@ export async function getAdminUserStats(filters: AdminUsersQuery) {
       count(*) filter (where u.role = 'Doctor')::text as doctor_count,
       count(*) filter (where u.account_status in ('locked', 'inactive'))::text as needs_attention_count
     from pet_center.users u
-    where 1=1 ${where}
   `;
 
-  const result = await query<AdminUserStatsRow>(sql, params);
+  const result = await query<AdminUserStatsRow>(sql);
   return result.rows[0];
+}
+
+export async function findAdminUserById(userId: string) {
+  const sql = `
+    select
+      u.user_id,
+      u.full_name,
+      u.email::text,
+      u.phone_number,
+      u.address,
+      u.role,
+      u.account_status,
+      u.created_at,
+      count(p.pet_id)::text as pet_count
+    from pet_center.users u
+    left join pet_center.pets p on p.owner_user_id = u.user_id
+    where u.user_id = $1
+    group by u.user_id
+    limit 1
+  `;
+
+  const result = await query<AdminUserListRow>(sql, [userId]);
+  return result.rows[0] ?? null;
+}
+
+export async function findAdminUserPets(userId: string, limit = 4) {
+  const sql = `
+    select
+      p.pet_id,
+      p.pet_name,
+      p.species,
+      p.breed,
+      p.gender,
+      p.birth_date::text as birth_date,
+      p.estimated_age,
+      p.profile_image_url,
+      p.pet_status
+    from pet_center.pets p
+    where p.owner_user_id = $1
+    order by
+      case p.pet_status when 'active' then 0 when 'inactive' then 1 else 2 end,
+      p.pet_name asc,
+      p.pet_id asc
+    limit $2
+  `;
+
+  const result = await query<AdminUserPetRow>(sql, [userId, limit]);
+  return result.rows;
+}
+
+export async function findAdminUserActivities(userId: string, limit = 5, offset = 0) {
+  const sql = `
+    select
+      pal.activity_log_id,
+      pal.pet_id,
+      p.pet_name,
+      actor.full_name as actor_name,
+      pal.activity_category,
+      pal.activity_type,
+      pal.activity_status,
+      pal.occurred_at::text as occurred_at,
+      pal.title,
+      pal.summary,
+      pal.source_type,
+      pal.source_id
+    from pet_center.pet_activity_logs pal
+    left join pet_center.pets p on p.pet_id = pal.pet_id
+    left join pet_center.users actor on actor.user_id = pal.actor_user_id
+    where pal.owner_user_id = $1
+      and pal.visibility_status = 'visible'
+    order by pal.occurred_at desc, pal.activity_log_id desc
+    limit $2 offset $3
+  `;
+
+  const result = await query<AdminUserActivityRow>(sql, [userId, limit, offset]);
+  return result.rows;
+}
+
+export async function countAdminUserActivities(userId: string) {
+  const sql = `
+    select count(*)::text as total
+    from pet_center.pet_activity_logs pal
+    where pal.owner_user_id = $1
+      and pal.visibility_status = 'visible'
+  `;
+
+  const result = await query<{ total: string }>(sql, [userId]);
+  return parseInt(result.rows[0]?.total ?? "0", 10);
+}
+
+export async function createAdminUser(input: {
+  userId: string;
+  fullName: string;
+  email: string;
+  passwordHash: string;
+  phoneNumber?: string;
+  address?: string;
+  role: string;
+  accountStatus: string;
+}) {
+  const sql = `
+    insert into pet_center.users (
+      user_id,
+      full_name,
+      email,
+      password_hash,
+      phone_number,
+      address,
+      role,
+      account_status
+    )
+    values ($1, $2, $3, $4, $5, $6, $7, $8)
+    returning
+      user_id,
+      full_name,
+      email::text,
+      phone_number,
+      address,
+      role,
+      account_status,
+      created_at,
+      '0'::text as pet_count
+  `;
+
+  const result = await query<AdminUserListRow>(sql, [
+    input.userId,
+    input.fullName,
+    input.email,
+    input.passwordHash,
+    input.phoneNumber ?? null,
+    input.address ?? null,
+    input.role,
+    input.accountStatus,
+  ]);
+
+  return result.rows[0];
+}
+
+export async function updateAdminUser(
+  userId: string,
+  input: {
+    fullName?: string;
+    email?: string;
+    phoneNumber?: string | null;
+    address?: string | null;
+    role?: string;
+    accountStatus?: string;
+  }
+) {
+  const sql = `
+    update pet_center.users as u
+    set
+      full_name = coalesce($2, full_name),
+      email = coalesce($3, email),
+      phone_number = case when $4::boolean then $5 else phone_number end,
+      address = case when $6::boolean then $7 else address end,
+      role = coalesce($8, role),
+      account_status = coalesce($9, account_status)
+    where u.user_id = $1
+    returning
+      user_id,
+      full_name,
+      email::text,
+      phone_number,
+      address,
+      role,
+      account_status,
+      created_at,
+      (
+        select count(p.pet_id)::text
+        from pet_center.pets p
+        where p.owner_user_id = u.user_id
+      ) as pet_count
+  `;
+
+  const result = await query<AdminUserListRow>(sql, [
+    userId,
+    input.fullName ?? null,
+    input.email ?? null,
+    Object.prototype.hasOwnProperty.call(input, "phoneNumber"),
+    input.phoneNumber ?? null,
+    Object.prototype.hasOwnProperty.call(input, "address"),
+    input.address ?? null,
+    input.role ?? null,
+    input.accountStatus ?? null,
+  ]);
+
+  return result.rows[0] ?? null;
 }
