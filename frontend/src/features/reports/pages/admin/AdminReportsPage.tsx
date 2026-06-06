@@ -10,7 +10,7 @@ import { BoardingReportTab } from "../../components/admin/boarding/BoardingRepor
 import { MedicalReportTab } from "../../components/admin/medical/MedicalReportTab";
 import { CustomerPetReportTab } from "../../components/admin/customers/CustomerPetReportTab";
 import { Dog3DScene } from "@/components/ui/dog-3d";
-import { Loader2, CalendarClock } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 
 export function AdminReportsPage() {
   const {
@@ -44,7 +44,7 @@ export function AdminReportsPage() {
         {isWaitingForDates ? (
           <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-card border border-petcenter-border bg-petcenter-card shadow-card text-petcenter-text-muted">
             <CalendarClock className="h-12 w-12 text-petcenter-primary/50" />
-            <p className="text-sm font-medium">Vui lòng chọn "Từ ngày" và "Đến ngày" để xem báo cáo tùy chỉnh.</p>
+            <p className="text-sm font-medium">Vui lòng chọn &quot;Từ ngày&quot; và &quot;Đến ngày&quot; để xem báo cáo tùy chỉnh.</p>
           </div>
         ) : isLoading ? (
           <div className="flex h-64 items-center justify-center rounded-card border border-petcenter-border bg-petcenter-card shadow-card">

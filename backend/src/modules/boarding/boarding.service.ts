@@ -7,6 +7,14 @@ import { createPagination, normalizePagination } from "../../shared/utils/pagina
 import { createId } from "../../shared/utils/id.js";
 import { withTransaction } from "../../db/transactions.js";
 import * as mailService from "../mail/mail.service.js";
+import {
+  notifyBoardingCreated,
+  notifyBoardingConfirmed,
+  notifyBoardingRejected,
+  notifyBoardingCancelled,
+  notifyBoardingCheckedIn,
+  notifyBoardingUpdateCreated,
+} from "../notifications/notification-events.js";
 import type {
   BoardingBookingOptionsQuery,
   BoardingRecordParams,
@@ -463,7 +471,7 @@ export async function createBoardingRecord(
   }
 
   try {
-    return await boardingRepository.createBoardingRecord({
+    const record = await boardingRepository.createBoardingRecord({
       ownerUserId: authUser.userId,
       pet: mapBookingPet(petRow),
       roomType: selectedRoomType,
@@ -473,6 +481,8 @@ export async function createBoardingRecord(
       careRequest: payload.careRequest,
       paymentOption: payload.paymentOption
     });
+    notifyBoardingCreated(record.boardingRecordId).catch(console.error);
+    return record;
   } catch (error) {
     if (error instanceof Error && error.message === "BOARDING_PET_TIME_CONFLICT") {
       throw new AppError("Thú cưng này đã có lịch lưu trú trùng thời gian đã chọn", "BOARDING_PET_TIME_CONFLICT", httpStatus.CONFLICT);
@@ -539,6 +549,7 @@ export async function cancelOwnerBoardingRecord(
   }
 
   await boardingRepository.updateBoardingRecordStatus(params.boardingRecordId, "cancelled");
+  notifyBoardingCancelled(params.boardingRecordId).catch(console.error);
 }
 
 export async function listOwnerBoardingRecords(authUser: AuthUser, query: ListBoardingRecordsQuery) {
@@ -960,6 +971,8 @@ export async function updateStaffBoardingLog(authUser: AuthUser, boardingId: str
   const visibilityStatus = mapDtoVisibilityStatusToDb(payload.visibilityStatus);
   const existingDraft = await boardingRepository.findLatestDraftUpdateByBoardingIdAndUserId(boardingId, authUser.userId);
 
+  let updateId: string;
+
   if (existingDraft) {
     await boardingRepository.updateBoardingUpdate({
       boardingUpdateId: existingDraft.boarding_update_id,
@@ -968,8 +981,9 @@ export async function updateStaffBoardingLog(authUser: AuthUser, boardingId: str
       visibilityStatus,
       attachmentUrls: getPayloadAttachmentUrls(payload)
     });
+    updateId = existingDraft.boarding_update_id;
   } else if (visibilityStatus === "published") {
-    await boardingRepository.insertBoardingUpdateIfNotDuplicate({
+    const inserted = await boardingRepository.insertBoardingUpdateIfNotDuplicate({
       boardingRecordId: boardingId,
       createdByUserId: authUser.userId,
       description: payload.description,
@@ -977,8 +991,9 @@ export async function updateStaffBoardingLog(authUser: AuthUser, boardingId: str
       visibilityStatus,
       attachmentUrls: getPayloadAttachmentUrls(payload)
     });
+    updateId = inserted.boarding_update_id;
   } else {
-    await boardingRepository.insertBoardingUpdate({
+    const inserted = await boardingRepository.insertBoardingUpdate({
       boardingRecordId: boardingId,
       createdByUserId: authUser.userId,
       description: payload.description,
@@ -986,6 +1001,11 @@ export async function updateStaffBoardingLog(authUser: AuthUser, boardingId: str
       visibilityStatus,
       attachmentUrls: getPayloadAttachmentUrls(payload)
     });
+    updateId = inserted.boarding_update_id;
+  }
+
+  if (visibilityStatus === "published" && updateId) {
+    notifyBoardingUpdateCreated(updateId).catch(console.error);
   }
 
   return getStaffBoardingDetail(authUser, boardingId);
@@ -1010,6 +1030,7 @@ export async function confirmStaffBoarding(authUser: AuthUser, boardingId: strin
     visibilityStatus: "published",
     attachmentUrls: null
   });
+  notifyBoardingConfirmed(boardingId).catch(console.error);
   return getStaffBoardingDetail(authUser, boardingId);
 }
 
@@ -1027,6 +1048,7 @@ export async function rejectStaffBoarding(authUser: AuthUser, boardingId: string
     visibilityStatus: "published",
     attachmentUrls: null
   });
+  notifyBoardingRejected(boardingId).catch(console.error);
   return getStaffBoardingDetail(authUser, boardingId);
 }
 
@@ -1056,6 +1078,7 @@ export async function checkInStaffBoarding(authUser: AuthUser, boardingId: strin
       attachmentUrls: null
     });
   }
+  notifyBoardingCheckedIn(boardingId).catch(console.error);
   return getStaffBoardingDetail(authUser, boardingId);
 }
 
@@ -1300,7 +1323,7 @@ export async function createStaffBoardingAtCounter(
 
   const stayDays = calculateStayDays(plannedCheckInAt, plannedCheckOutAt);
 
-  return withTransaction(async (client) => {
+  const result = await withTransaction(async (client) => {
     await boardingRepository.lockBoardingRecordsForAvailability(client);
 
     const ownerExists = await boardingRepository.verifyOwnerExists(payload.ownerId, client);
@@ -1402,6 +1425,10 @@ export async function createStaffBoardingAtCounter(
       }
     };
   });
+
+  notifyBoardingCreated(result.boardingId).catch(console.error);
+
+  return result;
 }
 
 // ==================================================

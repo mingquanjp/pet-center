@@ -369,6 +369,8 @@ export async function confirmPayment(invoiceId: string, paymentMethod: string, t
       WHERE invoice_id = $1
     `;
     await client.query(sqlUpdate, [invoiceId]);
+
+    return paymentId;
   });
 }
 

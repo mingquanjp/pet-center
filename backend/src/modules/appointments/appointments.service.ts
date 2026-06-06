@@ -3,6 +3,11 @@ import { withTransaction } from "../../db/transactions.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { createId } from "../../shared/utils/id.js";
 import * as repo from "./appointments.repository.js";
+import {
+  notifyAppointmentConfirmed,
+  notifyAppointmentRejected,
+  notifyMedicalExamCompleted
+} from "../notifications/notification-events.js";
 import type {
   AppointmentDetailRow,
   AvailableDoctorRow,
@@ -454,7 +459,12 @@ export async function completeDoctorExamination(
     await repo.updateAppointmentExaminationStatus(row.appointment_id, hasFollowUp ? "follow_up" : "completed", client);
   });
 
-  return getDoctorExaminationDetail(doctorUserId, appointmentId);
+  const result = await getDoctorExaminationDetail(doctorUserId, appointmentId);
+  if (result.examId) {
+    notifyMedicalExamCompleted(result.examId).catch(console.error);
+  }
+
+  return result;
 }
 
 function mapAppointmentRowToStaffDetailDto(
@@ -706,6 +716,8 @@ export async function confirmStaffAppointment(
     );
   });
 
+  notifyAppointmentConfirmed(appointmentId).catch(console.error);
+
   return getStaffAppointmentDetail(appointmentId);
 }
 
@@ -732,6 +744,8 @@ export async function rejectStaffAppointment(
     body.rejectionReason,
     body.internalNote,
   );
+
+  notifyAppointmentRejected(appointmentId).catch(console.error);
 
   return getStaffAppointmentDetail(appointmentId);
 }

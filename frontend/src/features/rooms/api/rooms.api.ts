@@ -16,8 +16,8 @@ function buildQuery(params: Record<string, string | number | undefined>): string
 }
 
 export const adminBoardingRoomsApi = {
-  getRoomUsageHistory: async (roomTypeId: string, params?: any): Promise<any> => {
-    const response = await apiRequest<{ items: AdminBoardingRoomUsageRecord[], pagination: any }>(
+  getRoomUsageHistory: async (roomTypeId: string, params?: Record<string, string | number | undefined>): Promise<AdminBoardingRoomUsageRecord[]> => {
+    const response = await apiRequest<{ items: AdminBoardingRoomUsageRecord[], pagination: unknown }>(
       `/admin/boarding-rooms/${roomTypeId}/usage-history${buildQuery(params || {})}`
     );
     return response.data.items;
@@ -34,8 +34,8 @@ export const adminBoardingRoomsApi = {
     return response.data;
   },
   
-  getRoomDetail: async (roomId: string): Promise<any> => {
-    const response = await apiRequest<any>(`/admin/boarding-rooms/${roomId}`);
+  getRoomDetail: async (roomId: string): Promise<AdminBoardingRoom> => {
+    const response = await apiRequest<AdminBoardingRoom>(`/admin/boarding-rooms/${roomId}`);
     return response.data;
   },
 

@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, User } from "lucide-react"
+import { User } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { authApi } from "@/features/auth/api/auth.api"
 import { clearAuthSession } from "@/features/auth/api/auth-session"
+import { NotificationBell } from "@/features/notifications/components/NotificationBell"
 
 export function OwnerHeader() {
   const router = useRouter()
@@ -33,9 +34,7 @@ export function OwnerHeader() {
   return (
     <header className="h-18 bg-[#FBFAEE] border-b border-petcenter-border-strong flex justify-end items-center w-full px-6 py-2 shrink-0 z-10">
       <div className="flex items-center gap-4">
-        <button className="relative p-2 text-petcenter-text-secondary hover:bg-petcenter-sidebar rounded-full transition-all duration-150 flex items-center justify-center">
-          <Bell className="w-5 h-5" />
-        </button>
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
