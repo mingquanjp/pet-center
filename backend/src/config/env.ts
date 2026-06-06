@@ -16,7 +16,8 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(465),
   SMTP_USER: z.string().default(""),
   SMTP_PASS: z.string().default(""),
-  MAIL_FROM: z.string().default("PetCenter")
+  MAIL_FROM: z.string().default("PetCenter"),
+  FRONTEND_URL: z.string().url().default("http://localhost:3000")
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

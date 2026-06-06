@@ -3,7 +3,14 @@ import { asyncHandler } from "../../middlewares/async-handler.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as authController from "./auth.controller.js";
-import { loginSchema, registerSchema } from "./auth.schema.js";
+import {
+  changePasswordSchema,
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+  updateProfileSchema
+} from "./auth.schema.js";
 
 export const authRouter = Router();
 
@@ -89,6 +96,16 @@ authRouter.post("/auth/register", validateRequest({ body: registerSchema }), asy
  *         description: Email hoặc mật khẩu không đúng
  */
 authRouter.post("/auth/login", validateRequest({ body: loginSchema }), asyncHandler(authController.login));
+authRouter.post(
+  "/auth/forgot-password",
+  validateRequest({ body: forgotPasswordSchema }),
+  asyncHandler(authController.forgotPassword)
+);
+authRouter.post(
+  "/auth/reset-password",
+  validateRequest({ body: resetPasswordSchema }),
+  asyncHandler(authController.resetPassword)
+);
 
 /**
  * @openapi
@@ -127,3 +144,15 @@ authRouter.post("/auth/logout", authMiddleware, authController.logout);
  *         description: Tài khoản chưa được kích hoạt hoặc đã bị khóa
  */
 authRouter.get("/auth/me", authMiddleware, asyncHandler(authController.me));
+authRouter.patch(
+  "/auth/profile",
+  authMiddleware,
+  validateRequest({ body: updateProfileSchema }),
+  asyncHandler(authController.updateProfile)
+);
+authRouter.patch(
+  "/auth/password",
+  authMiddleware,
+  validateRequest({ body: changePasswordSchema }),
+  asyncHandler(authController.changePassword)
+);

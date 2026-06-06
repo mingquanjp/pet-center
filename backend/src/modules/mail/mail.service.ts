@@ -146,3 +146,74 @@ export async function sendOwnerAccountCreatedEmail(params: {
     `
   });
 }
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+export async function sendPasswordResetEmail(params: {
+  to: string;
+  fullName: string;
+  resetUrl: string;
+  expiresInMinutes: number;
+}): Promise<void> {
+  const transporter = createTransporter();
+  const fullName = escapeHtml(params.fullName);
+  const resetUrl = escapeHtml(params.resetUrl);
+
+  await transporter.sendMail({
+    from: getFromAddress(),
+    to: params.to,
+    subject: "Đặt lại mật khẩu PetCenter",
+    text: [
+      `Xin chào ${params.fullName},`,
+      "",
+      "PetCenter nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.",
+      `Mở liên kết sau trong vòng ${params.expiresInMinutes} phút:`,
+      params.resetUrl,
+      "",
+      "Nếu bạn không gửi yêu cầu này, hãy bỏ qua email.",
+      "",
+      "Trân trọng,",
+      "Đội ngũ PetCenter"
+    ].join("\n"),
+    html: `
+      <!DOCTYPE html>
+      <html lang="vi">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Đặt lại mật khẩu PetCenter</title>
+      </head>
+      <body style="margin:0;padding:0;background:#f7f6ea;font-family:'Segoe UI',Arial,sans-serif;color:#1f261f;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="padding:40px 16px;background:#f7f6ea;">
+          <tr><td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="max-width:600px;overflow:hidden;border:1px solid #e6e8dd;border-radius:16px;background:#ffffff;">
+              <tr><td style="padding:28px 32px;background:#00796b;color:#ffffff;text-align:center;">
+                <div style="font-size:25px;font-weight:700;">PetCenter</div>
+                <div style="margin-top:6px;font-size:14px;color:#d8f3ee;">Khôi phục quyền truy cập tài khoản</div>
+              </td></tr>
+              <tr><td style="padding:36px 32px;">
+                <h1 style="margin:0 0 18px;font-size:22px;">Đặt lại mật khẩu</h1>
+                <p style="margin:0 0 16px;line-height:1.6;color:#52605c;">Xin chào <strong style="color:#1f261f;">${fullName}</strong>,</p>
+                <p style="margin:0 0 24px;line-height:1.6;color:#52605c;">Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản PetCenter của bạn.</p>
+                <div style="text-align:center;">
+                  <a href="${resetUrl}" style="display:inline-block;padding:13px 28px;border-radius:10px;background:#00796b;color:#ffffff;text-decoration:none;font-weight:600;">Đặt lại mật khẩu</a>
+                </div>
+                <p style="margin:24px 0 0;line-height:1.6;color:#52605c;">Liên kết có hiệu lực trong <strong>${params.expiresInMinutes} phút</strong> và chỉ sử dụng được một lần.</p>
+                <div style="margin-top:24px;padding:14px 16px;border-radius:10px;background:#fff3d8;color:#8a4b08;font-size:14px;line-height:1.5;">Nếu bạn không gửi yêu cầu này, hãy bỏ qua email. Mật khẩu hiện tại của bạn vẫn được giữ nguyên.</div>
+              </td></tr>
+              <tr><td style="padding:20px 32px;border-top:1px solid #e6e8dd;background:#fbfaf2;text-align:center;color:#7a837f;font-size:12px;">Email tự động từ PetCenter. Vui lòng không trả lời.</td></tr>
+            </table>
+          </td></tr>
+        </table>
+      </body>
+      </html>
+    `
+  });
+}

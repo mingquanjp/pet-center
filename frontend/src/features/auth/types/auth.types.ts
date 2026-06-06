@@ -5,6 +5,9 @@ export type AuthUser = {
   fullName: string;
   email: string;
   role: UserRole;
+  phoneNumber: string | null;
+  address: string | null;
+  createdAt: string;
 };
 
 export type AuthResponse = {
@@ -22,4 +25,26 @@ export type RegisterPayload = {
   email: string;
   phoneNumber?: string;
   password: string;
+};
+
+export type UpdateProfilePayload = {
+  fullName: string;
+  phoneNumber: string | null;
+  address: string | null;
+};
+
+export type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+};
+
+export type ForgotPasswordPayload = {
+  email: string;
+};
+
+export type ResetPasswordPayload = {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
 };

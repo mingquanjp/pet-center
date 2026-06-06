@@ -3,9 +3,6 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { User } from "lucide-react"
-
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +14,7 @@ import {
 import { authApi } from "@/features/auth/api/auth.api"
 import { clearAuthSession } from "@/features/auth/api/auth-session"
 import { NotificationBell } from "@/features/notifications/components/NotificationBell"
+import { CurrentUserAvatar } from "@/features/profile/components/CurrentUserAvatar"
 
 export function OwnerHeader() {
   const router = useRouter()
@@ -39,11 +37,7 @@ export function OwnerHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="w-10 h-10 rounded-full bg-petcenter-sidebar border border-petcenter-border-strong overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ml-2">
-              <Avatar className="w-full h-full">
-                <AvatarFallback className="bg-petcenter-primary text-white">
-                  <User className="w-5 h-5" />
-                </AvatarFallback>
-              </Avatar>
+              <CurrentUserAvatar />
             </div>
           </DropdownMenuTrigger>
 
@@ -58,8 +52,10 @@ export function OwnerHeader() {
                 Hồ sơ cá nhân
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              Đổi mật khẩu
+            <DropdownMenuItem asChild>
+              <Link href="/owner/profile#security" className="cursor-pointer w-full">
+                Đổi mật khẩu
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

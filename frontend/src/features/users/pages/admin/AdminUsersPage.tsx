@@ -842,55 +842,43 @@ function DeleteUserDialog({
   open: boolean
   user: AdminUser | null
 }) {
+  if (!open) return null
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-hidden rounded-2xl border border-petcenter-border bg-white p-0 text-petcenter-text shadow-[0_18px_48px_rgba(31,38,31,0.14)] outline-none ring-0 sm:max-w-[460px]">
-        <DialogHeader className="border-b border-petcenter-border bg-petcenter-background px-5 py-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-[0.75rem] bg-petcenter-danger-bg text-petcenter-danger-text">
-              <Trash2 className="h-5 w-5" />
-            </span>
-            <div>
-              <DialogTitle className="title-md text-petcenter-text">Xóa tài khoản?</DialogTitle>
-              <DialogDescription className="body-sm mt-1 text-petcenter-text-secondary">
-                Tài khoản sẽ được chuyển sang trạng thái không hoạt động.
-              </DialogDescription>
-            </div>
+    <div
+      className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+      onClick={(event) => {
+        if (event.target === event.currentTarget && !isDeleting) onOpenChange(false)
+      }}
+    >
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4 text-petcenter-danger-text">
+            <Trash2 className="w-6 h-6" />
+            <h3 className="text-lg font-bold text-petcenter-text tracking-tight">Xác nhận xóa tài khoản</h3>
           </div>
-        </DialogHeader>
-
-        <div className="space-y-3 px-5 py-5">
-          <div className="rounded-[0.75rem] border border-petcenter-border bg-petcenter-background p-4">
-            <p className="font-semibold text-petcenter-text">{user?.name ?? "Người dùng"}</p>
-            <p className="body-sm mt-1 break-all text-petcenter-text-secondary">{user?.email}</p>
-          </div>
-          <p className="body-sm text-petcenter-text-secondary">Bạn có chắc chắn muốn xóa tài khoản này không?</p>
+          <p className="text-petcenter-text-secondary body-md">
+            Bạn có chắc muốn xóa <strong>{user?.name ?? "người dùng này"}</strong> không? Tài khoản sẽ được chuyển sang trạng thái không hoạt động.
+          </p>
+          {user?.email && <p className="body-sm mt-3 break-all text-petcenter-text-muted">{user.email}</p>}
         </div>
-
-        <DialogFooter className="m-0 gap-3 border-t border-petcenter-border bg-petcenter-background px-5 py-4 sm:justify-end">
-          <Button
-            className="h-10 rounded-[0.75rem] border-petcenter-border bg-white px-5 text-petcenter-text hover:bg-petcenter-sidebar"
-            disabled={isDeleting}
-            onClick={() => onOpenChange(false)}
-            type="button"
-            variant="outline"
-          >
-            Hủy bỏ
-          </Button>
-          <Button
-            className="h-10 rounded-[0.75rem] bg-petcenter-danger-text px-5 font-semibold text-white hover:bg-petcenter-danger-text/90"
-            disabled={isDeleting || !user}
+        <div className="px-6 py-4 bg-stone-50/80 border-t border-petcenter-border flex justify-end gap-3">
+          <button onClick={() => onOpenChange(false)} disabled={isDeleting} className="px-4 py-2 text-sm font-semibold text-petcenter-text-secondary hover:bg-stone-200 disabled:opacity-60 rounded-xl transition-colors">
+            Hủy
+          </button>
+          <button
             onClick={() => {
               if (user) onConfirm(user)
             }}
-            type="button"
+            disabled={isDeleting || !user}
+            className="px-4 py-2 text-sm font-semibold text-white bg-petcenter-danger-text hover:bg-[#DC2626] disabled:opacity-60 rounded-xl transition-colors shadow-sm flex items-center gap-2"
           >
-            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+            {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
             Xóa tài khoản
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

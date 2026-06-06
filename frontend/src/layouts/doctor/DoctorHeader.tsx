@@ -3,9 +3,6 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { User } from "lucide-react"
-
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +14,7 @@ import {
 import { authApi } from "@/features/auth/api/auth.api"
 import { clearAuthSession } from "@/features/auth/api/auth-session"
 import { NotificationBell } from "@/features/notifications/components/NotificationBell"
+import { CurrentUserAvatar } from "@/features/profile/components/CurrentUserAvatar"
 
 export function DoctorHeader() {
   const router = useRouter()
@@ -39,11 +37,7 @@ export function DoctorHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="w-10 h-10 rounded-full bg-petcenter-sidebar border border-petcenter-border-strong overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ml-2">
-              <Avatar className="w-full h-full">
-                <AvatarFallback className="bg-petcenter-primary text-white">
-                  <User className="w-5 h-5" />
-                </AvatarFallback>
-              </Avatar>
+              <CurrentUserAvatar />
             </div>
           </DropdownMenuTrigger>
 
@@ -58,7 +52,9 @@ export function DoctorHeader() {
                 {"H\u1ed3 s\u01a1 c\u00e1 nh\u00e2n"}
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">{"\u0110\u1ed5i m\u1eadt kh\u1ea9u"}</DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/doctor/profile#security" className="cursor-pointer w-full">{"\u0110\u1ed5i m\u1eadt kh\u1ea9u"}</Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="cursor-pointer text-red-600 focus:text-red-600"

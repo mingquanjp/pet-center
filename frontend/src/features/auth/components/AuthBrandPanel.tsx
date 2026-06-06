@@ -34,20 +34,18 @@ export const AuthBrandPanel = ({ type, className }: AuthBrandPanelProps) => {
   return (
     <div
       className={cn(
-        "flex-col justify-between overflow-hidden relative w-full h-full p-8 md:p-16",
+        "relative h-full min-h-0 w-full overflow-hidden p-8 md:p-10 xl:p-14",
         className
       )}
       style={{ background: "linear-gradient(180deg, #D8F3EE 0%, #FBFAF2 100%)" }}
     >
-      <div className="flex flex-col h-full z-10 relative">
-        {/* Logo Area */}
-        <div className="flex items-center gap-3 mb-12">
+      <div className="relative z-10 grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto] gap-y-6">
+        <div className="flex items-center gap-3">
           <PawPrint className="w-8 h-8 text-petcenter-primary fill-petcenter-primary" />
           <span className="font-bold text-2xl text-petcenter-primary">PetCenter</span>
         </div>
 
-        {/* Text Content */}
-        <div className="flex-grow flex flex-col justify-start max-w-lg">
+        <div className="max-w-lg">
           <h1 className="font-bold text-4xl leading-tight text-petcenter-text">
             {headline}
           </h1>
@@ -68,25 +66,22 @@ export const AuthBrandPanel = ({ type, className }: AuthBrandPanelProps) => {
           </ul>
         </div>
 
-        {/* Illustration Image */}
-        <div className="mt-12 flex justify-center w-full">
-          <div className="w-[420px] max-w-full drop-shadow-2xl flex justify-center">
+        <div className="flex min-h-0 w-full items-center justify-center overflow-hidden">
+          <div className="flex h-full max-h-[420px] w-full max-w-[420px] items-center justify-center drop-shadow-2xl">
             <Image
               src="/meo_auth.png"
               alt="Pet Illustration"
               width={420}
               height={420}
-              className="w-full h-auto object-contain"
+              className="h-full min-h-0 w-full object-contain"
               priority
             />
           </div>
         </div>
 
-        {isLogin && (
-          <div className="mt-12 text-sm text-petcenter-text-muted label-md">
-            © 2024 PetCenter Management System.
-          </div>
-        )}
+        <div className="min-h-4 text-sm text-petcenter-text-muted label-md">
+          {isLogin ? "© 2026 PetCenter Management System." : null}
+        </div>
       </div>
     </div>
   )

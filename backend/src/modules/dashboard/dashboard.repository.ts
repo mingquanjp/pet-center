@@ -27,6 +27,10 @@ type NumberRow = QueryResultRow & {
   value: string | number | null;
 };
 
+type UserDisplayNameRow = QueryResultRow & {
+  full_name: string;
+};
+
 type PetRow = QueryResultRow & {
   pet_id: string;
   pet_name: string;
@@ -568,8 +572,21 @@ async function getBoardingOccupancyCondition(): Promise<string> {
   throw new Error("boarding_records is missing planned check-in/check-out columns");
 }
 
-export async function getOwnerDashboard(ownerUserId: string, ownerName: string): Promise<OwnerDashboardDto> {
+export async function findUserDisplayName(userId: string): Promise<string | null> {
+  const result = await query<UserDisplayNameRow>(
+    `select full_name
+     from pet_center.users
+     where user_id = $1
+     limit 1`,
+    [userId]
+  );
+
+  return result.rows[0]?.full_name ?? null;
+}
+
+export async function getOwnerDashboard(ownerUserId: string): Promise<OwnerDashboardDto> {
   const [
+    ownerNameResult,
     petCountResult,
     appointmentCountResult,
     unpaidInvoiceCountResult,
@@ -579,6 +596,7 @@ export async function getOwnerDashboard(ownerUserId: string, ownerName: string):
     recentActivitiesResult,
     remindersResult,
   ] = await Promise.all([
+    findUserDisplayName(ownerUserId),
     query<CountRow>(
       `select count(*)::text as total
        from pet_center.pets
@@ -718,7 +736,7 @@ export async function getOwnerDashboard(ownerUserId: string, ownerName: string):
   ]);
 
   return {
-    ownerName,
+    ownerName: ownerNameResult ?? "",
     summary: {
       petCount: Number(petCountResult.rows[0]?.total ?? 0),
       upcomingAppointmentCount: Number(appointmentCountResult.rows[0]?.total ?? 0),

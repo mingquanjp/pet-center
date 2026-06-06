@@ -45,7 +45,7 @@ function getInitials(fullName: string): string {
 export async function getOwnerDashboard(authUser: AuthUser) {
   assertOwner(authUser);
 
-  return dashboardRepository.getOwnerDashboard(authUser.userId, authUser.fullName);
+  return dashboardRepository.getOwnerDashboard(authUser.userId);
 }
 
 export async function listOwnerActivityLogs(authUser: AuthUser, query: { page?: number; limit?: number }) {
@@ -66,8 +66,9 @@ export async function getStaffOverview(
 ): Promise<StaffDashboardOverviewDto> {
   assertStaffAccess(authUser);
 
-  const [pendingAppointments, pendingGroomingTickets, roomCapacity, todayInvoices, appointmentTasks] =
+  const [fullName, pendingAppointments, pendingGroomingTickets, roomCapacity, todayInvoices, appointmentTasks] =
     await Promise.all([
+      dashboardRepository.findUserDisplayName(authUser.userId),
       dashboardRepository.countPendingMedicalAppointments(),
       dashboardRepository.countPendingGroomingTickets(),
       dashboardRepository.getRoomCapacitySnapshot(),
@@ -77,8 +78,8 @@ export async function getStaffOverview(
 
   return {
     staff: {
-      fullName: authUser.fullName,
-      initials: getInitials(authUser.fullName),
+      fullName: fullName ?? authUser.fullName,
+      initials: getInitials(fullName ?? authUser.fullName),
       roleLabel: authUser.role === "ADMIN" ? "Admin" : "Nhân viên",
     },
     stats: {
@@ -98,7 +99,8 @@ export async function getDoctorOverview(
 ): Promise<DoctorDashboardOverviewDto> {
   assertDoctor(authUser);
 
-  const [stats, assignedExams, recentActivities] = await Promise.all([
+  const [fullName, stats, assignedExams, recentActivities] = await Promise.all([
+    dashboardRepository.findUserDisplayName(authUser.userId),
     dashboardRepository.getDoctorDashboardStats(authUser.userId),
     dashboardRepository.findDoctorAssignedExams(authUser.userId, query.examLimit),
     dashboardRepository.findDoctorRecentActivities(authUser.userId, query.activityLimit),
@@ -107,7 +109,7 @@ export async function getDoctorOverview(
   return {
     doctor: {
       id: authUser.userId,
-      fullName: authUser.fullName,
+      fullName: fullName ?? authUser.fullName,
       roleLabel: "Bác sĩ thú y",
     },
     stats,

@@ -4,14 +4,12 @@ import { AuthBrandPanel } from "@/features/auth/components/AuthBrandPanel"
 
 export function RegisterPage() {
   return (
-    <div className="w-full min-h-screen flex flex-col md:flex-row bg-white overflow-hidden">
-      {/* Left Side: Brand Illustration (Hidden on Mobile) */}
-      <div className="hidden md:flex w-1/2 shrink-0 border-r border-petcenter-border">
+    <div className="flex min-h-dvh w-full flex-col bg-white md:h-dvh md:min-h-0 md:flex-row md:overflow-hidden">
+      <div className="hidden h-full w-1/2 shrink-0 overflow-hidden border-r border-petcenter-border md:flex">
         <AuthBrandPanel type="register" />
       </div>
 
-      {/* Right Side: Registration Form */}
-      <div className="w-full md:w-1/2 p-8 md:p-12 lg:p-16 flex flex-col justify-center min-h-screen">
+      <div className="flex min-h-dvh w-full items-center justify-center px-6 py-8 sm:px-10 md:h-full md:min-h-0 md:w-1/2 md:overflow-y-auto md:px-12 lg:px-16">
         <RegisterForm />
       </div>
     </div>
