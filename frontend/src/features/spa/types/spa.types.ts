@@ -20,14 +20,6 @@ export interface SpaService {
   featured?: boolean
 }
 
-export interface GroomingServicePriceRule {
-  priceRuleId: string
-  pricingCondition: string
-  pricingConditionLabel: string
-  priceAmount: number
-  effectiveFrom: string
-}
-
 export interface GroomingService {
   serviceId: string
   serviceName: string
@@ -38,7 +30,6 @@ export interface GroomingService {
   priceMin: number
   priceMax: number
   priceText: string
-  priceRules: GroomingServicePriceRule[]
 }
 
 export interface GroomingBookingPet {
@@ -64,7 +55,6 @@ export interface GroomingBookingService {
   estimatedDurationMinutes: number | null
   durationText: string
   appliedPrice: number
-  appliedPricingCondition: string
   appliedPricingConditionLabel: string
   priceText: string
 }

@@ -1,11 +1,3 @@
-export type GroomingServicePriceRuleDto = {
-  priceRuleId: string;
-  pricingCondition: string;
-  pricingConditionLabel: string;
-  priceAmount: number;
-  effectiveFrom: string;
-};
-
 export type GroomingServiceDto = {
   serviceId: string;
   serviceName: string;
@@ -16,7 +8,6 @@ export type GroomingServiceDto = {
   priceMin: number;
   priceMax: number;
   priceText: string;
-  priceRules: GroomingServicePriceRuleDto[];
 };
 
 export type GroomingBookingPetDto = {
@@ -42,7 +33,6 @@ export type GroomingBookingServiceDto = {
   estimatedDurationMinutes: number | null;
   durationText: string;
   appliedPrice: number;
-  appliedPricingCondition: string;
   appliedPricingConditionLabel: string;
   priceText: string;
 };
@@ -54,8 +44,6 @@ export type GroomingBookingServicePriceBaseDto = {
   estimatedDurationMinutes: number | null;
   durationText: string;
   basePrice: number;
-  basePricingCondition: string;
-  basePricingConditionLabel: string;
 };
 
 export type GroomingBookingOptionsDto = {

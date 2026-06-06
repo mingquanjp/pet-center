@@ -10,7 +10,6 @@ import type {
   GroomingBookingServicePriceBaseDto,
   GroomingPaymentOption,
   GroomingServiceDto,
-  GroomingServicePriceRuleDto,
   GroomingTicketHistoryFilters,
   GroomingTicketCancelledDto,
   GroomingTicketCreatedDto,
@@ -32,10 +31,6 @@ type GroomingServiceRow = QueryResultRow & {
   description: string | null;
   estimated_duration_minutes: number | null;
   base_price: string | number;
-  price_rule_id: string | null;
-  pricing_condition: string | null;
-  price_amount: string | number | null;
-  effective_from: string | null;
 };
 
 type BookingPetRow = QueryResultRow & {
@@ -59,9 +54,6 @@ type BookingServiceRow = QueryResultRow & {
   description: string | null;
   estimated_duration_minutes: number | null;
   base_price: string | number;
-  price_rule_id: string | null;
-  pricing_condition: string | null;
-  price_amount: string | number | null;
 };
 
 type CountRow = QueryResultRow & {
@@ -159,25 +151,8 @@ const slotStartHour = 8;
 const slotEndHour = 17;
 const slotEndMinute = 30;
 
-function getPricingConditionLabel(condition: string): string {
-  const labels: Record<string, string> = {
-    UNDER_5KG: "Dưới 5kg",
-    FROM_5KG: "Từ 5kg trở lên"
-  };
-
-  return labels[condition] ?? condition;
-}
-
 function formatMoney(value: number): string {
   return new Intl.NumberFormat("vi-VN").format(value);
-}
-
-function formatPriceRange(priceMin: number, priceMax: number): string {
-  if (priceMin === priceMax) {
-    return `${formatMoney(priceMin)} VNĐ`;
-  }
-
-  return `${formatMoney(priceMin)} - ${formatMoney(priceMax)} VNĐ`;
 }
 
 function formatStartingPrice(price: number): string {
@@ -352,19 +327,13 @@ function toVietnamDateString(value: Date): string {
 }
 
 function mapBookingServicePriceBase(row: BookingServiceRow): GroomingBookingServicePriceBaseDto | null {
-  if (!row.pricing_condition || row.price_amount === null) {
-    return null;
-  }
-
   return {
     serviceId: row.service_id,
     serviceName: row.service_name,
     description: row.description,
     estimatedDurationMinutes: row.estimated_duration_minutes,
     durationText: formatDuration(row.estimated_duration_minutes),
-    basePrice: Number(row.price_amount),
-    basePricingCondition: row.pricing_condition,
-    basePricingConditionLabel: getPricingConditionLabel(row.pricing_condition)
+    basePrice: Number(row.base_price)
   };
 }
 
@@ -385,37 +354,13 @@ function mapGroomingServices(rows: GroomingServiceRow[]): GroomingServiceDto[] {
         basePrice,
         priceMin: basePrice,
         priceMax: basePrice,
-        priceText: formatPriceRange(basePrice, basePrice),
-        priceRules: []
+        priceText: formatStartingPrice(basePrice)
       };
-
-    if (row.price_rule_id && row.pricing_condition && row.price_amount !== null && row.effective_from) {
-      const priceRule: GroomingServicePriceRuleDto = {
-        priceRuleId: row.price_rule_id,
-        pricingCondition: row.pricing_condition,
-        pricingConditionLabel: getPricingConditionLabel(row.pricing_condition),
-        priceAmount: Number(row.price_amount),
-        effectiveFrom: row.effective_from
-      };
-
-      service.priceRules.push(priceRule);
-    }
 
     services.set(row.service_id, service);
   }
 
-  return [...services.values()].map((service) => {
-    const baseRulePrice = service.priceRules.find((rule) => rule.pricingCondition === "UNDER_5KG")?.priceAmount;
-    const priceMin = baseRulePrice ?? service.basePrice;
-    const priceMax = Math.max(priceMin, ...service.priceRules.map((rule) => rule.priceAmount));
-
-    return {
-      ...service,
-      priceMin,
-      priceMax,
-      priceText: formatStartingPrice(priceMin)
-    };
-  });
+  return [...services.values()];
 }
 
 function mapGroomingTicketListItem(row: GroomingTicketListRow): GroomingTicketListItemDto {
@@ -636,40 +581,16 @@ const groomingTicketListGroupSql = `
 
 export async function findActiveGroomingServices(): Promise<GroomingServiceDto[]> {
   const result = await query<GroomingServiceRow>(
-    `with latest_price_rules as (
-       select distinct on (spr.service_id, spr.pricing_condition)
-         spr.price_rule_id,
-         spr.service_id,
-         spr.pricing_condition,
-         spr.price_amount,
-         spr.effective_from
-       from pet_center.service_price_rules spr
-       where spr.price_status = 'active'
-         and spr.effective_from <= current_date
-       order by spr.service_id, spr.pricing_condition, spr.effective_from desc
-     )
-     select
+    `select
        s.service_id,
        s.service_name,
        s.description,
        s.estimated_duration_minutes,
-       s.base_price,
-       lpr.price_rule_id,
-       lpr.pricing_condition,
-       lpr.price_amount,
-       lpr.effective_from::text as effective_from
+       s.base_price
      from pet_center.services s
-     left join latest_price_rules lpr on lpr.service_id = s.service_id
      where s.service_category = 'grooming'
        and s.service_status = 'active'
-     order by
-       s.service_id asc,
-       case lpr.pricing_condition
-         when 'UNDER_5KG' then 1
-         when 'FROM_5KG' then 2
-         else 3
-       end asc,
-       lpr.pricing_condition asc`
+     order by s.service_id asc`
   );
 
   return mapGroomingServices(result.rows);
@@ -770,65 +691,30 @@ export async function findStaffCounterPet(petId: string): Promise<StaffCounterGr
 
 export async function findBookingServicePriceBases(): Promise<GroomingBookingServicePriceBaseDto[]> {
   const result = await query<BookingServiceRow>(
-    `with latest_price_rules as (
-       select distinct on (spr.service_id)
-         spr.price_rule_id,
-         spr.service_id,
-         spr.pricing_condition,
-         spr.price_amount
-       from pet_center.service_price_rules spr
-       where spr.price_status = 'active'
-         and spr.pricing_condition = 'UNDER_5KG'
-         and spr.effective_from <= current_date
-       order by spr.service_id, spr.effective_from desc
-     )
-     select
+    `select
        s.service_id,
        s.service_name,
        s.description,
        s.estimated_duration_minutes,
-       s.base_price,
-       lpr.price_rule_id,
-       lpr.pricing_condition,
-       coalesce(lpr.price_amount, s.base_price) as price_amount
+       s.base_price
      from pet_center.services s
-     left join latest_price_rules lpr on lpr.service_id = s.service_id
      where s.service_category = 'grooming'
        and s.service_status = 'active'
      order by s.service_id asc`
   );
 
-  return result.rows.map((row) =>
-    mapBookingServicePriceBase({
-      ...row,
-      pricing_condition: row.pricing_condition ?? "UNDER_5KG"
-    })
-  ).filter((service): service is GroomingBookingServicePriceBaseDto => service !== null);
+  return result.rows.map(mapBookingServicePriceBase).filter((service): service is GroomingBookingServicePriceBaseDto => service !== null);
 }
 
 export async function findBookingServicePriceBase(serviceId: string): Promise<GroomingBookingServicePriceBaseDto | null> {
   const result = await query<BookingServiceRow>(
-    `with latest_price_rule as (
-       select spr.price_rule_id, spr.service_id, spr.pricing_condition, spr.price_amount
-       from pet_center.service_price_rules spr
-       where spr.service_id = $1
-         and spr.price_status = 'active'
-         and spr.pricing_condition = 'UNDER_5KG'
-         and spr.effective_from <= current_date
-       order by spr.effective_from desc
-       limit 1
-     )
-     select
+    `select
        s.service_id,
        s.service_name,
        s.description,
        s.estimated_duration_minutes,
-       s.base_price,
-       lpr.price_rule_id,
-       lpr.pricing_condition,
-       coalesce(lpr.price_amount, s.base_price) as price_amount
+       s.base_price
      from pet_center.services s
-     left join latest_price_rule lpr on lpr.service_id = s.service_id
      where s.service_id = $1
        and s.service_category = 'grooming'
        and s.service_status = 'active'
@@ -839,10 +725,7 @@ export async function findBookingServicePriceBase(serviceId: string): Promise<Gr
 
   if (!row) return null;
 
-  return mapBookingServicePriceBase({
-    ...row,
-    pricing_condition: row.pricing_condition ?? "UNDER_5KG"
-  });
+  return mapBookingServicePriceBase(row);
 }
 
 export async function findBookedGroomingTickets(

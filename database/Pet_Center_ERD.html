@@ -713,23 +713,7 @@
         ],
         relationships: [
           "Một `Service` có thể xuất hiện trong nhiều bản ghi `GroomingTicketItem`.",
-          "Một `Service` có thể xuất hiện trong nhiều bản ghi `InvoiceLine`.",
-          "Một `Service` có thể có nhiều bản ghi `ServicePriceRule`."
-        ]
-      },
-      {
-        name: "ServicePriceRule",
-        description: "Đại diện cho quy tắc giá theo dịch vụ, cân nặng hoặc điều kiện áp dụng. Thực thể này được giữ lại vì HTML user story Spa yêu cầu hiển thị bảng giá theo cân nặng.",
-        attributes: [
-          ["priceRuleId", "Định danh mức giá", "SPR001"],
-          ["pricingCondition", "Điều kiện tính giá", "Under 5kg"],
-          ["priceAmount", "Giá tiền", "150000"],
-          ["effectiveFrom", "Ngày bắt đầu áp dụng", "2026-05-01"],
-          ["priceStatus", "Trạng thái bảng giá", "active"]
-        ],
-        relationships: [
-          "Một `Service` có thể có nhiều bản ghi `ServicePriceRule`.",
-          "Mỗi `ServicePriceRule` thuộc về đúng một `Service`."
+          "Một `Service` có thể xuất hiện trong nhiều bản ghi `InvoiceLine`."
         ]
       },
       {
@@ -924,7 +908,6 @@
       ["Prescription - PrescriptionItem", "1 - N", "Một đơn thuốc có nhiều dòng thuốc."],
       ["Medicine - PrescriptionItem", "1 - N", "Một thuốc có thể xuất hiện trong nhiều dòng đơn thuốc."],
       ["MedicalExam - FollowUpInstruction", "1 - 0..1", "Một phiếu khám có thể có một chỉ định tái khám."],
-      ["Service - ServicePriceRule", "1 - N", "Một dịch vụ có thể có nhiều quy tắc giá."],
       ["Pet - GroomingTicket", "1 - N", "Một thú cưng có thể có nhiều grooming ticket."],
       ["User(PetOwner) - GroomingTicket", "1 - N", "Một chủ nuôi có thể sở hữu nhiều grooming ticket."],
       ["User - GroomingTicket", "1 - N", "Một người dùng có thể tạo nhiều grooming ticket, online với vai trò chủ nuôi hoặc tại quầy với vai trò nhân viên."],

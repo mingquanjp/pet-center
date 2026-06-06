@@ -22,26 +22,6 @@ export const groomingRouter = Router();
  * @openapi
  * components:
  *   schemas:
- *     GroomingServicePriceRule:
- *       type: object
- *       properties:
- *         priceRuleId:
- *           type: string
- *           example: spr_groom_001_under
- *         pricingCondition:
- *           type: string
- *           enum: [UNDER_5KG, FROM_5KG]
- *           example: UNDER_5KG
- *         pricingConditionLabel:
- *           type: string
- *           example: Dưới 5kg
- *         priceAmount:
- *           type: number
- *           example: 100000
- *         effectiveFrom:
- *           type: string
- *           format: date
- *           example: "2026-05-01"
  *     GroomingService:
  *       type: object
  *       properties:
@@ -74,10 +54,6 @@ export const groomingRouter = Router();
  *         priceText:
  *           type: string
  *           example: Từ 100.000 VNĐ
- *         priceRules:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/GroomingServicePriceRule'
  *     GroomingServiceListResponse:
  *       type: object
  *       properties:
@@ -144,7 +120,7 @@ groomingRouter.get(
  *     tags:
  *       - Grooming
  *     summary: Get owner grooming booking options
- *     description: "Returns current owner's active pets and grooming services priced by the selected pet weight. The UNDER_5KG price rule is used as the base price; pets from 5kg upward add 50,000 VND for each completed 3kg block. Security BearerAuth. Roles: OWNER."
+ *     description: "Returns current owner's active pets and grooming services priced by the selected pet weight. The service base price is used for pets under 5kg; pets from 5kg upward add 50,000 VND for each completed 3kg block. Security BearerAuth. Roles: OWNER."
  *     security:
  *       - bearerAuth: []
  *     parameters:
