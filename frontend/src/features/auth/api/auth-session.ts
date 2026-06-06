@@ -1,5 +1,5 @@
 import { clearApiCache } from "@/lib/api";
-import type { AuthResponse } from "../types/auth.types";
+import type { AuthResponse, AuthUser } from "../types/auth.types";
 
 const tokenMaxAgeSeconds = 60 * 60 * 24;
 
@@ -17,4 +17,9 @@ export function clearAuthSession(): void {
   localStorage.removeItem("currentUser");
   document.cookie = "accessToken=; path=/; max-age=0; SameSite=Lax";
   document.cookie = "userRole=; path=/; max-age=0; SameSite=Lax";
+}
+
+export function updateStoredUser(user: AuthUser): void {
+  localStorage.setItem("currentUser", JSON.stringify(user));
+  window.dispatchEvent(new CustomEvent("auth-user-updated", { detail: user }));
 }

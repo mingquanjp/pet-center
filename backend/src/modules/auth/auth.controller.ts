@@ -21,3 +21,13 @@ export async function me(req: Request, res: Response): Promise<void> {
   const user = await authService.me(req.user!);
   sendSuccess(res, user);
 }
+
+export async function updateProfile(req: Request, res: Response): Promise<void> {
+  const user = await authService.updateProfile(req.user!, req.body);
+  sendSuccess(res, user, "Cập nhật hồ sơ thành công");
+}
+
+export async function changePassword(req: Request, res: Response): Promise<void> {
+  await authService.changePassword(req.user!, req.body);
+  sendSuccess(res, null, "Đổi mật khẩu thành công");
+}

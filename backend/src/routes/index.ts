@@ -15,6 +15,7 @@ import { medicinesRouter } from "../modules/medicines/medicines.routes.js";
 import { reportsRouter } from "../modules/reports/reports.routes.js";
 import { serviceCategoriesRouter } from "../modules/service-categories/service-categories.routes.js";
 import { notificationsRouter } from "../modules/notifications/notifications.routes.js";
+import { pricingRouter } from "../modules/pricing/pricing.routes.js";
 
 export const apiRouter = Router();
 
@@ -34,3 +35,4 @@ apiRouter.use(medicinesRouter);
 apiRouter.use(reportsRouter);
 apiRouter.use(serviceCategoriesRouter);
 apiRouter.use(notificationsRouter);
+apiRouter.use(pricingRouter);

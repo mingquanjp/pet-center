@@ -8,6 +8,9 @@ export type AuthUserDto = {
   fullName: string;
   email: string;
   role: UserRole;
+  phoneNumber: string | null;
+  address: string | null;
+  createdAt: string;
 };
 
 export type AuthUserRecord = AuthUserDto & {

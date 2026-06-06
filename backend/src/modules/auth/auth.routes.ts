@@ -3,7 +3,7 @@ import { asyncHandler } from "../../middlewares/async-handler.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as authController from "./auth.controller.js";
-import { loginSchema, registerSchema } from "./auth.schema.js";
+import { changePasswordSchema, loginSchema, registerSchema, updateProfileSchema } from "./auth.schema.js";
 
 export const authRouter = Router();
 
@@ -127,3 +127,15 @@ authRouter.post("/auth/logout", authMiddleware, authController.logout);
  *         description: Tài khoản chưa được kích hoạt hoặc đã bị khóa
  */
 authRouter.get("/auth/me", authMiddleware, asyncHandler(authController.me));
+authRouter.patch(
+  "/auth/profile",
+  authMiddleware,
+  validateRequest({ body: updateProfileSchema }),
+  asyncHandler(authController.updateProfile)
+);
+authRouter.patch(
+  "/auth/password",
+  authMiddleware,
+  validateRequest({ body: changePasswordSchema }),
+  asyncHandler(authController.changePassword)
+);

@@ -5,7 +5,7 @@ import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
 import * as authRepository from "./auth.repository.js";
-import type { LoginPayload, RegisterPayload } from "./auth.schema.js";
+import type { ChangePasswordPayload, LoginPayload, RegisterPayload, UpdateProfilePayload } from "./auth.schema.js";
 import type { AuthResponse, AuthUserDto, AuthUserRecord } from "./auth.types.js";
 
 const scrypt = promisify(scryptCallback);
@@ -15,7 +15,10 @@ function toUserDto(user: AuthUserRecord): AuthUserDto {
     userId: user.userId,
     fullName: user.fullName,
     email: user.email,
-    role: user.role
+    role: user.role,
+    phoneNumber: user.phoneNumber,
+    address: user.address,
+    createdAt: user.createdAt
   };
 }
 
@@ -159,4 +162,39 @@ export async function me(authUser: AuthUser): Promise<AuthUserDto> {
   assertActiveUser(user);
 
   return toUserDto(user);
+}
+
+export async function updateProfile(authUser: AuthUser, payload: UpdateProfilePayload): Promise<AuthUserDto> {
+  const user = await authRepository.updateCurrentUserProfile(authUser.userId, {
+    fullName: payload.fullName,
+    phoneNumber: payload.phoneNumber,
+    address: payload.address
+  });
+
+  if (!user) {
+    throw new AppError("Không tìm thấy người dùng", "USER_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  assertActiveUser(user);
+  return toUserDto(user);
+}
+
+export async function changePassword(authUser: AuthUser, payload: ChangePasswordPayload): Promise<void> {
+  const user = await authRepository.findUserById(authUser.userId);
+
+  if (!user) {
+    throw new AppError("Không tìm thấy người dùng", "USER_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  assertActiveUser(user);
+
+  if (!(await verifyPassword(payload.currentPassword, user.passwordHash))) {
+    throw new AppError("Mật khẩu hiện tại không đúng", "CURRENT_PASSWORD_INVALID", httpStatus.BAD_REQUEST);
+  }
+
+  if (await verifyPassword(payload.newPassword, user.passwordHash)) {
+    throw new AppError("Mật khẩu mới phải khác mật khẩu hiện tại", "PASSWORD_UNCHANGED", httpStatus.BAD_REQUEST);
+  }
+
+  await authRepository.updateCurrentUserPassword(authUser.userId, await hashPassword(payload.newPassword));
 }
