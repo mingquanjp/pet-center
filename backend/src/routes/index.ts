@@ -12,6 +12,7 @@ import { followUpsRouter } from "../modules/follow-ups/follow-ups.routes.js";
 import { prescriptionsRouter } from "../modules/prescriptions/prescriptions.routes.js";
 import { usersRouter } from "../modules/users/users.routes.js";
 import { medicinesRouter } from "../modules/medicines/medicines.routes.js";
+import { reportsRouter } from "../modules/reports/reports.routes.js";
 import { serviceCategoriesRouter } from "../modules/service-categories/service-categories.routes.js";
 
 export const apiRouter = Router();
@@ -29,4 +30,5 @@ apiRouter.use(boardingRouter);
 apiRouter.use(dashboardRouter);
 apiRouter.use(usersRouter);
 apiRouter.use(medicinesRouter);
+apiRouter.use(reportsRouter);
 apiRouter.use(serviceCategoriesRouter);
