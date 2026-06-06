@@ -360,17 +360,6 @@ def build_seed() -> dict[str, list[tuple]]:
             )
         )
 
-    price_rules = []
-    for index, (sid, _name, category, _duration, price) in enumerate(services, 1):
-        if category == "grooming":
-            price_rules.append((f"spr{index:04d}a", sid, "UNDER_5KG", money(price), today - timedelta(days=180), "active"))
-            price_rules.append((f"spr{index:04d}b", sid, "FROM_5KG", money(150000), today - timedelta(days=180), "active"))
-            continue
-
-        price_rules.append((f"spr{index:04d}a", sid, "Giá tiêu chuẩn", money(price), today - timedelta(days=180), "active"))
-        price_rules.append((f"spr{index:04d}b", sid, "Phụ thu thú cưng lớn", money(int(price * 1.25)), today - timedelta(days=90), "active"))
-    data["service_price_rules"] = price_rules[:80]
-
     data["room_types"] = [
         ("room_std_cat", "Phòng mèo tiêu chuẩn", 1, money(220000), "Phòng riêng cho một mèo", "active"),
         ("room_vip_cat", "Phòng mèo VIP", 1, money(380000), "Phòng mèo rộng có camera", "active"),
@@ -872,7 +861,6 @@ def seed() -> None:
         ("prescriptions", ["prescription_id", "exam_id", "prescribed_at", "general_note"]),
         ("prescription_items", ["prescription_item_id", "prescription_id", "medicine_id", "medicine_name", "quantity", "dosage", "frequency", "duration", "usage_instruction", "note"]),
         ("follow_up_instructions", ["follow_up_id", "exam_id", "follow_up_date", "reason", "owner_note"]),
-        ("service_price_rules", ["price_rule_id", "service_id", "pricing_condition", "price_amount", "effective_from", "price_status"]),
         ("grooming_tickets", ["grooming_ticket_id", "pet_id", "owner_user_id", "created_by_user_id", "source_type", "scheduled_at", "received_at", "special_request", "estimated_total", "ticket_status"]),
         ("grooming_ticket_items", ["grooming_ticket_item_id", "grooming_ticket_id", "service_id", "quantity", "applied_unit_price", "line_amount"]),
         ("room_types", ["room_type_id", "room_type_name", "capacity", "boarding_unit_price", "description", "room_type_status"]),

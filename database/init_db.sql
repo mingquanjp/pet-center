@@ -208,18 +208,6 @@ CREATE TABLE follow_up_instructions (
     )
 );
 
-CREATE TABLE service_price_rules (
-    price_rule_id VARCHAR(30) PRIMARY KEY,
-    service_id VARCHAR(30) NOT NULL REFERENCES services(service_id) ON UPDATE CASCADE ON DELETE CASCADE,
-    pricing_condition VARCHAR(150) NOT NULL,
-    price_amount NUMERIC(12,2) NOT NULL,
-    effective_from DATE NOT NULL,
-    price_status VARCHAR(20) NOT NULL DEFAULT 'active',
-    CONSTRAINT chk_service_price_amount CHECK (price_amount >= 0),
-    CONSTRAINT chk_service_price_status CHECK (price_status IN ('active', 'inactive')),
-    CONSTRAINT uq_service_price_rule UNIQUE (service_id, pricing_condition, effective_from)
-);
-
 CREATE TABLE grooming_tickets (
     grooming_ticket_id VARCHAR(30) PRIMARY KEY,
     pet_id VARCHAR(30) NOT NULL REFERENCES pets(pet_id) ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -476,7 +464,6 @@ CREATE INDEX idx_prescription_items_prescription ON prescription_items(prescript
 CREATE INDEX idx_prescription_items_medicine ON prescription_items(medicine_id);
 CREATE INDEX idx_follow_ups_date ON follow_up_instructions(follow_up_date);
 CREATE INDEX idx_follow_ups_status_date ON follow_up_instructions(follow_up_status, follow_up_date);
-CREATE INDEX idx_service_price_rules_service ON service_price_rules(service_id, effective_from DESC);
 CREATE INDEX idx_grooming_tickets_pet_time ON grooming_tickets(pet_id, scheduled_at);
 CREATE INDEX idx_grooming_tickets_owner_status ON grooming_tickets(owner_user_id, ticket_status);
 CREATE INDEX idx_grooming_tickets_schedule_status ON grooming_tickets(scheduled_at, ticket_status);

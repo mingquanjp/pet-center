@@ -53,10 +53,6 @@ function calculateGroomingPrice(basePrice: number, weightKg: number): number {
   return basePrice + surchargeSteps * largePetSurchargeAmount;
 }
 
-function getAppliedPricingCondition(weightKg: number): "UNDER_5KG" | "FROM_5KG_INCREMENTAL" {
-  return weightKg < largePetThresholdKg ? "UNDER_5KG" : "FROM_5KG_INCREMENTAL";
-}
-
 function getAppliedPricingConditionLabel(weightKg: number): string {
   if (weightKg < largePetThresholdKg) {
     return "Duoi 5kg";
@@ -84,7 +80,6 @@ function applyWeightBasedPrice(
     estimatedDurationMinutes: service.estimatedDurationMinutes,
     durationText: service.durationText,
     appliedPrice,
-    appliedPricingCondition: getAppliedPricingCondition(weightKg),
     appliedPricingConditionLabel: getAppliedPricingConditionLabel(weightKg),
     priceText: `${formatMoney(appliedPrice)} VND`
   };
