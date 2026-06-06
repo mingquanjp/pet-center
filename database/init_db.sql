@@ -392,12 +392,51 @@ CREATE TABLE notifications (
     notification_status VARCHAR(20) NOT NULL DEFAULT 'unread',
     related_object_type VARCHAR(60),
     related_object_id VARCHAR(30),
+    notification_type VARCHAR(80),
+    read_at TIMESTAMPTZ,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    dedupe_key VARCHAR(180),
     CONSTRAINT chk_notifications_channel CHECK (delivery_channel IN ('app', 'email', 'sms')),
     CONSTRAINT chk_notifications_status CHECK (notification_status IN ('unread', 'read', 'failed')),
     CONSTRAINT chk_notifications_related CHECK (
         (related_object_type IS NULL AND related_object_id IS NULL)
         OR (related_object_type IS NOT NULL AND related_object_id IS NOT NULL)
     )
+);
+
+CREATE TABLE email_logs (
+    email_log_id VARCHAR(30) PRIMARY KEY,
+    receiver_user_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
+    receiver_email public.citext NOT NULL,
+    template_key VARCHAR(100) NOT NULL,
+    subject VARCHAR(200) NOT NULL,
+    related_object_type VARCHAR(60),
+    related_object_id VARCHAR(30),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    provider_message_id VARCHAR(150),
+    error_message TEXT,
+    sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    CONSTRAINT chk_email_logs_status CHECK (status IN ('pending', 'sent', 'failed')),
+    CONSTRAINT chk_email_logs_related CHECK (
+        (related_object_type IS NULL AND related_object_id IS NULL)
+        OR (related_object_type IS NOT NULL AND related_object_id IS NOT NULL)
+    )
+);
+
+CREATE TABLE notification_reminders (
+    reminder_id VARCHAR(30) PRIMARY KEY,
+    reminder_type VARCHAR(80) NOT NULL,
+    receiver_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    related_object_type VARCHAR(60) NOT NULL,
+    related_object_id VARCHAR(30) NOT NULL,
+    remind_at TIMESTAMPTZ NOT NULL,
+    sent_at TIMESTAMPTZ,
+    reminder_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    CONSTRAINT chk_notification_reminders_status CHECK (reminder_status IN ('pending', 'sent', 'failed', 'cancelled'))
 );
 
 CREATE TABLE pet_activity_logs (
@@ -507,5 +546,33 @@ CREATE INDEX idx_pet_activity_logs_pet_time ON pet_activity_logs(pet_id, occurre
 CREATE INDEX idx_pet_activity_logs_owner_time ON pet_activity_logs(owner_user_id, occurred_at DESC);
 CREATE INDEX idx_pet_activity_logs_category_time ON pet_activity_logs(activity_category, occurred_at DESC);
 CREATE INDEX idx_pet_activity_logs_source ON pet_activity_logs(source_type, source_id);
+
+CREATE UNIQUE INDEX uq_notifications_dedupe_key
+    ON notifications(dedupe_key)
+    WHERE dedupe_key IS NOT NULL;
+
+CREATE INDEX idx_notifications_receiver_created
+    ON notifications(receiver_user_id, created_at DESC);
+
+CREATE INDEX idx_notifications_type_created
+    ON notifications(notification_type, created_at DESC);
+
+CREATE INDEX idx_email_logs_receiver_created
+    ON email_logs(receiver_user_id, created_at DESC);
+
+CREATE INDEX idx_email_logs_related
+    ON email_logs(related_object_type, related_object_id);
+
+CREATE INDEX idx_email_logs_status_created
+    ON email_logs(status, created_at DESC);
+
+CREATE UNIQUE INDEX uq_notification_reminders_dedupe
+    ON notification_reminders(reminder_type, receiver_user_id, related_object_type, related_object_id);
+
+CREATE INDEX idx_notification_reminders_due
+    ON notification_reminders(reminder_status, remind_at);
+
+CREATE INDEX idx_notification_reminders_receiver
+    ON notification_reminders(receiver_user_id, created_at DESC);
 
 COMMIT;

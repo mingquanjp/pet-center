@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bed, PawPrint, Home, ShieldCheck, PauseCircle, PlayCircle, Eye, Pencil, Trash2, Plus, Search, LayoutGrid, List, BarChart3, AlertCircle, SearchX, RotateCcw } from "lucide-react";
+import { Bed, PawPrint, Home, ShieldCheck, PauseCircle, Eye, Pencil, Trash2, Plus, Search, BarChart3, AlertCircle, SearchX, RotateCcw } from "lucide-react";
 import { useAdminBoardingRooms } from "../../hooks/useAdminBoardingRooms";
-import { formatVnd, calculateOccupancyRate, getStatusBadgeClass } from "../../utils/room-format";
-import { AdminBoardingRoom, CreateAdminBoardingRoomPayload } from "../../types/room.types";
+import { formatVnd, getStatusBadgeClass } from "../../utils/room-format";
+import { AdminBoardingRoom, AdminBoardingRoomFilters } from "../../types/room.types";
 import { AdminRoomStatCard } from "../../components/admin/AdminRoomStatCard";
 import { AdminRoomCard } from "../../components/admin/AdminRoomCard";
 import { AdminRoomFormDialog } from "../../components/admin/AdminRoomFormDialog";
@@ -20,7 +20,6 @@ export function AdminBoardingRoomsPage() {
     setFilters,
     resetFilters,
     viewMode,
-    setViewMode,
     createRoom,
     updateRoom,
     toggleStatus,
@@ -30,7 +29,6 @@ export function AdminBoardingRoomsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<AdminBoardingRoom | null>(null);
-  const [detailRoomId, setDetailRoomId] = useState<string | null>(null);
   const [roomToDelete, setRoomToDelete] = useState<AdminBoardingRoom | null>(null);
 
   const handleOpenCreate = () => {
@@ -119,7 +117,7 @@ export function AdminBoardingRoomsPage() {
             <select
               className="flex-1 min-w-0 w-full py-2.5 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-xl text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary"
               value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value as any })}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value as AdminBoardingRoomFilters["status"] })}
             >
               <option value="ALL">Tất cả</option>
               <option value="active">Đang hoạt động</option>
@@ -132,7 +130,7 @@ export function AdminBoardingRoomsPage() {
             <select
               className="flex-1 min-w-0 w-full py-2.5 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-xl text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary"
               value={filters.capacityLevel}
-              onChange={(e) => setFilters({ ...filters, capacityLevel: e.target.value as any })}
+              onChange={(e) => setFilters({ ...filters, capacityLevel: e.target.value as AdminBoardingRoomFilters["capacityLevel"] })}
             >
               <option value="ALL">Tất cả</option>
               <option value="AVAILABLE">Còn chỗ</option>
@@ -146,7 +144,7 @@ export function AdminBoardingRoomsPage() {
             <select
               className="flex-1 min-w-0 w-full py-2.5 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-xl text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary"
               value={filters.priceRange}
-              onChange={(e) => setFilters({ ...filters, priceRange: e.target.value as any })}
+              onChange={(e) => setFilters({ ...filters, priceRange: e.target.value as AdminBoardingRoomFilters["priceRange"] })}
             >
               <option value="ALL">Tất cả</option>
               <option value="UNDER_200K">Dưới 200.000đ</option>
@@ -257,8 +255,8 @@ export function AdminBoardingRoomsPage() {
           room={selectedRoom}
           onClose={() => setIsFormOpen(false)}
           onSave={async (data) => {
-            if (selectedRoom) await updateRoom({ ...data, id: selectedRoom.id } as any);
-            else await createRoom(data as any);
+            if (selectedRoom) await updateRoom({ ...data, id: selectedRoom.id } as Parameters<typeof updateRoom>[0]);
+            else await createRoom(data as Parameters<typeof createRoom>[0]);
             setIsFormOpen(false);
           }}
         />

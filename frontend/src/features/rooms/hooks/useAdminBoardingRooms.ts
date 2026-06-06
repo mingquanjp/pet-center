@@ -24,8 +24,8 @@ export function useAdminBoardingRooms() {
       const data = await adminBoardingRoomsApi.getRooms(filters);
       setRooms(data.items);
       setStats(data.stats);
-    } catch (err) {
-      setError("Không thể tải danh sách phòng lưu trú.");
+    } catch {
+      setError("Lỗi khi tải danh sách phòng lưu trú.");
     } finally {
       setLoading(false);
     }

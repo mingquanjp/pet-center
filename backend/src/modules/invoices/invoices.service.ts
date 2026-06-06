@@ -1,6 +1,7 @@
 import * as repo from "./invoices.repository.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
+import { notifyPaymentSuccess } from "../notifications/notification-events.js";
 
 function mapInvoiceStatus(
   status: string,
@@ -241,7 +242,9 @@ export async function confirmStaffInvoicePayment(invoiceId: string, payload: { p
     throw new AppError("Chỉ có thể xác nhận thanh toán cho hóa đơn thanh toán tại quầy", "BAD_REQUEST", httpStatus.BAD_REQUEST);
   }
 
-  await repo.confirmPayment(invoiceId, payload.paymentMethod, Number(row.total_amount));
+  const paymentId = await repo.confirmPayment(invoiceId, payload.paymentMethod, Number(row.total_amount));
+
+  notifyPaymentSuccess(paymentId).catch(console.error);
 
   return await getStaffInvoiceDetail(invoiceId);
 }

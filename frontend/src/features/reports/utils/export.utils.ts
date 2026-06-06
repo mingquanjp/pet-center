@@ -3,7 +3,7 @@ import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AdminReportsData, AdminReportTab, AdminReportFilters } from '../types/report.types';
-import { formatCompactVnd } from './report-format';
+
 
 // --- EXCEL EXPORT ---
 
@@ -234,7 +234,8 @@ export async function exportToPdf(data: AdminReportsData, tab: AdminReportTab, f
       styles, headStyles
     });
 
-    startY = (pdf as any).lastAutoTable.finalY + 15;
+    // @ts-expect-error jspdf-autotable adds lastAutoTable to jsPDF
+    startY = pdf.lastAutoTable.finalY + 15;
 
     pdf.setFontSize(12);
     pdf.setTextColor(50, 50, 50);
@@ -268,7 +269,8 @@ export async function exportToPdf(data: AdminReportsData, tab: AdminReportTab, f
       styles, headStyles
     });
 
-    startY = (pdf as any).lastAutoTable.finalY + 15;
+    // @ts-expect-error jspdf-autotable adds lastAutoTable to jsPDF
+    startY = pdf.lastAutoTable.finalY + 15;
 
     pdf.setFontSize(12);
     pdf.text('2. DỊCH VỤ PHỔ BIẾN', 14, startY);
@@ -329,7 +331,8 @@ export async function exportToPdf(data: AdminReportsData, tab: AdminReportTab, f
   }
 
   // Footer / Page numbers
-  const pageCount = (pdf as any).internal.getNumberOfPages();
+  // @ts-expect-error internal exists
+  const pageCount = pdf.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     pdf.setPage(i);
     pdf.setFontSize(8);

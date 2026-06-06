@@ -59,6 +59,7 @@ export function useAdminReports() {
   }, [filters]);
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchReports();
   }, [fetchReports]);
 

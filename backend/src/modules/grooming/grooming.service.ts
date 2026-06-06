@@ -18,6 +18,11 @@ import type {
   StaffCounterGroomingOptionsDto
 } from "./grooming.types.js";
 import * as groomingRepository from "./grooming.repository.js";
+import {
+  notifyGroomingCreated,
+  notifyGroomingAccepted,
+  notifyGroomingCompleted
+} from "../notifications/notification-events.js";
 
 const timeZone = "Asia/Ho_Chi_Minh";
 const firstSlotHour = 8;
@@ -306,7 +311,7 @@ export async function createTicket(authUser: AuthUser, payload: CreateGroomingTi
   const service = applyWeightBasedPrice(servicePriceBase, pet.weightKg);
 
   try {
-    return await groomingRepository.createGroomingBooking({
+    const ticket = await groomingRepository.createGroomingBooking({
       ownerUserId: authUser.userId,
       pet,
       service,
@@ -314,6 +319,8 @@ export async function createTicket(authUser: AuthUser, payload: CreateGroomingTi
       specialRequest: payload.specialRequest,
       paymentOption: payload.paymentOption
     });
+    notifyGroomingCreated(ticket.groomingTicketId).catch(console.error);
+    return ticket;
   } catch (error) {
     if (error instanceof Error && error.message === "GROOMING_SLOT_FULL") {
       throw new AppError("Khung gio nay da day, vui long chon khung gio khac", "GROOMING_SLOT_FULL", httpStatus.CONFLICT);
@@ -390,7 +397,7 @@ export async function createStaffCounterTicket(
   const service = applyWeightBasedPrice(servicePriceBase, pet.weightKg);
 
   try {
-    return await groomingRepository.createGroomingBooking({
+    const ticket = await groomingRepository.createGroomingBooking({
       ownerUserId: pet.ownerUserId,
       createdByUserId: authUser.userId,
       sourceType: "counter",
@@ -400,6 +407,8 @@ export async function createStaffCounterTicket(
       specialRequest: payload.specialRequest,
       paymentOption: "counter"
     });
+    notifyGroomingCreated(ticket.groomingTicketId).catch(console.error);
+    return ticket;
   } catch (error) {
     if (error instanceof Error && error.message === "GROOMING_SLOT_FULL") {
       throw new AppError("Khung gio nay da day, vui long chon khung gio khac", "GROOMING_SLOT_FULL", httpStatus.CONFLICT);
@@ -442,6 +451,8 @@ export async function acceptStaffTicket(authUser: AuthUser, ticketId: string) {
     throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
+  notifyGroomingAccepted(ticketId).catch(console.error);
+
   return ticket;
 }
 
@@ -463,6 +474,8 @@ export async function completeStaffTicket(authUser: AuthUser, ticketId: string) 
   if (!ticket) {
     throw new AppError("Khong tim thay yeu cau spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
+
+  notifyGroomingCompleted(ticketId).catch(console.error);
 
   return ticket;
 }
