@@ -172,6 +172,8 @@ export interface DoctorExaminationListRow {
   scheduled_at: Date;
   symptom_description: string | null;
   internal_note: string | null;
+  doctor_id?: string | null;
+  doctor_name?: string | null;
   examination_status: string;
 }
 
@@ -215,6 +217,60 @@ export interface DoctorExaminationDetailRow extends DoctorExaminationListRow {
   exam_date: string | null;
 }
 
+export interface DoctorExaminationHistoryRow {
+  appointment_id: string;
+  pet_id: string;
+  scheduled_at: Date;
+  type_name: string;
+  diagnosis: string | null;
+}
+
+export interface DoctorMedicineOptionRow {
+  medicine_id: string;
+  medicine_name: string;
+  unit: string;
+  medicine_status: string;
+}
+
+export interface DoctorPrescriptionRow {
+  prescription_id: string;
+  prescribed_at: string;
+  general_note: string | null;
+}
+
+export interface DoctorPrescriptionItemRow {
+  prescription_item_id: string;
+  medicine_id: string;
+  medicine_name: string;
+  quantity: string | null;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  usage_instruction: string | null;
+  note: string | null;
+}
+
+export interface DoctorVaccinationRow {
+  vaccination_id: string;
+  vaccine_name: string;
+  vaccination_date: string;
+  note: string | null;
+}
+
+export interface DoctorFollowUpInstructionRow {
+  follow_up_id: string;
+  follow_up_date: string;
+  reason: string;
+  owner_note: string | null;
+}
+
+export interface DoctorRecheckContextRow {
+  previous_exam_id: string | null;
+  previous_appointment_id: string | null;
+  previous_diagnosis: string | null;
+  follow_up_reason: string | null;
+}
+
 export interface CompleteDoctorExaminationFieldValueBody {
   fieldDefinitionId: string;
   valueText?: string;
@@ -223,9 +279,41 @@ export interface CompleteDoctorExaminationFieldValueBody {
   fileUrl?: string;
 }
 
+export interface DoctorPrescriptionItemBody {
+  medicineId: string;
+  quantity?: number;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  usageInstruction: string;
+  note?: string;
+}
+
+export interface DoctorVaccinationBody {
+  vaccineName: string;
+  vaccinationDate: string;
+  note?: string;
+}
+
+export interface DoctorFollowUpInstructionBody {
+  followUpDate: string;
+  reason: string;
+  ownerNote?: string;
+}
+
 export interface CompleteDoctorExaminationBody {
   diagnosis: string;
   conclusion: string;
+  healthNote?: string;
+  fieldValues?: CompleteDoctorExaminationFieldValueBody[];
+  prescriptionItems?: DoctorPrescriptionItemBody[];
+  vaccination?: DoctorVaccinationBody;
+  followUp?: DoctorFollowUpInstructionBody;
+}
+
+export interface SaveDraftDoctorExaminationBody {
+  diagnosis?: string;
+  conclusion?: string;
   healthNote?: string;
   fieldValues?: CompleteDoctorExaminationFieldValueBody[];
 }

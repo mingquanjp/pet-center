@@ -5,6 +5,7 @@ import {
   DoctorExamination,
   DoctorExaminationDetail,
   DoctorExaminationFilters,
+  SaveDraftDoctorExaminationPayload,
 } from "../types/examination.types"
 
 export interface DoctorExaminationListResponse {
@@ -54,6 +55,13 @@ export const doctorExaminationsApi = {
   startDoctorExamination: async (appointmentId: string) => {
     const res = await apiRequest<DoctorExaminationDetail>(`/doctor/examinations/${appointmentId}/start`, {
       method: "POST",
+    })
+    return res.data
+  },
+  saveDraftDoctorExamination: async (appointmentId: string, payload: SaveDraftDoctorExaminationPayload) => {
+    const res = await apiRequest<DoctorExaminationDetail>(`/doctor/examinations/${appointmentId}/draft`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
     })
     return res.data
   },

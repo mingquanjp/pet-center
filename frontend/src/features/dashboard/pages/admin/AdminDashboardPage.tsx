@@ -68,23 +68,23 @@ type AdminStatKey =
   | "medicineRevenue"
   | "bookingRate"
 
-const boardingOccupancyLabel = "Th\u00fa c\u01b0ng \u0111ang l\u01b0u tr\u00fa"
+const boardingOccupancyLabel = "Thú cưng đang lưu trú"
 
 type DateRangePreset = "today" | "last7Days" | "last30Days"
 
 const statCardConfig: AdminStatConfig[] = [
   {
-    label: "T\u1ed5ng ng\u01b0\u1eddi d\u00f9ng",
+    label: "Tổng người dùng",
     icon: Users,
     iconClassName: "bg-petcenter-primary/10 text-petcenter-primary",
   },
   {
-    label: "T\u1ed5ng th\u00fa c\u01b0ng",
+    label: "Tổng thú cưng",
     icon: PawPrint,
     iconClassName: "bg-petcenter-cta/15 text-petcenter-cta-hover",
   },
   {
-    label: "L\u1ecbch kh\u00e1m h\u00f4m nay",
+    label: "Lịch khám hôm nay",
     icon: CalendarDays,
     iconClassName: "bg-petcenter-info-bg text-petcenter-info-text",
   },
@@ -94,22 +94,22 @@ const statCardConfig: AdminStatConfig[] = [
     iconClassName: "bg-petcenter-primary/10 text-petcenter-primary",
   },
   {
-    label: "Doanh thu 30 ng\u00e0y",
+    label: "Doanh thu 30 ngày",
     icon: CreditCard,
     iconClassName: "bg-petcenter-success-bg text-petcenter-success-text",
   },
   {
-    label: "H\u00f3a \u0111\u01a1n ch\u1edd thanh to\u00e1n",
+    label: "Hóa đơn chờ thanh toán",
     icon: ReceiptText,
     iconClassName: "bg-petcenter-warning-bg text-petcenter-warning-text",
   },
   {
-    label: "Doanh thu thu\u1ed1c",
+    label: "Doanh thu thuốc",
     icon: Pill,
     iconClassName: "bg-petcenter-danger-bg text-petcenter-danger-text",
   },
   {
-    label: "T\u1ef7 l\u1ec7 \u0111\u1eb7t ph\u00f2ng",
+    label: "Tỷ lệ đặt phòng",
     icon: CheckCircle2,
     iconClassName: "bg-petcenter-info-bg text-petcenter-info-text",
   },
@@ -200,7 +200,7 @@ export function AdminDashboardPage() {
       })
       .catch((error) => {
         if (!abortController.signal.aborted) {
-          setErrorMessage(error instanceof Error ? error.message : "Kh\u00f4ng th\u1ec3 t\u1ea3i dashboard qu\u1ea3n tr\u1ecb")
+          setErrorMessage(error instanceof Error ? error.message : "Không thể tải dashboard quản trị")
         }
       })
       .finally(() => {
@@ -232,8 +232,8 @@ export function AdminDashboardPage() {
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-section">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="heading-lg text-petcenter-text">{"T\u1ed5ng quan Dashboard"}</h1>
-          <p className="body-sm mt-1 text-petcenter-text-secondary">{"H\u00f4m nay"}, {todayLabel}</p>
+          <h1 className="heading-lg text-petcenter-text">{"Tổng quan Dashboard"}</h1>
+          <p className="body-sm mt-1 text-petcenter-text-secondary">{"Hôm nay"}, {todayLabel}</p>
         </div>
         <DateRangePicker value={dateRange} label={dateRangeLabel} onChange={handleDateRangeChange} />
       </section>
@@ -296,24 +296,24 @@ export function AdminDashboardPage() {
           ref={recentActivityCardRef}
         >
           <div className="flex items-center justify-between border-b border-petcenter-border bg-petcenter-filter px-5 py-4">
-            <h2 className="heading-sm text-petcenter-text">{"Ho\u1ea1t \u0111\u1ed9ng g\u1ea7n \u0111\u00e2y"}</h2>
+            <h2 className="heading-sm text-petcenter-text">{"Hoạt động gần đây"}</h2>
             <button
               className="label-md font-semibold text-petcenter-primary hover:underline"
               onClick={() => setIsActivityHistoryOpen(true)}
               type="button"
             >
-              {"Xem t\u1ea5t c\u1ea3"}
+              {"Xem tất cả"}
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden">
             <table className="w-full min-w-[760px] text-left">
               <thead className="border-b border-petcenter-border bg-white text-petcenter-text-secondary">
                 <tr>
-                  <th className="label-md px-5 py-3">{"Th\u1eddi gian"}</th>
-                  <th className="label-md px-5 py-3">{"M\u00e3 phi\u1ebfu"}</th>
-                  <th className="label-md px-5 py-3">{"Kh\u00e1ch h\u00e0ng / Th\u00fa c\u01b0ng"}</th>
-                  <th className="label-md px-5 py-3">{"H\u00e0nh \u0111\u1ed9ng"}</th>
-                  <th className="label-md px-5 py-3">{"Tr\u1ea1ng th\u00e1i"}</th>
+                  <th className="label-md px-5 py-3">{"Thời gian"}</th>
+                  <th className="label-md px-5 py-3">{"Mã phiếu"}</th>
+                  <th className="label-md px-5 py-3">{"Khách hàng / Thú cưng"}</th>
+                  <th className="label-md px-5 py-3">{"Hành động"}</th>
+                  <th className="label-md px-5 py-3">{"Trạng thái"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -335,7 +335,7 @@ export function AdminDashboardPage() {
                 )) : (
                   <tr>
                     <td className="body-sm px-5 py-6 text-petcenter-text-secondary" colSpan={5}>
-                      {isLoading ? "\u0110ang t\u1ea3i ho\u1ea1t \u0111\u1ed9ng..." : "Ch\u01b0a c\u00f3 ho\u1ea1t \u0111\u1ed9ng trong kho\u1ea3ng th\u1eddi gian n\u00e0y."}
+                      {isLoading ? "Đang tải hoạt động..." : "Chưa có hoạt động trong khoảng thời gian này."}
                     </td>
                   </tr>
                 )}
@@ -350,7 +350,7 @@ export function AdminDashboardPage() {
         >
           <div className="mb-4 flex items-center gap-2 border-b border-petcenter-border pb-3">
             <AlertTriangle className="h-5 w-5 text-petcenter-danger-text" />
-            <h2 className="heading-sm text-petcenter-text">{"C\u1ea3nh b\u00e1o v\u1eadn h\u00e0nh"}</h2>
+            <h2 className="heading-sm text-petcenter-text">{"Cảnh báo vận hành"}</h2>
           </div>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1">
             {operationAlertRows.length > 0 ? operationAlertRows.map((alert) => (
@@ -365,7 +365,7 @@ export function AdminDashboardPage() {
               </article>
             )) : (
               <p className="body-sm rounded-control border border-dashed border-petcenter-border-strong bg-petcenter-filter px-4 py-6 text-center text-petcenter-text-secondary">
-                {isLoading ? "\u0110ang t\u1ea3i c\u1ea3nh b\u00e1o..." : "Ch\u01b0a c\u00f3 c\u1ea3nh b\u00e1o v\u1eadn h\u00e0nh."}
+                {isLoading ? "Đang tải cảnh báo..." : "Chưa có cảnh báo vận hành."}
               </p>
             )}
           </div>
@@ -664,10 +664,10 @@ function ActivityHistoryLoadMore({
           type="button"
           variant="outline"
         >
-          {isLoading ? "\u0110ang t\u1ea3i..." : "T\u1ea3i th\u00eam"}
+          {isLoading ? "Đang tải..." : "Tải thêm"}
         </Button>
         <p className="label-sm text-petcenter-text-secondary">
-          {"\u0110ang hi\u1ec3n th\u1ecb"} {visible}/{total} {"ho\u1ea1t \u0111\u1ed9ng"}
+          {"Đang hiển thị"} {visible}/{total} {"hoạt động"}
         </p>
       </div>
     )
@@ -675,7 +675,7 @@ function ActivityHistoryLoadMore({
 
   return (
     <p className="label-sm text-center text-petcenter-text-secondary">
-      {"\u0110\u00e3 hi\u1ec3n th\u1ecb t\u1ea5t c\u1ea3"} {total} {"ho\u1ea1t \u0111\u1ed9ng"}
+      {"Đã hiển thị tất cả"} {total} {"hoạt động"}
     </p>
   )
 }
@@ -839,13 +839,13 @@ function getRecentActivityStatusClassName(activity: AdminDashboardRecentActivity
 
 function normalizeStatusLabel(label: string): string {
   const labels: Record<string, string> = {
-    "Da len lich": "\u0110\u00e3 l\u00ean l\u1ecbch",
-    "Dang cho": "\u0110ang ch\u1edd",
-    "Da xac nhan": "\u0110\u00e3 x\u00e1c nh\u1eadn",
-    "Hoan thanh": "Ho\u00e0n th\u00e0nh",
-    "Da huy": "\u0110\u00e3 h\u1ee7y",
-    "Tu choi": "T\u1eeb ch\u1ed1i",
-    "That bai": "Th\u1ea5t b\u1ea1i",
+    "Da len lich": "Đã lên lịch",
+    "Dang cho": "Đang chờ",
+    "Da xac nhan": "Đã xác nhận",
+    "Hoan thanh": "Hoàn thành",
+    "Da huy": "Đã hủy",
+    "Tu choi": "Từ chối",
+    "That bai": "Thất bại",
   }
 
   return labels[label] ?? label
@@ -931,27 +931,27 @@ function DateRangePicker({
       <PopoverContent align="end" className="z-50 w-[320px] rounded-card border-petcenter-border bg-white p-4 shadow-modal">
         <div className="space-y-4">
           <div>
-            <h3 className="title-md text-petcenter-text">{"Ch\u1ecdn kho\u1ea3ng th\u1eddi gian"}</h3>
+            <h3 className="title-md text-petcenter-text">{"Chọn khoảng thời gian"}</h3>
             <p className="body-sm mt-1 text-petcenter-text-secondary">
-              {"D\u00f9ng \u0111\u1ec3 xem s\u1ed1 li\u1ec7u dashboard theo giai \u0111o\u1ea1n."}
+              {"Dùng để xem số liệu dashboard theo giai đoạn."}
             </p>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
             <button className="label-md rounded-control border border-petcenter-border bg-petcenter-filter px-2 py-2 text-petcenter-text-secondary hover:border-petcenter-primary hover:text-petcenter-primary" onClick={() => applyPreset("today")} type="button">
-              {"H\u00f4m nay"}
+              {"Hôm nay"}
             </button>
             <button className="label-md rounded-control border border-petcenter-border bg-petcenter-filter px-2 py-2 text-petcenter-text-secondary hover:border-petcenter-primary hover:text-petcenter-primary" onClick={() => applyPreset("last7Days")} type="button">
-              {"7 ng\u00e0y"}
+              {"7 ngày"}
             </button>
             <button className="label-md rounded-control border border-petcenter-border bg-petcenter-filter px-2 py-2 text-petcenter-text-secondary hover:border-petcenter-primary hover:text-petcenter-primary" onClick={() => applyPreset("last30Days")} type="button">
-              {"30 ng\u00e0y"}
+              {"30 ngày"}
             </button>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="space-y-1">
-              <span className="label-md text-petcenter-text-secondary">{"T\u1eeb ng\u00e0y"}</span>
+              <span className="label-md text-petcenter-text-secondary">{"Từ ngày"}</span>
               <input
                 className="h-10 w-full rounded-control border border-petcenter-border-strong bg-white px-3 text-sm text-petcenter-text outline-none focus:border-petcenter-primary"
                 max={value.endDate}
@@ -961,7 +961,7 @@ function DateRangePicker({
               />
             </label>
             <label className="space-y-1">
-              <span className="label-md text-petcenter-text-secondary">{"\u0110\u1ebfn ng\u00e0y"}</span>
+              <span className="label-md text-petcenter-text-secondary">{"Đến ngày"}</span>
               <input
                 className="h-10 w-full rounded-control border border-petcenter-border-strong bg-white px-3 text-sm text-petcenter-text outline-none focus:border-petcenter-primary"
                 min={value.startDate}
@@ -998,7 +998,7 @@ function RevenueTrendPanel({ data }: { data?: AdminDashboardRevenuePoint[] }) {
 
   return (
     <section className="flex h-64 flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card">
-      <h2 className="title-md text-petcenter-text">{"Xu h\u01b0\u1edbng doanh thu"}</h2>
+      <h2 className="title-md text-petcenter-text">{"Xu hướng doanh thu"}</h2>
       <div
         className="relative mt-4 flex flex-1 flex-col overflow-visible rounded-control border border-petcenter-border bg-petcenter-filter px-4 py-4"
         data-chart-tooltip-root
@@ -1056,7 +1056,7 @@ function RevenueTrendPanel({ data }: { data?: AdminDashboardRevenuePoint[] }) {
             </svg>
             {activePoint && tooltipPosition ? (
               <ChartTooltip x={tooltipPosition.x} y={tooltipPosition.y}>
-                <p className="label-md font-semibold text-petcenter-text">{"Th\u00e1ng"} {activePoint.label}</p>
+                <p className="label-md font-semibold text-petcenter-text">{"Tháng"} {activePoint.label}</p>
                 <p className="body-sm mt-1 text-petcenter-primary">{formatCurrency(activePoint.revenue)}</p>
               </ChartTooltip>
             ) : null}
@@ -1071,7 +1071,7 @@ function RevenueTrendPanel({ data }: { data?: AdminDashboardRevenuePoint[] }) {
           </>
         ) : (
           <div className="flex h-full w-full items-center justify-center">
-            <span className="label-md text-petcenter-text-secondary">{"Ch\u01b0a c\u00f3 d\u1eef li\u1ec7u doanh thu"}</span>
+            <span className="label-md text-petcenter-text-secondary">{"Chưa có dữ liệu doanh thu"}</span>
           </div>
         )}
       </div>
@@ -1086,7 +1086,7 @@ function ServiceRevenuePanel({ data }: { data?: AdminDashboardServiceRevenue[] }
 
   return (
     <section className="flex h-64 flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card">
-      <h2 className="title-md text-petcenter-text">{"Doanh thu theo d\u1ecbch v\u1ee5"}</h2>
+      <h2 className="title-md text-petcenter-text">{"Doanh thu theo dịch vụ"}</h2>
       <div className="mt-4 flex flex-1 items-center justify-center gap-6">
         <div className="relative flex h-32 w-32 shrink-0 items-center justify-center" data-chart-tooltip-root>
           {rows.length > 0 ? (
@@ -1120,7 +1120,7 @@ function ServiceRevenuePanel({ data }: { data?: AdminDashboardServiceRevenue[] }
               value={`${item.percentage}%`}
             />
           )) : (
-            <p className="body-sm max-w-[160px] text-petcenter-text-secondary">{"Ch\u01b0a c\u00f3 doanh thu theo d\u1ecbch v\u1ee5"}</p>
+            <p className="body-sm max-w-[160px] text-petcenter-text-secondary">{"Chưa có doanh thu theo dịch vụ"}</p>
           )}
         </div>
       </div>
@@ -1132,19 +1132,19 @@ function OperationsSnapshotPanel({ dashboard }: { dashboard: AdminDashboardOverv
   const items = dashboard
     ? [
         {
-          label: "L\u1ecbch kh\u00e1m",
+          label: "Lịch khám",
           value: dashboard.stats.medicalAppointments,
           max: Math.max(dashboard.stats.medicalAppointments, dashboard.stats.pendingInvoices, dashboard.stats.currentBoardingPets, 1),
           color: "bg-petcenter-primary",
         },
         {
-          label: "H\u00f3a \u0111\u01a1n ch\u1edd",
+          label: "Hóa đơn chờ",
           value: dashboard.stats.pendingInvoices,
           max: Math.max(dashboard.stats.medicalAppointments, dashboard.stats.pendingInvoices, dashboard.stats.currentBoardingPets, 1),
           color: "bg-petcenter-cta",
         },
         {
-          label: "L\u01b0u tr\u00fa",
+          label: "Lưu trú",
           value: dashboard.stats.currentBoardingPets,
           max: Math.max(dashboard.stats.medicalAppointments, dashboard.stats.pendingInvoices, dashboard.stats.currentBoardingPets, 1),
           color: "bg-sky-700",
@@ -1154,7 +1154,7 @@ function OperationsSnapshotPanel({ dashboard }: { dashboard: AdminDashboardOverv
 
   return (
     <section className="flex h-64 flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card">
-      <h2 className="title-md text-petcenter-text">{"T\u1ea3i v\u1eadn h\u00e0nh"}</h2>
+      <h2 className="title-md text-petcenter-text">{"Tải vận hành"}</h2>
       <div className="mt-5 flex flex-1 flex-col justify-center gap-4">
         {items.length > 0 ? items.map((item) => (
           <div className="space-y-2" key={item.label}>
@@ -1168,7 +1168,7 @@ function OperationsSnapshotPanel({ dashboard }: { dashboard: AdminDashboardOverv
           </div>
         )) : (
           <div className="flex flex-1 items-center justify-center rounded-control border border-dashed border-petcenter-border-strong bg-petcenter-filter">
-            <span className="label-md text-petcenter-text-secondary">{"Ch\u01b0a c\u00f3 d\u1eef li\u1ec7u v\u1eadn h\u00e0nh"}</span>
+            <span className="label-md text-petcenter-text-secondary">{"Chưa có dữ liệu vận hành"}</span>
           </div>
         )}
       </div>
@@ -1190,8 +1190,8 @@ function getServiceColor(category: AdminDashboardServiceRevenue["category"]): st
 
 function normalizeServiceLabel(label: string): string {
   const labels: Record<string, string> = {
-    "Kham benh": "Kh\u00e1m b\u1ec7nh",
-    Khac: "Kh\u00e1c",
+    "Kham benh": "Khám bệnh",
+    Khac: "Khác",
   }
 
   return labels[label] ?? label
@@ -1372,7 +1372,7 @@ function formatDateInputValue(date: Date): string {
 }
 
 function formatDateRangeLabel(startDate: string, endDate: string): string {
-  if (!startDate || !endDate) return "Ch\u1ecdn kho\u1ea3ng th\u1eddi gian"
+  if (!startDate || !endDate) return "Chọn khoảng thời gian"
 
   const formatter = new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",

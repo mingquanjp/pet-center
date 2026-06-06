@@ -111,10 +111,12 @@ CREATE TABLE medical_appointments (
     scheduled_at TIMESTAMPTZ NOT NULL,
     symptom_description TEXT,
     appointment_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+    examination_status VARCHAR(30) NOT NULL DEFAULT 'waiting',
     internal_note TEXT,
     rejection_reason TEXT,
     handled_by_staff_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT chk_medical_appointments_status CHECK (appointment_status IN ('pending_payment', 'pending', 'confirmed', 'rejected', 'cancelled')),
+    CONSTRAINT chk_medical_appointments_exam_status CHECK (examination_status IN ('waiting', 'examining', 'completed', 'follow_up')),
     CONSTRAINT chk_medical_appointments_rejection CHECK (
         (appointment_status = 'rejected' AND rejection_reason IS NOT NULL)
         OR (appointment_status <> 'rejected')
@@ -189,7 +191,8 @@ CREATE TABLE prescription_items (
     frequency VARCHAR(120) NOT NULL,
     duration VARCHAR(120) NOT NULL,
     usage_instruction TEXT,
-    note TEXT
+    note TEXT,
+    CONSTRAINT chk_prescription_items_quantity CHECK (quantity > 0)
 );
 
 CREATE TABLE follow_up_instructions (
@@ -462,6 +465,7 @@ CREATE INDEX idx_exam_types_service ON exam_types(service_id);
 CREATE INDEX idx_exam_fields_exam_type ON exam_field_definitions(exam_type_id, display_order);
 CREATE INDEX idx_medical_appointments_pet_time ON medical_appointments(pet_id, scheduled_at);
 CREATE INDEX idx_medical_appointments_owner_status ON medical_appointments(owner_user_id, appointment_status);
+CREATE INDEX idx_medical_appointments_exam_status ON medical_appointments(veterinarian_user_id, examination_status);
 CREATE INDEX idx_medical_appointments_vet_time ON medical_appointments(veterinarian_user_id, scheduled_at);
 CREATE INDEX idx_medical_appointments_staff ON medical_appointments(handled_by_staff_id);
 CREATE INDEX idx_medical_exams_type_date ON medical_exams(exam_type_id, exam_date);

@@ -37,8 +37,15 @@ export function useAdminReports() {
   const [data, setData] = useState<AdminReportsData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isWaitingForDates, setIsWaitingForDates] = useState<boolean>(false);
 
   const fetchReports = useCallback(async () => {
+    if (filters.timeRange === "CUSTOM" && (!filters.fromDate || !filters.toDate)) {
+      setIsWaitingForDates(true);
+      return;
+    }
+
+    setIsWaitingForDates(false);
     setIsLoading(true);
     setError(null);
     try {
@@ -96,6 +103,7 @@ export function useAdminReports() {
     resetFilters,
     data,
     isLoading,
+    isWaitingForDates,
     error,
     refetch: fetchReports,
     exportExcel,

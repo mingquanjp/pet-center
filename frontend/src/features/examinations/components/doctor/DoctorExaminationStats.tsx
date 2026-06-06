@@ -1,13 +1,14 @@
-import { CheckCircle2, ClipboardList, Clock, Stethoscope } from "lucide-react"
+import { AlertCircle, CheckCircle2, ClipboardList, Clock, Stethoscope } from "lucide-react"
 
 interface Props {
   total: number
   waiting: number
   examining: number
   completed: number
+  followUp: number
 }
 
-export function DoctorExaminationStats({ total, waiting, examining, completed }: Props) {
+export function DoctorExaminationStats({ total, waiting, examining, completed, followUp }: Props) {
   const items = [
     {
       label: "Tất cả phiếu khám",
@@ -33,10 +34,16 @@ export function DoctorExaminationStats({ total, waiting, examining, completed }:
       icon: CheckCircle2,
       iconClass: "bg-petcenter-success-bg text-petcenter-success-text",
     },
+    {
+      label: "Cần tái khám",
+      value: followUp,
+      icon: AlertCircle,
+      iconClass: "bg-petcenter-danger-bg text-petcenter-danger-text",
+    },
   ]
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {items.map((item) => {
         const Icon = item.icon
 
