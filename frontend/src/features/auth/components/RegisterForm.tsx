@@ -12,7 +12,6 @@ import { roleHomePath } from "@/constants/roles"
 import { authApi } from "@/features/auth/api/auth.api"
 import { saveAuthSession } from "@/features/auth/api/auth-session"
 import { AuthTextInput } from "./AuthTextInput"
-import { SocialLoginButton } from "./SocialLoginButton"
 
 export const RegisterForm = () => {
   const router = useRouter()
@@ -62,14 +61,14 @@ export const RegisterForm = () => {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="md:hidden flex items-center gap-2 mb-8 text-petcenter-primary">
+    <div className="mx-auto w-full max-w-[440px]">
+      <div className="mb-8 flex items-center gap-2 text-petcenter-primary md:hidden">
         <PawPrint className="w-8 h-8 fill-current" />
         <span className="font-semibold text-xl">PetCenter</span>
       </div>
 
-      <div className="mb-8">
-        <h1 className="heading-lg text-petcenter-text mb-2">Tạo tài khoản</h1>
+      <div className="mb-6">
+        <h1 className="heading-lg mb-2 text-petcenter-text">Tạo tài khoản</h1>
         <p className="body-md text-petcenter-text-secondary">Vui lòng điền thông tin để tạo tài khoản mới</p>
       </div>
 
@@ -103,22 +102,7 @@ export const RegisterForm = () => {
         </Button>
       </form>
 
-      <div className="mt-8">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-petcenter-border-strong"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white label-md text-petcenter-text-secondary">Hoặc đăng ký bằng</span>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <SocialLoginButton provider="google" />
-        </div>
-      </div>
-
-      <div className="mt-8 text-center">
+      <div className="mt-7 border-t border-petcenter-border pt-5 text-center">
         <p className="body-md text-petcenter-text-secondary">
           Đã có tài khoản?{" "}
           <Link href="/login" className="font-semibold text-petcenter-primary hover:text-petcenter-primary-hover transition-colors underline">
