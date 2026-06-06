@@ -1,14 +1,23 @@
-import { createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { env } from "../../config/env.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
 import * as authRepository from "./auth.repository.js";
-import type { ChangePasswordPayload, LoginPayload, RegisterPayload, UpdateProfilePayload } from "./auth.schema.js";
+import { sendPasswordResetEmail } from "../mail/mail.service.js";
+import type {
+  ChangePasswordPayload,
+  ForgotPasswordPayload,
+  LoginPayload,
+  RegisterPayload,
+  ResetPasswordPayload,
+  UpdateProfilePayload
+} from "./auth.schema.js";
 import type { AuthResponse, AuthUserDto, AuthUserRecord } from "./auth.types.js";
 
 const scrypt = promisify(scryptCallback);
+const passwordResetLifetimeMinutes = 30;
 
 function toUserDto(user: AuthUserRecord): AuthUserDto {
   return {
@@ -48,6 +57,10 @@ async function verifyPassword(password: string, passwordHash: string): Promise<b
   const storedBuffer = Buffer.from(storedKey, "base64url");
 
   return storedBuffer.length === derivedKey.length && timingSafeEqual(storedBuffer, derivedKey);
+}
+
+function hashResetToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 function signAccessToken(user: AuthUserDto): string {
@@ -197,4 +210,74 @@ export async function changePassword(authUser: AuthUser, payload: ChangePassword
   }
 
   await authRepository.updateCurrentUserPassword(authUser.userId, await hashPassword(payload.newPassword));
+}
+
+export async function forgotPassword(payload: ForgotPasswordPayload): Promise<void> {
+  const user = await authRepository.findUserByEmail(payload.email);
+
+  if (!user || user.accountStatus !== "active") {
+    return;
+  }
+
+  const token = randomBytes(32).toString("base64url");
+  const tokenHash = hashResetToken(token);
+  const expiresAt = new Date(Date.now() + passwordResetLifetimeMinutes * 60 * 1000);
+
+  await authRepository.createPasswordResetToken({
+    resetTokenId: `prt_${randomBytes(12).toString("hex")}`,
+    userId: user.userId,
+    tokenHash,
+    expiresAt
+  });
+
+  try {
+    const resetUrl = `${env.FRONTEND_URL.replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(token)}`;
+    await sendPasswordResetEmail({
+      to: user.email,
+      fullName: user.fullName,
+      resetUrl,
+      expiresInMinutes: passwordResetLifetimeMinutes
+    });
+  } catch (error) {
+    await authRepository.invalidatePasswordResetToken(tokenHash);
+    throw error;
+  }
+}
+
+export async function resetPassword(payload: ResetPasswordPayload): Promise<void> {
+  const tokenHash = hashResetToken(payload.token);
+  const resetToken = await authRepository.findValidPasswordResetToken(tokenHash);
+
+  if (!resetToken) {
+    throw new AppError(
+      "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn",
+      "PASSWORD_RESET_TOKEN_INVALID",
+      httpStatus.BAD_REQUEST
+    );
+  }
+
+  const user = await authRepository.findUserById(resetToken.user_id);
+
+  if (!user || user.accountStatus !== "active") {
+    await authRepository.invalidatePasswordResetToken(tokenHash);
+    throw new AppError("Tài khoản không còn khả dụng", "ACCOUNT_NOT_ACTIVE", httpStatus.FORBIDDEN);
+  }
+
+  if (await verifyPassword(payload.newPassword, user.passwordHash)) {
+    throw new AppError("Mật khẩu mới phải khác mật khẩu hiện tại", "PASSWORD_UNCHANGED", httpStatus.BAD_REQUEST);
+  }
+
+  const consumed = await authRepository.consumePasswordResetToken({
+    resetTokenId: resetToken.reset_token_id,
+    userId: resetToken.user_id,
+    passwordHash: await hashPassword(payload.newPassword)
+  });
+
+  if (!consumed) {
+    throw new AppError(
+      "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn",
+      "PASSWORD_RESET_TOKEN_INVALID",
+      httpStatus.BAD_REQUEST
+    );
+  }
 }

@@ -3,8 +3,10 @@ import type {
   AuthResponse,
   AuthUser,
   ChangePasswordPayload,
+  ForgotPasswordPayload,
   LoginPayload,
   RegisterPayload,
+  ResetPasswordPayload,
   UpdateProfilePayload,
 } from "../types/auth.types";
 
@@ -46,6 +48,22 @@ export const authApi = {
       body: JSON.stringify(payload),
     });
     return response.data;
+  },
+
+  async forgotPassword(payload: ForgotPasswordPayload) {
+    const response = await apiRequest<null>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return response.message;
+  },
+
+  async resetPassword(payload: ResetPasswordPayload) {
+    const response = await apiRequest<null>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return response.message;
   },
 
   async logout() {

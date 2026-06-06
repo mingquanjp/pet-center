@@ -39,7 +39,24 @@ export const changePasswordSchema = z
     path: ["confirmPassword"]
   });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().email("Email không hợp lệ").max(255, "Email không được vượt quá 255 ký tự")
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().trim().min(32, "Liên kết đặt lại mật khẩu không hợp lệ").max(200),
+    newPassword: z.string().min(8, "Mật khẩu mới phải có ít nhất 8 ký tự").max(100),
+    confirmPassword: z.string().min(1, "Vui lòng xác nhận mật khẩu mới").max(100)
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    message: "Mật khẩu xác nhận không khớp",
+    path: ["confirmPassword"]
+  });
+
 export type RegisterPayload = z.infer<typeof registerSchema>;
 export type LoginPayload = z.infer<typeof loginSchema>;
 export type UpdateProfilePayload = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordPayload = z.infer<typeof changePasswordSchema>;
+export type ForgotPasswordPayload = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordPayload = z.infer<typeof resetPasswordSchema>;

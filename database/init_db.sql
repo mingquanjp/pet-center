@@ -24,6 +24,16 @@ CREATE TABLE users (
     CONSTRAINT chk_users_phone_number CHECK (phone_number IS NULL OR phone_number ~ '^[0-9+() .-]{8,20}$')
 );
 
+CREATE TABLE password_reset_tokens (
+    reset_token_id VARCHAR(30) PRIMARY KEY,
+    user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_password_reset_expiry CHECK (expires_at > created_at)
+);
+
 CREATE TABLE pets (
     pet_id VARCHAR(30) PRIMARY KEY,
     owner_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -484,6 +494,11 @@ CREATE UNIQUE INDEX uq_online_payment_attempts_pending_invoice
     WHERE attempt_status = 'pending';
 
 CREATE INDEX idx_users_role_status ON users(role, account_status);
+CREATE INDEX idx_password_reset_user_created
+    ON password_reset_tokens(user_id, created_at DESC);
+CREATE INDEX idx_password_reset_expiry
+    ON password_reset_tokens(expires_at)
+    WHERE used_at IS NULL;
 CREATE INDEX idx_pets_owner ON pets(owner_user_id);
 CREATE INDEX idx_pets_species_status ON pets(species, pet_status);
 CREATE INDEX idx_health_profiles_pet ON pet_health_profiles(pet_id);

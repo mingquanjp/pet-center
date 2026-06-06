@@ -31,3 +31,17 @@ export async function changePassword(req: Request, res: Response): Promise<void>
   await authService.changePassword(req.user!, req.body);
   sendSuccess(res, null, "Đổi mật khẩu thành công");
 }
+
+export async function forgotPassword(req: Request, res: Response): Promise<void> {
+  await authService.forgotPassword(req.body);
+  sendSuccess(
+    res,
+    null,
+    "Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi."
+  );
+}
+
+export async function resetPassword(req: Request, res: Response): Promise<void> {
+  await authService.resetPassword(req.body);
+  sendSuccess(res, null, "Đặt lại mật khẩu thành công");
+}
