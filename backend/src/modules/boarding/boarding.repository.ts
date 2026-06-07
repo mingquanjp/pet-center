@@ -577,7 +577,7 @@ export async function findStaffBoardingList(filters: {
         WHEN 'checked_out' THEN 4
         ELSE 5
       END,
-      GREATEST(COALESCE(latest_update.updated_at, '1970-01-01'::timestamptz), COALESCE(br.updated_at, '1970-01-01'::timestamptz), br.created_at) DESC,
+      GREATEST(COALESCE(latest_update.updated_at, '1970-01-01'::timestamptz), br.created_at) DESC,
       br.boarding_record_id DESC
     LIMIT $${params.length - 1}
     OFFSET $${params.length}
