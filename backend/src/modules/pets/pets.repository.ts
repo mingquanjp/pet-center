@@ -1220,9 +1220,9 @@ export async function findPetSpaHistory(
 }
 
 export async function createPet(ownerUserId: string, payload: CreatePetPayload): Promise<PetDetailDto> {
-  const petId = createId("pet");
+  const petId = await withTransaction(async (client) => {
+    const nextPetId = await createId("pet", client);
 
-  await withTransaction(async (client) => {
     await client.query(
       `insert into pet_center.pets (
          pet_id, owner_user_id, pet_name, species, breed, gender, birth_date, estimated_age,
@@ -1230,7 +1230,7 @@ export async function createPet(ownerUserId: string, payload: CreatePetPayload):
        )
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
-        petId,
+        nextPetId,
         ownerUserId,
         payload.petName,
         payload.species,
@@ -1246,8 +1246,10 @@ export async function createPet(ownerUserId: string, payload: CreatePetPayload):
     );
 
     if (payload.healthProfile) {
-      await upsertHealthProfile(client, petId, payload.healthProfile);
+      await upsertHealthProfile(client, nextPetId, payload.healthProfile);
     }
+
+    return nextPetId;
   });
 
   return (await findPetById(ownerUserId, petId))!;
@@ -1317,7 +1319,7 @@ async function upsertHealthProfile(
        special_care_notes = excluded.special_care_notes,
        updated_at = now()`,
     [
-      createId("hp"),
+      await createId("hp", client),
       petId,
       healthProfile.medicalHistory ?? null,
       healthProfile.allergyNotes ?? null,

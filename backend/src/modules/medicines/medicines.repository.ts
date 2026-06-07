@@ -187,35 +187,6 @@ export async function checkMedicineNameExists(name: string, excludeMedicineId?: 
   return result.rowCount !== null && result.rowCount > 0;
 }
 
-export async function getNextMedicineId(): Promise<string> {
-  const sql = `
-    SELECT medicine_id
-    FROM pet_center.medicines
-    WHERE medicine_id ILIKE 'med%'
-    ORDER BY NULLIF(REGEXP_REPLACE(medicine_id, '\\D', '', 'g'), '')::bigint DESC NULLS LAST
-    LIMIT 1
-  `;
-  try {
-    const result = await query<{ medicine_id: string }>(sql);
-    if (result.rows.length === 0) {
-      return "med0001";
-    }
-    
-    const maxId = result.rows[0]!.medicine_id;
-    const numStr = maxId.replace(/\D/g, "");
-    const num = parseInt(numStr, 10);
-    
-    if (isNaN(num)) {
-      return `med${Date.now()}`;
-    }
-    
-    const nextNum = num + 1;
-    return `med${nextNum.toString().padStart(4, "0")}`;
-  } catch (error) {
-    return `med${Date.now()}`;
-  }
-}
-
 export async function createAdminMedicine(medicineId: string, payload: CreateAdminMedicineBody): Promise<void> {
   const sql = `
     INSERT INTO pet_center.medicines (

@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import type { PoolClient } from "pg";
 import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
@@ -330,12 +329,6 @@ export async function countOverlappingBoardingRecordsByPet(
   return Number(result.rows[0]?.total ?? 0);
 }
 
-function createBoardingCode(date: Date): string {
-  const datePart = date.toISOString().slice(0, 10).replaceAll("-", "");
-
-  return `BRD-${datePart}-${randomBytes(3).toString("hex").toUpperCase()}`;
-}
-
 export async function createBoardingRecord(input: CreateBoardingRecordInput): Promise<BoardingRecordCreatedDto> {
   return withTransaction(async (client) => {
     await client.query("lock table pet_center.boarding_records in share row exclusive mode");
@@ -362,9 +355,9 @@ export async function createBoardingRecord(input: CreateBoardingRecordInput): Pr
       throw new Error("BOARDING_ROOM_FULL");
     }
 
-    const boardingRecordId = createBoardingCode(input.plannedCheckInAt);
-    const invoiceId = createId("inv");
-    const invoiceLineId = createId("inl");
+    const boardingRecordId = await createId("brd", client);
+    const invoiceId = await createId("inv", client);
+    const invoiceLineId = await createId("inl", client);
     const boardingStatus = input.paymentOption === "online" ? "pending_payment" : "pending";
     const invoiceStatus = "pending_payment";
     const unitPrice = input.roomType.unitPrice;
@@ -735,7 +728,7 @@ export async function insertBoardingUpdate(params: {
     RETURNING *
   `;
   const result = await query(sql, [
-    params.boardingUpdateId ?? createId("bup"),
+    params.boardingUpdateId ?? await createId("bup"),
     params.boardingRecordId,
     params.createdByUserId ?? params.userId,
     params.updateNote ?? params.description,
@@ -800,7 +793,7 @@ export async function insertBoardingUpdateIfNotDuplicate(params: {
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *`,
       [
-        params.boardingUpdateId ?? createId("bup"),
+        params.boardingUpdateId ?? await createId("bup", client),
         params.boardingRecordId,
         createdByUserId,
         updateNote,

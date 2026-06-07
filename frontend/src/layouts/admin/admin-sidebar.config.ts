@@ -3,7 +3,6 @@ import {
   BedDouble,
   LayoutDashboard,
   Pill,
-  ReceiptText,
   Tags,
   Users,
 } from "lucide-react"
@@ -23,11 +22,6 @@ export const adminSidebarConfig = [
     title: "Danh m\u1ee5c d\u1ecbch v\u1ee5",
     href: "/admin/service-categories",
     icon: Tags,
-  },
-  {
-    title: "B\u1ea3ng gi\u00e1",
-    href: "/admin/pricing",
-    icon: ReceiptText,
   },
   {
     title: "Danh m\u1ee5c thu\u1ed1c",

@@ -87,7 +87,6 @@ export async function findAdminServiceCategories(params: AdminServiceCategoriesQ
       s.service_status,
       (
         (SELECT COUNT(*) FROM pet_center.exam_types et WHERE et.service_id = s.service_id) +
-        (SELECT COUNT(*) FROM pet_center.service_price_rules spr WHERE spr.service_id = s.service_id) +
         (SELECT COUNT(*) FROM pet_center.grooming_ticket_items gti WHERE gti.service_id = s.service_id) +
         (SELECT COUNT(*) FROM pet_center.invoice_lines il WHERE il.service_id = s.service_id)
       )::int AS usage_count
@@ -164,7 +163,6 @@ export async function findServiceCategoryDetailById(serviceId: string): Promise<
         s.service_status,
         (
           (SELECT COUNT(*) FROM pet_center.exam_types et WHERE et.service_id = s.service_id) +
-          (SELECT COUNT(*) FROM pet_center.service_price_rules spr WHERE spr.service_id = s.service_id) +
           (SELECT COUNT(*) FROM pet_center.grooming_ticket_items gti WHERE gti.service_id = s.service_id) +
           (SELECT COUNT(*) FROM pet_center.invoice_lines il WHERE il.service_id = s.service_id)
         )::int AS usage_count
@@ -189,26 +187,6 @@ export async function checkServiceNameExists(name: string, excludeServiceId?: st
   sql += ` LIMIT 1`;
   const result = await query(sql, params);
   return result.rowCount !== null && result.rowCount > 0;
-}
-
-export async function getNextServiceCategoryId(): Promise<string> {
-  const result = await query<{ service_id: string }>(
-    `
-      SELECT service_id
-      FROM pet_center.services
-      WHERE service_id ILIKE 'svc_admin_%'
-      ORDER BY NULLIF(REGEXP_REPLACE(service_id, '\\D', '', 'g'), '')::bigint DESC NULLS LAST
-      LIMIT 1
-    `
-  );
-
-  if (result.rows.length === 0) return "svc_admin_0001";
-
-  const latestId = result.rows[0]!.service_id;
-  const latestNumber = parseInt(latestId.replace(/\D/g, ""), 10);
-  if (Number.isNaN(latestNumber)) return `svc_admin_${Date.now()}`;
-
-  return `svc_admin_${(latestNumber + 1).toString().padStart(4, "0")}`;
 }
 
 export async function createAdminServiceCategory(serviceId: string, payload: CreateAdminServiceCategoryBody): Promise<void> {

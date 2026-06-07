@@ -13,7 +13,7 @@ function formatFollowUpCode(followUpId: string) {
 }
 
 function formatExaminationCode(row: Pick<DoctorFollowUpListRow | DoctorFollowUpDetailRow, "appointment_id" | "exam_id">) {
-  const appointmentSuffix = row.appointment_id.replace(/^appt_/, "").toUpperCase();
+  const appointmentSuffix = row.appointment_id.replace(/^appt_?/i, "").toUpperCase();
   if (appointmentSuffix !== row.appointment_id) {
     return `PK-${appointmentSuffix}`;
   }

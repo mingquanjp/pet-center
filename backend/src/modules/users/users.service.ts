@@ -230,8 +230,15 @@ export async function listAdminUserActivities(userId: string, query: { limit?: n
 
 export async function createAdminUser(body: CreateAdminUserBody): Promise<AdminUserDto> {
   try {
+    const idPrefix = {
+      Owner: "own",
+      Staff: "stf",
+      Doctor: "doc",
+      Admin: "adm",
+    }[body.role];
+
     const row = await repo.createAdminUser({
-      userId: createId("usr"),
+      userId: await createId(idPrefix),
       fullName: body.fullName,
       email: body.email,
       passwordHash: await hashPassword(body.password),

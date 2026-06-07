@@ -9,12 +9,12 @@ import type {
 } from "./prescriptions.types.js";
 
 function formatPrescriptionCode(prescriptionId: string) {
-  const suffix = prescriptionId.replace(/^pre/i, "").replace(/^prescription_?/i, "").toUpperCase();
+  const suffix = prescriptionId.replace(/^rx_?/i, "").replace(/^pre/i, "").replace(/^prescription_?/i, "").toUpperCase();
   return `DT-${suffix}`;
 }
 
 function formatExaminationCode(row: Pick<DoctorPrescriptionListRow | DoctorPrescriptionDetailRow, "appointment_id" | "exam_id">) {
-  const appointmentSuffix = row.appointment_id.replace(/^appt_/, "").toUpperCase();
+  const appointmentSuffix = row.appointment_id.replace(/^appt_?/i, "").toUpperCase();
   if (appointmentSuffix !== row.appointment_id) {
     return `PK-${appointmentSuffix}`;
   }

@@ -8,6 +8,35 @@ DROP SCHEMA IF EXISTS pet_center CASCADE;
 CREATE SCHEMA pet_center;
 SET search_path TO pet_center, public;
 
+CREATE SEQUENCE own_id_seq;
+CREATE SEQUENCE stf_id_seq;
+CREATE SEQUENCE doc_id_seq;
+CREATE SEQUENCE adm_id_seq;
+CREATE SEQUENCE prt_id_seq;
+CREATE SEQUENCE pet_id_seq;
+CREATE SEQUENCE hp_id_seq;
+CREATE SEQUENCE svc_id_seq;
+CREATE SEQUENCE med_id_seq;
+CREATE SEQUENCE appt_id_seq;
+CREATE SEQUENCE mex_id_seq;
+CREATE SEQUENCE efd_id_seq;
+CREATE SEQUENCE efv_id_seq;
+CREATE SEQUENCE rx_id_seq;
+CREATE SEQUENCE rxi_id_seq;
+CREATE SEQUENCE vac_id_seq;
+CREATE SEQUENCE fui_id_seq;
+CREATE SEQUENCE spa_id_seq;
+CREATE SEQUENCE gti_id_seq;
+CREATE SEQUENCE rt_id_seq;
+CREATE SEQUENCE brd_id_seq;
+CREATE SEQUENCE bup_id_seq;
+CREATE SEQUENCE inv_id_seq;
+CREATE SEQUENCE inl_id_seq;
+CREATE SEQUENCE pay_id_seq;
+CREATE SEQUENCE noti_id_seq;
+CREATE SEQUENCE elog_id_seq;
+CREATE SEQUENCE rem_id_seq;
+
 CREATE TABLE users (
     user_id VARCHAR(30) PRIMARY KEY,
     full_name VARCHAR(150) NOT NULL,
@@ -202,7 +231,7 @@ CREATE TABLE prescription_items (
     duration VARCHAR(120) NOT NULL,
     usage_instruction TEXT,
     note TEXT,
-    CONSTRAINT chk_prescription_items_quantity CHECK (quantity > 0)
+    CONSTRAINT chk_prescription_items_quantity CHECK (quantity IS NULL OR btrim(quantity) <> '')
 );
 
 CREATE TABLE follow_up_instructions (

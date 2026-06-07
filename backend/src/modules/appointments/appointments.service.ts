@@ -33,12 +33,12 @@ function mapTypeCode(dbCode: string): string {
 }
 
 function formatAppointmentCode(appointmentId: string): string {
-  const suffix = appointmentId.replace(/^appt_/, "").toUpperCase();
+  const suffix = appointmentId.replace(/^appt_?/i, "").toUpperCase();
   return `LH-${suffix}`;
 }
 
 function formatExaminationCode(appointmentId: string): string {
-  const suffix = appointmentId.replace(/^appt_/, "").toUpperCase();
+  const suffix = appointmentId.replace(/^appt_?/i, "").toUpperCase();
   return `PK-${suffix}`;
 }
 
@@ -378,7 +378,7 @@ export async function startDoctorExamination(doctorUserId: string, appointmentId
 
     if (!row.exam_id) {
       await repo.createMedicalExamForAppointment(
-        createId("mex"),
+        await createId("mex", client),
         row.appointment_id,
         row.exam_type_id,
         doctorUserId,
@@ -404,7 +404,7 @@ export async function saveDraftDoctorExamination(
       throw new AppError("Examination not found", "EXAMINATION_NOT_FOUND", 404);
     }
 
-    const examId = row.exam_id || createId("mex");
+    const examId = row.exam_id || await createId("mex", client);
     if (!row.exam_id) {
       await repo.createMedicalExamForAppointment(examId, row.appointment_id, row.exam_type_id, doctorUserId, client);
     }
@@ -442,7 +442,7 @@ export async function completeDoctorExamination(
       throw new AppError("Examination not found", "EXAMINATION_NOT_FOUND", 404);
     }
 
-    const examId = row.exam_id || createId("mex");
+    const examId = row.exam_id || await createId("mex", client);
     if (!row.exam_id) {
       await repo.createMedicalExamForAppointment(examId, row.appointment_id, row.exam_type_id, doctorUserId, client);
     }

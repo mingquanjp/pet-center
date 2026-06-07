@@ -13,7 +13,7 @@ export async function createEmailLog(
     metadata?: Record<string, unknown>;
   }
 ): Promise<EmailLogRow> {
-  const id = createId("elog");
+  const id = await createId("elog");
   
   const result = await query<EmailLogRow>(
     `

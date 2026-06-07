@@ -1,8 +1,8 @@
-import { randomBytes } from "node:crypto";
 import type { PoolClient } from "pg";
 import type { QueryResultRow } from "pg";
 import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
+import { createId } from "../../shared/utils/id.js";
 import type {
   GroomingAvailabilityDto,
   GroomingBookingPetDto,
@@ -168,16 +168,6 @@ function formatDuration(minutes: number | null): string {
   const remainingMinutes = minutes % 60;
 
   return `${hours} giờ ${remainingMinutes} phút`;
-}
-
-function createShortId(prefix: string): string {
-  return `${prefix}_${randomBytes(10).toString("hex")}`;
-}
-
-function createBookingCode(date: Date): string {
-  const datePart = toVietnamDateString(date).replaceAll("-", "");
-
-  return `SPA-${datePart}-${randomBytes(3).toString("hex").toUpperCase()}`;
 }
 
 function getSpeciesLabel(species: BookingPetRow["species"]): string {
@@ -1034,10 +1024,10 @@ export async function createGroomingBooking(input: CreateBookingInput): Promise<
       throw new Error("GROOMING_PET_TIME_CONFLICT");
     }
 
-    const groomingTicketId = createBookingCode(input.scheduledAt);
-    const groomingTicketItemId = createShortId("gti");
-    const invoiceId = createShortId("inv");
-    const invoiceLineId = createShortId("inl");
+    const groomingTicketId = await createId("spa", client);
+    const groomingTicketItemId = await createId("gti", client);
+    const invoiceId = await createId("inv", client);
+    const invoiceLineId = await createId("inl", client);
     const ticketStatus: GroomingTicketStatus = input.paymentOption === "online" ? "pending_payment" : "pending";
     const invoiceStatus: InvoiceStatus = "pending_payment";
     const createdByUserId = input.createdByUserId ?? input.ownerUserId;

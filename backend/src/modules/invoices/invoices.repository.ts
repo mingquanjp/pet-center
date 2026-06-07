@@ -96,10 +96,28 @@ export async function getStaffInvoicesList(filters: any) {
     }
   }
 
-  // Add cursor pagination based on invoice_id DESC
   if (filters.cursor) {
     params.push(filters.cursor);
-    sql += ` AND i.invoice_id < $${params.length}`;
+    const cursorParam = `$${params.length}`;
+    sql += `
+      AND (
+        (
+          ${cursorParam} ~ '^inv[0-9]+$'
+          AND (
+            (
+              i.invoice_id ~ '^inv[0-9]+$'
+              AND substring(i.invoice_id FROM '^inv([0-9]+)$')::bigint
+                  < substring(${cursorParam} FROM '^inv([0-9]+)$')::bigint
+            )
+            OR i.invoice_id !~ '^inv[0-9]+$'
+          )
+        )
+        OR (
+          ${cursorParam} !~ '^inv[0-9]+$'
+          AND i.invoice_id !~ '^inv[0-9]+$'
+          AND i.invoice_id < ${cursorParam}
+        )
+      )`;
   }
 
   if (filters.serviceType) {
@@ -114,7 +132,15 @@ export async function getStaffInvoicesList(filters: any) {
   }
 
   params.push(filters.limit);
-  sql += ` ORDER BY i.invoice_id DESC LIMIT $${params.length}`;
+  sql += `
+    ORDER BY
+      (i.invoice_id ~ '^inv[0-9]+$') DESC,
+      CASE
+        WHEN i.invoice_id ~ '^inv[0-9]+$'
+        THEN substring(i.invoice_id FROM '^inv([0-9]+)$')::bigint
+      END DESC NULLS LAST,
+      i.invoice_id DESC
+    LIMIT $${params.length}`;
 
   const result = await query<StaffInvoiceListItemRow>(sql, params);
   return result.rows;
@@ -354,7 +380,7 @@ export async function getInvoiceLines(invoiceId: string) {
 export async function confirmPayment(invoiceId: string, paymentMethod: string, totalAmount: number) {
   return withTransaction(async (client: PoolClient) => {
     // Insert payment
-    const paymentId = createId("pay");
+    const paymentId = await createId("pay", client);
     const sqlInsert = `
       INSERT INTO pet_center.payments (
         payment_id, invoice_id, payment_method, paid_amount, paid_at, payment_status
