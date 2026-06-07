@@ -232,7 +232,7 @@ export async function updateBoardingRecordStatus(
 ): Promise<void> {
   await query(
     `UPDATE pet_center.boarding_records
-     SET boarding_status = $1, updated_at = NOW()
+     SET boarding_status = $1
      WHERE boarding_record_id = $2`,
     [status, boardingRecordId]
   );
@@ -529,7 +529,8 @@ const staffBoardingSelectSql = `
         AND pay.payment_status = 'success'
     ) AS has_success_payment,
     latest_update.updated_at AS latest_update_at,
-    latest_update.alert_level AS latest_alert_level
+    latest_update.alert_level AS latest_alert_level,
+    status_update.updated_at AS status_update_at
   FROM pet_center.boarding_records br
   JOIN pet_center.pets p ON p.pet_id = br.pet_id
   JOIN pet_center.users u ON u.user_id = br.owner_user_id
@@ -552,6 +553,20 @@ const staffBoardingSelectSql = `
     ORDER BY bu.updated_at DESC
     LIMIT 1
   ) latest_update ON true
+  LEFT JOIN LATERAL (
+    SELECT bu.updated_at
+    FROM pet_center.boarding_updates bu
+    WHERE bu.boarding_record_id = br.boarding_record_id
+      AND bu.visibility_status = 'published'
+      AND (
+        (br.boarding_status = 'confirmed' AND bu.update_note LIKE '[SYSTEM_CONFIRM]%')
+        OR (br.boarding_status = 'staying' AND bu.update_note LIKE '[SYSTEM_CHECKIN]%')
+        OR (br.boarding_status = 'checked_out' AND bu.update_note LIKE '[SYSTEM_CHECKOUT]%')
+        OR (br.boarding_status = 'rejected' AND bu.update_note LIKE '[SYSTEM_REJECT]%')
+      )
+    ORDER BY bu.updated_at DESC
+    LIMIT 1
+  ) status_update ON true
 `;
 
 export async function findStaffBoardingList(filters: {
@@ -577,7 +592,9 @@ export async function findStaffBoardingList(filters: {
         WHEN 'checked_out' THEN 4
         ELSE 5
       END,
-      GREATEST(COALESCE(latest_update.updated_at, '1970-01-01'::timestamptz), br.created_at) DESC,
+      (status_update.updated_at IS NOT NULL) DESC,
+      status_update.updated_at DESC NULLS LAST,
+      COALESCE(latest_update.updated_at, br.created_at) DESC,
       br.boarding_record_id DESC
     LIMIT $${params.length - 1}
     OFFSET $${params.length}
@@ -875,8 +892,7 @@ export async function updateBoardingToConfirmed(params: { boardingRecordId: stri
   const sql = `
     UPDATE pet_center.boarding_records
     SET boarding_status = 'confirmed',
-        handled_by_staff_id = $2,
-        updated_at = NOW()
+        handled_by_staff_id = $2
     WHERE boarding_record_id = $1
       AND boarding_status = 'pending'
     RETURNING *
@@ -890,8 +906,7 @@ export async function updateBoardingToRejected(params: { boardingRecordId: strin
     UPDATE pet_center.boarding_records
     SET boarding_status = 'rejected',
         rejection_reason = $2,
-        handled_by_staff_id = $3,
-        updated_at = NOW()
+        handled_by_staff_id = $3
     WHERE boarding_record_id = $1
       AND boarding_status = 'pending'
     RETURNING *
@@ -905,8 +920,7 @@ export async function updateBoardingToStaying(params: { boardingRecordId: string
     UPDATE pet_center.boarding_records
     SET boarding_status = 'staying',
         actual_check_in_at = NOW(),
-        handled_by_staff_id = $2,
-        updated_at = NOW()
+        handled_by_staff_id = $2
     WHERE boarding_record_id = $1
       AND boarding_status = 'confirmed'
     RETURNING *
@@ -918,10 +932,15 @@ export async function updateBoardingToStaying(params: { boardingRecordId: string
 export async function updateBoardingToCheckedOut(params: { boardingRecordId: string; handledByStaffId?: string; userId?: string; actualCheckOutAt?: Date }) {
   const sql = `
     UPDATE pet_center.boarding_records
-    SET boarding_status = 'checked_out',
+    SET actual_check_in_at = CASE
+          WHEN actual_check_in_at IS NULL
+            OR actual_check_in_at >= COALESCE($3::timestamptz, NOW())
+          THEN COALESCE($3::timestamptz, NOW()) - INTERVAL '1 minute'
+          ELSE actual_check_in_at
+        END,
+        boarding_status = 'checked_out',
         actual_check_out_at = COALESCE($3::timestamptz, NOW()),
-        handled_by_staff_id = $2,
-        updated_at = NOW()
+        handled_by_staff_id = $2
     WHERE boarding_record_id = $1
       AND boarding_status = 'staying'
     RETURNING *
@@ -1670,4 +1689,31 @@ export async function updateAdminBoardingRoomStatus(roomTypeId: string, status: 
 
 export async function deleteAdminBoardingRoom(roomTypeId: string) {
   await query(`DELETE FROM pet_center.room_types WHERE room_type_id = $1`, [roomTypeId]);
+}
+
+export async function autoProcessExpiredBoardingRecords() {
+  return withTransaction(async (client) => {
+    const rejectRes = await client.query(`
+      UPDATE pet_center.boarding_records
+      SET boarding_status = 'rejected',
+          rejection_reason = 'Quá thời gian xác nhận tự động'
+      WHERE boarding_status IN ('pending', 'pending_payment')
+        AND planned_check_in_at < NOW()
+      RETURNING boarding_record_id
+    `);
+
+    const cancelRes = await client.query(`
+      UPDATE pet_center.boarding_records
+      SET boarding_status = 'cancelled',
+          rejection_reason = 'Quá thời gian check-in tự động'
+      WHERE boarding_status = 'confirmed'
+        AND NOW() > planned_check_in_at + INTERVAL '3 hours'
+      RETURNING boarding_record_id
+    `);
+
+    return {
+      rejectedCount: rejectRes.rowCount ?? 0,
+      cancelledCount: cancelRes.rowCount ?? 0,
+    };
+  });
 }
