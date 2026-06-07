@@ -226,52 +226,52 @@ def build_seed() -> dict[str, list[tuple]]:
     data["users"] = users
 
     grooming_services = [
-        ("svc_groom_001_basic", "Tắm gội cơ bản", "grooming", 30, 120000),
-        ("svc_groom_002_trim", "Cắt tỉa lông", "grooming", 45, 180000),
-        ("svc_groom_003_combo", "Spa & Cắt tỉa", "grooming", 75, 280000),
-        ("svc_groom_004_nail", "Chăm sóc móng", "grooming", 20, 70000),
-        ("svc_groom_005_massage", "Massage thư giãn", "grooming", 30, 150000),
+        ("svc1", "Tắm gội cơ bản", "grooming", 30, 120000),
+        ("svc2", "Cắt tỉa lông", "grooming", 45, 180000),
+        ("svc3", "Spa & Cắt tỉa", "grooming", 75, 280000),
+        ("svc4", "Chăm sóc móng", "grooming", 20, 70000),
+        ("svc5", "Massage thư giãn", "grooming", 30, 150000),
     ]
     medical_services = [
-        ("svc_med_check", "Khám tổng quát", "medical", 30, 180000),
-        ("svc_med_vaccine", "Tiêm phòng", "medical", 25, 220000),
-        ("svc_med_lab", "Xét nghiệm", "medical", 45, 350000),
-        ("svc_med_recheck", "Tái khám", "medical", 20, 120000),
-        ("svc_med_xray", "Chụp X-quang", "medical", 40, 450000),
-        ("svc_med_ultra", "Siêu âm", "medical", 40, 500000),
-        ("svc_med_dental", "Khám răng miệng", "medical", 35, 260000),
-        ("svc_med_skin", "Khám da liễu", "medical", 35, 240000),
-        ("svc_med_eye", "Khám mắt", "medical", 25, 210000),
-        ("svc_med_emergency", "Cấp cứu thú cưng", "medical", 60, 700000),
+        ("svc6", "Khám tổng quát", "medical", 30, 180000),
+        ("svc7", "Tiêm phòng", "medical", 25, 220000),
+        ("svc8", "Xét nghiệm", "medical", 45, 350000),
+        ("svc9", "Tái khám", "medical", 20, 120000),
+        ("svc10", "Chụp X-quang", "medical", 40, 450000),
+        ("svc11", "Siêu âm", "medical", 40, 500000),
+        ("svc12", "Khám răng miệng", "medical", 35, 260000),
+        ("svc13", "Khám da liễu", "medical", 35, 240000),
+        ("svc14", "Khám mắt", "medical", 25, 210000),
+        ("svc15", "Cấp cứu thú cưng", "medical", 60, 700000),
     ]
     boarding_services = [
-        ("svc_board_day", "Lưu trú ban ngày", "boarding", 720, 180000),
-        ("svc_board_night", "Lưu trú qua đêm", "boarding", 1440, 280000),
-        ("svc_board_play", "Giờ chơi vận động", "boarding", 30, 80000),
-        ("svc_board_walk", "Dắt chó đi dạo", "boarding", 30, 70000),
-        ("svc_board_feed", "Cho ăn theo yêu cầu", "boarding", 15, 50000),
+        ("svc16", "Lưu trú ban ngày", "boarding", 720, 180000),
+        ("svc17", "Lưu trú qua đêm", "boarding", 1440, 280000),
+        ("svc18", "Giờ chơi vận động", "boarding", 30, 80000),
+        ("svc19", "Dắt chó đi dạo", "boarding", 30, 70000),
+        ("svc20", "Cho ăn theo yêu cầu", "boarding", 15, 50000),
     ]
     medicine_services = [
-        ("svc_rx_dispense", "Cấp phát thuốc", "medicine", 10, 30000),
-        ("svc_rx_injection", "Tiêm thuốc", "medicine", 15, 90000),
-        ("svc_rx_deworm", "Tẩy giun", "medicine", 15, 110000),
-        ("svc_rx_flea", "Phòng ve rận", "medicine", 10, 140000),
-        ("svc_rx_vitamin", "Bổ sung vitamin", "medicine", 10, 100000),
+        ("svc21", "Cấp phát thuốc", "medicine", 10, 30000),
+        ("svc22", "Tiêm thuốc", "medicine", 15, 90000),
+        ("svc23", "Tẩy giun", "medicine", 15, 110000),
+        ("svc24", "Phòng ve rận", "medicine", 10, 140000),
+        ("svc25", "Bổ sung vitamin", "medicine", 10, 100000),
     ]
     other_services = [
-        ("svc_other_pickup", "Đón thú cưng", "other", 30, 120000),
-        ("svc_other_photo", "Chụp ảnh thú cưng", "other", 15, 60000),
-        ("svc_other_train", "Tư vấn hành vi", "other", 60, 300000),
-        ("svc_other_chip", "Đăng ký vi mạch", "other", 20, 250000),
-        ("svc_other_report", "Sao y hồ sơ sức khỏe", "other", 10, 30000),
+        ("svc26", "Đón thú cưng", "other", 30, 120000),
+        ("svc27", "Chụp ảnh thú cưng", "other", 15, 60000),
+        ("svc28", "Tư vấn hành vi", "other", 60, 300000),
+        ("svc29", "Đăng ký vi mạch", "other", 20, 250000),
+        ("svc30", "Sao y hồ sơ sức khỏe", "other", 10, 30000),
     ]
     services = grooming_services + medical_services + boarding_services + medicine_services + other_services
     grooming_descriptions = {
-        "svc_groom_001_basic": "Làm sạch lông, khử mùi nhẹ và sấy khô cho thú cưng.",
-        "svc_groom_002_trim": "Cắt tỉa gọn gàng, tạo kiểu lông cơ bản theo nhu cầu chăm sóc.",
-        "svc_groom_003_combo": "Gói chăm sóc kết hợp tắm gội, cắt tỉa và chăm sóc lông toàn diện.",
-        "svc_groom_004_nail": "Cắt, mài móng an toàn và vệ sinh vùng đệm chân.",
-        "svc_groom_005_massage": "Massage nhẹ giúp thú cưng thư giãn và giảm căng thẳng.",
+        "svc1": "Làm sạch lông, khử mùi nhẹ và sấy khô cho thú cưng.",
+        "svc2": "Cắt tỉa gọn gàng, tạo kiểu lông cơ bản theo nhu cầu chăm sóc.",
+        "svc3": "Gói chăm sóc kết hợp tắm gội, cắt tỉa và chăm sóc lông toàn diện.",
+        "svc4": "Cắt, mài móng an toàn và vệ sinh vùng đệm chân.",
+        "svc5": "Massage nhẹ giúp thú cưng thư giãn và giảm căng thẳng.",
     }
     data["services"] = [
         (sid, name, category, grooming_descriptions.get(sid, f"Dịch vụ {name.lower()} dùng cho dữ liệu kiểm thử trung tâm thú cưng."), duration, money(price), "active")
@@ -279,10 +279,10 @@ def build_seed() -> dict[str, list[tuple]]:
     ]
 
     data["exam_types"] = [
-        ("ext_general", "general_checkup", "Khám tổng quát", "Kiểm tra sức khỏe định kỳ cho thú cưng", "svc_med_check", "active"),
-        ("ext_vaccine", "vaccination", "Tiêm phòng", "Tiêm phòng và theo dõi sau tiêm", "svc_med_vaccine", "active"),
-        ("ext_lab", "lab_test", "Xét nghiệm", "Xét nghiệm máu và mẫu bệnh phẩm", "svc_med_lab", "active"),
-        ("ext_recheck", "recheck", "Tái khám", "Khám lại sau điều trị hoặc theo dõi", "svc_med_recheck", "active"),
+        ("ext_general", "general_checkup", "Khám tổng quát", "Kiểm tra sức khỏe định kỳ cho thú cưng", "svc6", "active"),
+        ("ext_vaccine", "vaccination", "Tiêm phòng", "Tiêm phòng và theo dõi sau tiêm", "svc7", "active"),
+        ("ext_lab", "lab_test", "Xét nghiệm", "Xét nghiệm máu và mẫu bệnh phẩm", "svc8", "active"),
+        ("ext_recheck", "recheck", "Tái khám", "Khám lại sau điều trị hoặc theo dõi", "svc9", "active"),
     ]
     field_specs = {
         "ext_general": [
@@ -480,7 +480,7 @@ def build_seed() -> dict[str, list[tuple]]:
                 vet_id,
             )
         )
-        invoice_sources.append(("medical_exam", exam_id, owner_id, pet_id, "svc_med_check", random.randint(120000, 420000)))
+        invoice_sources.append(("medical_exam", exam_id, owner_id, pet_id, "svc6", random.randint(120000, 420000)))
 
         for field_id, field_type in field_ids_by_type[exam_type_id]:
             value_text = value_number = value_date = file_url = None
@@ -527,7 +527,7 @@ def build_seed() -> dict[str, list[tuple]]:
                         random.choice([None, "Ngừng dùng nếu thú cưng bị nôn"]),
                     )
                 )
-            invoice_sources.append(("prescription", prescription_id, owner_id, pet_id, "svc_rx_dispense", random.randint(80000, 600000)))
+            invoice_sources.append(("prescription", prescription_id, owner_id, pet_id, "svc21", random.randint(80000, 600000)))
         if exam_status == "follow_up_required" or random.random() < 0.25:
             followups.append(
                 (
@@ -615,7 +615,7 @@ def build_seed() -> dict[str, list[tuple]]:
                 random.choice(user_ids["Staff"]) if status not in ["pending_payment", "pending"] else None,
             )
         )
-        invoice_sources.append(("boarding", record_id, owner_id, pet_id, "svc_board_night", int(estimated_total)))
+        invoice_sources.append(("boarding", record_id, owner_id, pet_id, "svc17", int(estimated_total)))
         for _ in range(random.randint(1, 4)):
             boarding_updates.append(
                 (
