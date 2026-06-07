@@ -323,12 +323,11 @@ export async function findDoctorExaminationDetail(doctorUserId: string, appointm
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
     LEFT JOIN pet_center.medical_exams me ON ma.appointment_id = me.appointment_id
     WHERE ma.appointment_status = 'confirmed'
-      AND ma.veterinarian_user_id = $1
-      AND ma.appointment_id = $2
+      AND ma.appointment_id = $1
     LIMIT 1
   `;
 
-  const result = await query<DoctorExaminationDetailRow>(sql, [doctorUserId, appointmentId]);
+  const result = await query<DoctorExaminationDetailRow>(sql, [appointmentId]);
   return result.rows[0] || null;
 }
 

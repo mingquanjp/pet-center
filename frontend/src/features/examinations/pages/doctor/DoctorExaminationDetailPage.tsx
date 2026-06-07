@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { FormEvent, useEffect, useMemo, useState } from "react"
 import {
   ArrowLeft,
@@ -258,6 +258,7 @@ function emptyPrescriptionItem(): DoctorPrescriptionItem {
 
 export function DoctorExaminationDetailPage({ appointmentId }: Props) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [detail, setDetail] = useState<DoctorExaminationDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -319,6 +320,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
   const isReadOnly = detail?.status === "COMPLETED" || detail?.status === "FOLLOW_UP"
   const isWaiting = detail?.status === "WAITING"
   const scheduledAt = useMemo(() => (detail ? new Date(detail.scheduledAt) : null), [detail])
+  const returnTo = searchParams.get("returnTo")
+  const backHref = returnTo?.startsWith("/doctor/") ? returnTo : "/doctor/examinations"
+  const backLabel = backHref.startsWith("/doctor/medical-records/") ? "Quay lại bệnh án" : "Quay lại danh sách"
 
   const fieldByName = useMemo(() => {
     return new Map(detail?.fields.map((field) => [field.name, field]) ?? [])
@@ -392,18 +396,18 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
       vaccination:
         includeCompletionData && detail.examType.code === "VACCINATION"
           ? {
-              vaccineName: fieldValues.vaccineName || "",
-              vaccinationDate: fieldValues.vaccinationDate || todayInputValue(),
-              note: fieldValues.vaccinationNote || undefined,
-            }
+            vaccineName: fieldValues.vaccineName || "",
+            vaccinationDate: fieldValues.vaccinationDate || todayInputValue(),
+            note: fieldValues.vaccinationNote || undefined,
+          }
           : undefined,
       followUp:
         includeCompletionData && needsFollowUp
           ? {
-              followUpDate,
-              reason: followUpReason,
-              ownerNote: followUpOwnerNote || undefined,
-            }
+            followUpDate,
+            reason: followUpReason,
+            ownerNote: followUpOwnerNote || undefined,
+          }
           : undefined,
     }
   }
@@ -464,9 +468,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
 
     const medicine = detail.medicines.find((option) => option.id === prescriptionDraft.medicineId)
     const nextItem = {
-        ...prescriptionDraft,
-        medicineName: medicine?.name,
-        note: prescriptionDraft.note?.trim() || undefined,
+      ...prescriptionDraft,
+      medicineName: medicine?.name,
+      note: prescriptionDraft.note?.trim() || undefined,
     }
 
     setPrescriptionItems((current) => {
@@ -516,9 +520,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     return (
       <div className="rounded-2xl bg-white p-8 text-center shadow-card">
         <p className="font-semibold text-petcenter-text">{error || "Không tìm thấy phiếu khám"}</p>
-        <Link href="/doctor/examinations">
+        <Link href={backHref}>
           <Button className="mt-4 rounded-control bg-petcenter-primary text-white hover:bg-petcenter-primary-hover">
-            Quay lại danh sách
+            {backLabel}
           </Button>
         </Link>
       </div>
@@ -537,24 +541,24 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
             <span className="font-bold text-petcenter-text">{detail.examinationCode}</span>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-          <h2 className="heading-lg text-petcenter-text">
-            {isReadOnly ? "Chi tiết phiếu khám" : "Cập nhật kết quả khám"}
-          </h2>
-          <DoctorExaminationStatusBadge status={detail.status} />
+            <h2 className="heading-lg text-petcenter-text">
+              {isReadOnly ? "Chi tiết phiếu khám" : "Cập nhật kết quả khám"}
+            </h2>
+            <DoctorExaminationStatusBadge status={detail.status} />
           </div>
           <p className="body-md mt-1 text-petcenter-text-secondary">
             {detail.examinationCode} · {detail.pet.name}
           </p>
         </div>
 
-        <Link href="/doctor/examinations">
+        <Link href={backHref}>
           <Button
             className="h-11 rounded-control border-petcenter-primary bg-transparent px-5 font-semibold text-petcenter-primary hover:bg-petcenter-primary hover:text-white"
             type="button"
             variant="outline"
           >
             <ArrowLeft className="h-4 w-4" />
-            Quay lại danh sách
+            {backLabel}
           </Button>
         </Link>
       </div>
@@ -844,14 +848,14 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
-                              <Button
-                                className="h-9 rounded-control border-petcenter-border bg-white text-petcenter-danger-text hover:bg-petcenter-background"
-                                onClick={() => setDeletingPrescriptionIndex(index)}
-                                type="button"
-                                variant="outline"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                <Button
+                                  className="h-9 rounded-control border-petcenter-border bg-white text-petcenter-danger-text hover:bg-petcenter-background"
+                                  onClick={() => setDeletingPrescriptionIndex(index)}
+                                  type="button"
+                                  variant="outline"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </td>
                           </tr>
@@ -1076,35 +1080,37 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
           </Section>
 
           <div className="flex flex-wrap justify-end gap-3 border-t border-petcenter-border pt-4">
-            <Link className="hidden" href="/doctor/examinations">
+            <Link className="hidden" href={backHref}>
               <Button
                 className="rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background"
                 type="button"
                 variant="outline"
               >
-                {isReadOnly ? "Đóng / Quay lại" : "Quay lại danh sách"}
+                {backLabel}
               </Button>
             </Link>
             {isReadOnly ? (
-              <>
-                <Link href="/doctor/medical-records">
-                  <Button className="rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background" type="button" variant="outline">
-                    Xem bệnh án
-                  </Button>
-                </Link>
-                {detail.prescription ? (
-                  <Link href="/doctor/prescriptions">
+              !returnTo && (
+                <>
+                  <Link href={`/doctor/medical-records/${detail.pet.id}`}>
                     <Button className="rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background" type="button" variant="outline">
-                      Xem đơn thuốc
+                      Xem bệnh án
                     </Button>
                   </Link>
-                ) : null}
-                <Link href="/doctor/medical-records">
-                  <Button className="rounded-control bg-petcenter-primary text-white hover:bg-petcenter-primary-hover" type="button">
-                    Xem lịch sử khám
-                  </Button>
-                </Link>
-              </>
+                  {detail.prescription ? (
+                    <Link href={`/doctor/prescriptions/${detail.prescription.id}`}>
+                      <Button className="rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background" type="button" variant="outline">
+                        Xem đơn thuốc
+                      </Button>
+                    </Link>
+                  ) : null}
+                  <Link href={`/doctor/medical-records/${detail.pet.id}`}>
+                    <Button className="rounded-control bg-petcenter-primary text-white hover:bg-petcenter-primary-hover" type="button">
+                      Xem lịch sử khám
+                    </Button>
+                  </Link>
+                </>
+              )
             ) : (
               <>
                 <Button
