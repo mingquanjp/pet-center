@@ -4,6 +4,7 @@ import { env } from "../../config/env.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
+import { createId } from "../../shared/utils/id.js";
 import * as authRepository from "./auth.repository.js";
 import { sendPasswordResetEmail } from "../mail/mail.service.js";
 import type {
@@ -133,7 +134,7 @@ export async function register(payload: RegisterPayload): Promise<AuthResponse> 
   }
 
   const user = await authRepository.createOwnerUser({
-    userId: `usr_${randomBytes(12).toString("hex")}`,
+    userId: await createId("own"),
     fullName: payload.fullName,
     email: payload.email,
     passwordHash: await hashPassword(payload.password),
@@ -224,7 +225,7 @@ export async function forgotPassword(payload: ForgotPasswordPayload): Promise<vo
   const expiresAt = new Date(Date.now() + passwordResetLifetimeMinutes * 60 * 1000);
 
   await authRepository.createPasswordResetToken({
-    resetTokenId: `prt_${randomBytes(12).toString("hex")}`,
+    resetTokenId: await createId("prt"),
     userId: user.userId,
     tokenHash,
     expiresAt

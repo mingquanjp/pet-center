@@ -22,6 +22,8 @@ export function StaffHeader() {
   const handleLogout = async () => {
     try {
       await authApi.logout()
+    } catch {
+      // The local session still needs to be cleared when the access token has expired.
     } finally {
       clearAuthSession()
       router.replace("/")

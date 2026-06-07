@@ -15,7 +15,7 @@ export async function createNotification(
     dedupeKey?: string;
   }
 ): Promise<NotificationRow> {
-  const id = createId("noti");
+  const id = await createId("noti");
   
   const result = await query<NotificationRow>(
     `

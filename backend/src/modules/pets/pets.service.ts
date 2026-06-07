@@ -124,7 +124,7 @@ export async function createStaffOwner(authUser: AuthUser, payload: StaffCreateO
   }
 
   return petsRepository.createStaffOwner({
-    userId: createId("usr"),
+    userId: await createId("own"),
     fullName: payload.fullName.trim(),
     email,
     passwordHash: await hashGeneratedPassword(),

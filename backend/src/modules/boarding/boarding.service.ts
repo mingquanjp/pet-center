@@ -78,6 +78,12 @@ function normalizeOptionalText(value?: string | null): string | null {
   return normalized ? normalized : null;
 }
 
+function formatRoomTypeCode(roomTypeId: string): string {
+  const numericSuffix = roomTypeId.match(/^rt([0-9]+)$/i)?.[1];
+  const suffix = numericSuffix ?? roomTypeId.slice(-3);
+  return `RT-${suffix.padStart(3, "0")}`;
+}
+
 function assertOwner(authUser: AuthUser): void {
   if (authUser.role !== "OWNER") {
     throw new AppError("Bạn không có quyền xem danh sách lưu trú của chủ nuôi", "FORBIDDEN", httpStatus.FORBIDDEN);
@@ -1215,7 +1221,7 @@ export async function createStaffBoardingOwner(
       throw new AppError("Email này đã được sử dụng", "OWNER_EMAIL_ALREADY_EXISTS", httpStatus.CONFLICT);
     }
 
-    const userId = createId("usr");
+    const userId = await createId("own", client);
 
     return boardingRepository.createStaffBoardingOwner({
       userId,
@@ -1256,7 +1262,7 @@ export async function createStaffBoardingPet(
     }
 
     return boardingRepository.createStaffBoardingPet({
-      petId: createId("pet"),
+      petId: await createId("pet", client),
       ownerId: params.ownerId,
       petName: payload.petName.trim(),
       species: payload.species,
@@ -1352,11 +1358,11 @@ export async function createStaffBoardingAtCounter(
       throw new AppError("Phòng đã hết chỗ trong thời gian này", "ROOM_TYPE_FULL", httpStatus.CONFLICT);
     }
 
-    const boardingRecordId = createId("brd");
-    const invoiceId = createId("inv");
-    const paymentId = createId("pay");
-    const invoiceLineId = createId("inl");
-    const updateId = createId("bup");
+    const boardingRecordId = await createId("brd", client);
+    const invoiceId = await createId("inv", client);
+    const paymentId = await createId("pay", client);
+    const invoiceLineId = await createId("inl", client);
+    const updateId = await createId("bup", client);
 
     const totalAmount = Number(roomType.pricePerDay) * stayDays;
     const careRequest = (payload.specialRequests?.length) ? payload.specialRequests.join(", ") : payload.careRequest || null;
@@ -1550,7 +1556,7 @@ export async function getAdminBoardingRoomDetail(
 
   return {
     id: row.room_type_id,
-    code: `RT-${roomTypeId.slice(-3).padStart(3, '0')}`,
+    code: formatRoomTypeCode(roomTypeId),
     name: row.room_type_name,
     description: row.description,
     capacity,
@@ -1644,12 +1650,12 @@ export async function createAdminBoardingRoom(
     throw new AppError("Tên loại phòng đã tồn tại.", "ROOM_TYPE_NAME_EXISTS", httpStatus.BAD_REQUEST);
   }
 
-  const roomTypeId = createId("rt");
+  const roomTypeId = await createId("rt");
   const row = await boardingRepository.createAdminBoardingRoom(roomTypeId, body);
 
   return {
     id: row.room_type_id,
-    code: `RT-${roomTypeId.slice(-3).padStart(3, '0')}`,
+    code: formatRoomTypeCode(roomTypeId),
     name: row.room_type_name,
     description: row.description,
     capacity: Number(row.capacity),

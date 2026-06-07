@@ -1,5 +1,6 @@
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
+import { createId } from "../../shared/utils/id.js";
 import * as serviceCategoriesRepository from "./service-categories.repository.js";
 import type {
   AdminServiceCategoriesListResultDto,
@@ -67,7 +68,7 @@ export async function createAdminServiceCategory(body: CreateAdminServiceCategor
       throw new AppError("Tên dịch vụ đã tồn tại.", "SERVICE_CATEGORY_NAME_EXISTS", httpStatus.BAD_REQUEST);
     }
 
-    const nextId = await serviceCategoriesRepository.getNextServiceCategoryId();
+    const nextId = await createId("svc");
     await serviceCategoriesRepository.createAdminServiceCategory(nextId, body);
 
     const createdRow = await serviceCategoriesRepository.findServiceCategoryDetailById(nextId);

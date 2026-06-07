@@ -1,5 +1,6 @@
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
+import { createId } from "../../shared/utils/id.js";
 import * as medicinesRepository from "./medicines.repository.js";
 import type {
   AdminMedicineDto,
@@ -71,7 +72,7 @@ export async function createAdminMedicine(body: CreateAdminMedicineBody): Promis
       throw new AppError("Tên thuốc đã tồn tại.", "MEDICINE_NAME_EXISTS", httpStatus.BAD_REQUEST);
     }
 
-    const nextId = await medicinesRepository.getNextMedicineId();
+    const nextId = await createId("med");
     await medicinesRepository.createAdminMedicine(nextId, body);
 
     const createdRow = await medicinesRepository.findMedicineDetailById(nextId);

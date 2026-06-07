@@ -10,7 +10,7 @@ async function createReminderLog(
   relatedObjectId: string,
   remindAt: Date
 ) {
-  const reminderId = createId("rem");
+  const reminderId = await createId("rem");
   try {
     const result = await query(
       `INSERT INTO pet_center.notification_reminders 

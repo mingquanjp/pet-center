@@ -422,7 +422,7 @@ export async function ensureStandardExamFieldDefinitions(examTypeId: string, typ
         ON CONFLICT (exam_type_id, field_name) DO NOTHING
       `,
       [
-        createId("efd"),
+        await createId("efd"),
         examTypeId,
         field.fieldName,
         field.fieldLabel,
@@ -522,7 +522,7 @@ export async function replaceMedicalExamFieldValues(
         VALUES ($1, $2, $3, $4, $5, $6, $7)
       `,
       [
-        createId("efv"),
+        await createId("efv", client),
         examId,
         fieldValue.fieldDefinitionId,
         fieldValue.valueText ?? null,
@@ -737,7 +737,7 @@ export async function replacePrescription(
   if (validItems.length === 0) return false;
 
   const medicineNames = await getMedicineNamesByIds(validItems.map((item) => item.medicineId), client);
-  const prescriptionId = createId("rx");
+  const prescriptionId = await createId("rx", client);
 
   await client.query(
     `
@@ -771,7 +771,7 @@ export async function replacePrescription(
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         `,
         [
-          createId("rxi"),
+          await createId("rxi", client),
           prescriptionId,
           item.medicineId,
           medicineName,
@@ -800,7 +800,7 @@ export async function replacePrescription(
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         `,
         [
-          createId("rxi"),
+          await createId("rxi", client),
           prescriptionId,
           item.medicineId,
           medicineName,
@@ -839,7 +839,7 @@ export async function replaceVaccination(
       VALUES ($1, $2, $3, $4, $5, $6)
     `,
     [
-      createId("vac"),
+      await createId("vac", client),
       petId,
       examId,
       vaccination.vaccineName,
@@ -868,7 +868,7 @@ export async function replaceFollowUpInstruction(
       )
       VALUES ($1, $2, $3, $4, $5)
     `,
-    [createId("fui"), examId, followUp.followUpDate, followUp.reason, followUp.ownerNote ?? null]
+    [await createId("fui", client), examId, followUp.followUpDate, followUp.reason, followUp.ownerNote ?? null]
   );
 
   return true;

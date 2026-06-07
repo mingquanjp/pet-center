@@ -94,7 +94,7 @@ function mapGender(gender: string | null): string | undefined {
 }
 
 function formatAppointmentCode(appointmentId: string): string {
-  const suffix = appointmentId.replace(/^appt_/, "").slice(-6).toUpperCase();
+  const suffix = appointmentId.replace(/^appt_?/i, "").slice(-6).toUpperCase();
   return `LH-${suffix}`;
 }
 
@@ -376,7 +376,7 @@ export async function createOwnerAppointment(
       throw new AppError("Khung giờ này đã có lịch hẹn", "APPOINTMENT_SLOT_UNAVAILABLE", httpStatus.CONFLICT);
     }
 
-    const appointmentId = createId("appt");
+    const appointmentId = await createId("appt", client);
     await repo.insertOwnerAppointment(
       {
         appointmentId,
