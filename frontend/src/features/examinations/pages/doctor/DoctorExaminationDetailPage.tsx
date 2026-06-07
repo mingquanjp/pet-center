@@ -409,8 +409,13 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
   }
 
   const handleStart = async () => {
-    const result = await doctorExaminationsApi.startDoctorExamination(appointmentId)
-    applyDetailState(result)
+    try {
+      const result = await doctorExaminationsApi.startDoctorExamination(appointmentId)
+      applyDetailState(result)
+      toast.success("Đã bắt đầu khám thành công.")
+    } catch {
+      toast.error("Không thể bắt đầu khám. Vui lòng thử lại.")
+    }
   }
 
   const handleSaveDraft = async () => {
@@ -426,6 +431,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
         fieldValues: payload.fieldValues,
       })
       applyDetailState(result)
+      toast.success("Đã lưu nháp phiếu khám thành công.")
+    } catch {
+      toast.error("Không thể lưu nháp phiếu khám. Vui lòng thử lại.")
     } finally {
       setIsSubmitting(false)
     }
@@ -492,13 +500,22 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!detail || !validateForm()) return
+    if (!detail) return
+
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại các trường bắt buộc trước khi hoàn tất khám.")
+      return
+    }
 
     try {
       setIsSubmitting(true)
-      const result = await doctorExaminationsApi.completeDoctorExamination(appointmentId, buildPayload(true))
-      applyDetailState(result)
+      await doctorExaminationsApi.completeDoctorExamination(appointmentId, buildPayload(true))
+      const refreshedDetail = await doctorExaminationsApi.getDoctorExaminationDetail(appointmentId)
+      applyDetailState(refreshedDetail)
       router.refresh()
+      toast.success("Đã hoàn tất khám và kê đơn thành công.")
+    } catch {
+      toast.error("Không thể hoàn tất khám. Vui lòng thử lại.")
     } finally {
       setIsSubmitting(false)
     }
