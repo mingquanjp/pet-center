@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Search, RotateCcw } from "lucide-react";
 import {
   DoctorMedicalRecordFilters,
@@ -24,6 +24,22 @@ export function DoctorMedicalRecordsFilterBar({
     { value: "Other", label: "Khác" },
   ];
 
+  const [localKeyword, setLocalKeyword] = useState(filters.keyword);
+
+  useEffect(() => {
+    setLocalKeyword(filters.keyword);
+  }, [filters.keyword]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (localKeyword !== filters.keyword) {
+        onKeywordChange(localKeyword);
+      }
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [localKeyword, filters.keyword, onKeywordChange]);
+
   return (
     <div className="w-full border-b border-petcenter-border p-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -31,9 +47,9 @@ export function DoctorMedicalRecordsFilterBar({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary" />
           <input
             type="text"
-            value={filters.keyword}
-            onChange={(e) => onKeywordChange(e.target.value)}
-            placeholder="Tên thú cưng, mã hồ sơ, chủ nuôi..."
+            value={localKeyword}
+            onChange={(e) => setLocalKeyword(e.target.value)}
+            placeholder="Tên thú cưng, chủ nuôi..."
             className="body-md w-full rounded-[0.75rem] border border-petcenter-border bg-petcenter-background py-2 pl-9 pr-3 text-petcenter-text placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
           />
         </div>

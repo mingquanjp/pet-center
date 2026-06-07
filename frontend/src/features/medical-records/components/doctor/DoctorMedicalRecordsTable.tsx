@@ -46,12 +46,11 @@ export function DoctorMedicalRecordsTable({ items, isLoading }: Props) {
         <table className="w-full table-fixed border-collapse text-left">
           <thead className="border-b border-petcenter-border bg-petcenter-background">
             <tr>
-              <th className="w-[12%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Mã thú cưng</th>
-              <th className="w-[18%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Thú cưng</th>
-              <th className="w-[16%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Chủ nuôi</th>
-              <th className="w-[14%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Lần khám gần nhất</th>
-              <th className="w-[28%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Chẩn đoán gần nhất</th>
-              <th className="w-[12%] px-6 py-4 text-center text-sm font-medium text-petcenter-text-secondary">Thao tác</th>
+              <th className="w-[24%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Thú cưng</th>
+              <th className="w-[22%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Chủ nuôi</th>
+              <th className="w-[18%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Lần khám gần nhất</th>
+              <th className="w-[26%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Chẩn đoán gần nhất</th>
+              <th className="w-[10%] px-6 py-4 text-center text-sm font-medium text-petcenter-text-secondary">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-petcenter-border bg-white">
@@ -60,11 +59,6 @@ export function DoctorMedicalRecordsTable({ items, isLoading }: Props) {
                 key={item.petId}
                 className="transition-colors hover:bg-petcenter-background/60"
               >
-                <td className="px-6 py-4">
-                  <span className="font-semibold text-petcenter-text">
-                    {item.petCode}
-                  </span>
-                </td>
                 <td className="px-6 py-4">
                   <DoctorMedicalRecordPetCell pet={item} />
                 </td>
