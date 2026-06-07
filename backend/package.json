@@ -8,7 +8,11 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "tsc --noEmit",
-    "db:init": "tsx scripts/init-database.ts"
+    "db:init": "tsx scripts/init-database.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint:test": "tsc --noEmit -p tsconfig.test.json"
   },
   "dependencies": {
     "@types/nodemailer": "^8.0.0",
@@ -35,9 +39,13 @@
     "@types/node": "^20.19.41",
     "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "@vitest/coverage-v8": "^4.1.8",
+    "supertest": "^7.2.2",
     "tsx": "^4.22.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.8"
   }
 }
