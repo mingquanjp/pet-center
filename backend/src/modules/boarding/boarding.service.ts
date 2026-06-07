@@ -718,7 +718,7 @@ function buildStaffBoardingTimeline(record: any, careUpdates: any[]): StaffBoard
       label: "Đã từ chối",
       labelTone: "danger",
       description: record.rejection_reason ? `Lý do từ chối: ${record.rejection_reason}` : "Nhân viên đã từ chối yêu cầu lưu trú này.",
-      createdAt: normalizeTimestamp(record.updated_at) || new Date().toISOString(),
+      createdAt: normalizeTimestamp(careUpdates.find((update) => update.update_note?.startsWith("[SYSTEM_REJECT]"))?.updated_at) || normalizeTimestamp(record.created_at) || new Date().toISOString(),
       createdBy: rejectedBy,
       source: "SYSTEM"
     });
@@ -1090,32 +1090,37 @@ export async function checkInStaffBoarding(authUser: AuthUser, boardingId: strin
 
 export async function checkOutStaffBoarding(authUser: AuthUser, boardingId: string, payload: CheckOutStaffBoardingPayload): Promise<StaffBoardingDetailDto> {
   assertStaff(authUser);
-  const record = await boardingRepository.findStaffBoardingDetailById(boardingId);
-  if (!record) throw new AppError("Không tìm thấy phiếu lưu trú", "BOARDING_NOT_FOUND", httpStatus.NOT_FOUND);
-  if (record.boarding_status === "checked_out") throw new AppError("Phiếu lưu trú đã được check-out.", "BOARDING_ALREADY_CHECKED_OUT", httpStatus.BAD_REQUEST);
-  if (record.boarding_status !== "staying") throw new AppError("Trạng thái phiếu lưu trú không hợp lệ", "INVALID_BOARDING_STATUS", httpStatus.BAD_REQUEST);
-  await boardingRepository.updateBoardingToCheckedOut({ boardingRecordId: boardingId, handledByStaffId: authUser.userId });
+  try {
+    const record = await boardingRepository.findStaffBoardingDetailById(boardingId);
+    if (!record) throw new AppError("Không tìm thấy phiếu lưu trú", "BOARDING_NOT_FOUND", httpStatus.NOT_FOUND);
+    if (record.boarding_status === "checked_out") throw new AppError("Phiếu lưu trú đã được check-out.", "BOARDING_ALREADY_CHECKED_OUT", httpStatus.BAD_REQUEST);
+    if (record.boarding_status !== "staying") throw new AppError("Trạng thái phiếu lưu trú không hợp lệ", "INVALID_BOARDING_STATUS", httpStatus.BAD_REQUEST);
+    await boardingRepository.updateBoardingToCheckedOut({ boardingRecordId: boardingId, handledByStaffId: authUser.userId });
 
-  await boardingRepository.insertBoardingUpdate({
-    boardingRecordId: boardingId,
-    createdByUserId: authUser.userId,
-    description: "[SYSTEM_CHECKOUT] Thú cưng đã được trả cho chủ nuôi.",
-    alertLevel: "normal",
-    visibilityStatus: "published",
-    attachmentUrls: null
-  });
-
-  if (payload.internalNote) {
     await boardingRepository.insertBoardingUpdate({
       boardingRecordId: boardingId,
       createdByUserId: authUser.userId,
-      description: payload.internalNote,
+      description: "[SYSTEM_CHECKOUT] Thú cưng đã được trả cho chủ nuôi.",
       alertLevel: "normal",
       visibilityStatus: "published",
       attachmentUrls: null
     });
+
+    if (payload.internalNote) {
+      await boardingRepository.insertBoardingUpdate({
+        boardingRecordId: boardingId,
+        createdByUserId: authUser.userId,
+        description: payload.internalNote,
+        alertLevel: "normal",
+        visibilityStatus: "published",
+        attachmentUrls: null
+      });
+    }
+    return getStaffBoardingDetail(authUser, boardingId);
+  } catch (error) {
+    console.error("[checkOutStaffBoarding] ERROR:", error);
+    throw error;
   }
-  return getStaffBoardingDetail(authUser, boardingId);
 }
 
 export async function getRoomTypes() {
