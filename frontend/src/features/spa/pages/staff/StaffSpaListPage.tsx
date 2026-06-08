@@ -418,15 +418,25 @@ export function StaffSpaListPage() {
       </section>
 
       {data.tickets.length > 0 ? (
-        <div className="flex flex-col items-center gap-3 py-2">
+        <div className="flex w-full flex-col items-center justify-between gap-4 rounded-[16px] border border-[#e6e8dd] bg-white px-6 py-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)] sm:flex-row">
           <p className="text-sm leading-5 text-[#52605c]">
-            Hiển thị {data.tickets.length} trong {pagination.total} yêu cầu spa
+            Hiển thị{" "}
+            <span className="font-medium text-[#1b1c15]">
+              {(pagination.page - 1) * pagination.limit + 1}
+            </span>
+            -
+            <span className="font-medium text-[#1b1c15]">
+              {Math.min(pagination.page * pagination.limit, pagination.total)}
+            </span>{" "}
+            của <span className="font-medium text-[#1b1c15]">{pagination.total}</span> yêu cầu spa
           </p>
           <AppPagination
             ariaLabel="Phân trang yêu cầu spa"
+            className="justify-end!"
             currentPage={pagination.page}
             isLoading={isLoading}
             onPageChange={setPage}
+            size="sm"
             totalPages={pagination.totalPages}
           />
         </div>
