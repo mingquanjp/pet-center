@@ -410,8 +410,8 @@ export function StaffSpaListPage() {
           >
             <LoadingState
               className="py-12"
-              title="Dang tai du lieu..."
-              description="Vui long cho trong giay lat"
+              title="Đang tải dữ liệu..."
+              description="Vui lòng chờ trong giây lát"
             />
           </div>
         ) : null}

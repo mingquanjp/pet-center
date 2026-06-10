@@ -57,8 +57,8 @@ export const staffCounterOptionsQuerySchema = z.object({
 });
 
 export const createStaffCounterGroomingTicketSchema = z.object({
-  petId: z.string().trim().min(1, "ThÃº cÆ°ng lÃ  báº¯t buá»™c").max(30),
-  serviceId: z.string().trim().min(1, "Dá»‹ch vá»¥ lÃ  báº¯t buá»™c").max(30),
+  petId: z.string().trim().min(1, "Thú cưng là bắt buộc").max(30),
+  serviceId: z.string().trim().min(1, "Dịch vụ là bắt buộc").max(30),
   scheduledAt: z.coerce.date(),
   specialRequest: z.string().trim().max(1000).optional().nullable()
 });

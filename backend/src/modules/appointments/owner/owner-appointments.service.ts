@@ -1,9 +1,9 @@
-import { withTransaction } from "../../db/transactions.js";
-import { AppError } from "../../shared/errors/app-error.js";
-import { httpStatus } from "../../shared/errors/http-status.js";
-import { createId } from "../../shared/utils/id.js";
+import { withTransaction } from "../../../db/transactions.js";
+import { AppError } from "../../../shared/errors/app-error.js";
+import { httpStatus } from "../../../shared/errors/http-status.js";
+import { createId } from "../../../shared/utils/id.js";
 import * as repo from "./owner-appointments.repository.js";
-import { notifyAppointmentCreated } from "../notifications/notification-events.js";
+import { notifyAppointmentCreated } from "../../notifications/notification-events.js";
 import type {
   CancelOwnerAppointmentBody,
   CreateOwnerAppointmentBody,

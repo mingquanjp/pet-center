@@ -57,7 +57,7 @@ export function StaffBoardingOwnerSection({
     const normalizedEmail = email.trim();
 
     if (!normalizedFullName || !normalizedPhoneNumber || !normalizedEmail) {
-      toast.error("Vui lÃ²ng nháº­p há» tÃªn, sá»‘ Ä‘iá»‡n thoáº¡i vÃ  email chá»§ nuÃ´i.");
+      toast.error("Vui lòng nhập họ tên, số điện thoại và email chủ nuôi.");
       return;
     }
 

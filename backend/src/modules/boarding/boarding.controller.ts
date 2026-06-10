@@ -106,13 +106,13 @@ export async function updateStaffBoardingLog(req: Request, res: Response): Promi
     boardingId,
     req.body as UpdateStaffBoardingLogPayload
   );
-  sendSuccess(res, result, req.body?.visibilityStatus === "DRAFT" ? "Da luu nhap cap nhat cham soc" : "Cap nhat nhat ky cham soc thanh cong");
+  sendSuccess(res, result, req.body?.visibilityStatus === "DRAFT" ? "Đã lưu nháp cập nhật chăm sóc" : "Cập nhật nhật ký chăm sóc thành công");
 }
 
 export async function deleteStaffBoardingDraftUpdate(req: Request, res: Response): Promise<void> {
   const boardingId = req.params.boardingId as string;
   await boardingService.deleteStaffBoardingDraftUpdate(req.user!, boardingId);
-  sendSuccess(res, null, "Da xoa nhap cap nhat cham soc");
+  sendSuccess(res, null, "Đã xóa nháp cập nhật chăm sóc");
 }
 
 export async function confirmStaffBoarding(req: Request, res: Response): Promise<void> {
@@ -122,7 +122,7 @@ export async function confirmStaffBoarding(req: Request, res: Response): Promise
     boardingId,
     req.body as ConfirmStaffBoardingPayload
   );
-  sendSuccess(res, result, "Da xac nhan yeu cau luu tru");
+  sendSuccess(res, result, "Đã xác nhận yêu cầu lưu trú");
 }
 
 export async function rejectStaffBoarding(req: Request, res: Response): Promise<void> {
@@ -132,7 +132,7 @@ export async function rejectStaffBoarding(req: Request, res: Response): Promise<
     boardingId,
     req.body as RejectStaffBoardingPayload
   );
-  sendSuccess(res, result, "Da tu choi yeu cau luu tru");
+  sendSuccess(res, result, "Đã từ chối yêu cầu lưu trú");
 }
 
 export async function checkInStaffBoarding(req: Request, res: Response): Promise<void> {
@@ -142,7 +142,7 @@ export async function checkInStaffBoarding(req: Request, res: Response): Promise
     boardingId,
     req.body as CheckInStaffBoardingPayload
   );
-  sendSuccess(res, result, "Nhan thu cung thanh cong");
+  sendSuccess(res, result, "Nhận thú cưng thành công");
 }
 
 export async function checkOutStaffBoarding(req: Request, res: Response): Promise<void> {
@@ -152,7 +152,7 @@ export async function checkOutStaffBoarding(req: Request, res: Response): Promis
     boardingId,
     req.body as CheckOutStaffBoardingPayload
   );
-  sendSuccess(res, result, "Tra thu cung thanh cong");
+  sendSuccess(res, result, "Trả thú cưng thành công");
 }
 
 export async function getRoomTypes(req: Request, res: Response): Promise<void> {
@@ -173,7 +173,7 @@ export async function createStaffBoardingOwner(req: Request, res: Response): Pro
     req.user!,
     req.body as CreateStaffBoardingOwnerPayload
   );
-  sendSuccess(res, result, "Tao ho so chu nuoi thanh cong", httpStatus.CREATED);
+  sendSuccess(res, result, "Tạo hồ sơ chủ nuôi thành công", httpStatus.CREATED);
 }
 
 export async function createStaffBoardingPet(req: Request, res: Response): Promise<void> {
@@ -182,7 +182,7 @@ export async function createStaffBoardingPet(req: Request, res: Response): Promi
     req.params as unknown as StaffBoardingOwnerParams,
     req.body as CreateStaffBoardingPetPayload
   );
-  sendSuccess(res, result, "Tao ho so thu cung thanh cong", httpStatus.CREATED);
+  sendSuccess(res, result, "Tạo hồ sơ thú cưng thành công", httpStatus.CREATED);
 }
 
 export async function createStaffBoardingAtCounter(req: Request, res: Response): Promise<void> {

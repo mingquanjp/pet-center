@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createOwnerAppointmentSchema } from "../../../src/modules/appointments/owner-appointments.schema.js";
+import { createOwnerAppointmentSchema } from "../../../src/modules/appointments/owner/owner-appointments.schema.js";
 
 describe("createOwnerAppointmentSchema", () => {
   const validPayload = {

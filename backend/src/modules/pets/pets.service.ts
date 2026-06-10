@@ -1,5 +1,5 @@
-import { randomBytes, scrypt as scryptCallback } from "node:crypto";
-import { promisify } from "node:util";
+import { randomBytes } from "node:crypto";
+import { hashPassword, hashGeneratedPassword } from "../../shared/security/password.service.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import type { AuthUser } from "../../shared/types/auth.js";
@@ -18,15 +18,6 @@ import type {
 } from "./pets.schema.js";
 import * as petsRepository from "./pets.repository.js";
 
-const scrypt = promisify(scryptCallback);
-
-async function hashGeneratedPassword(): Promise<string> {
-  const salt = randomBytes(16).toString("base64url");
-  const password = randomBytes(24).toString("base64url");
-  const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
-
-  return `scrypt$${salt}$${derivedKey.toString("base64url")}`;
-}
 
 function normalizePhoneNumber(phoneNumber: string): string {
   return phoneNumber.trim();
@@ -45,7 +36,7 @@ function assertOwner(authUser: AuthUser): void {
 
 function assertStaff(authUser: AuthUser): void {
   if (authUser.role !== "STAFF" && authUser.role !== "ADMIN") {
-    throw new AppError("Ban khong co quyen truy cap danh sach thu cung", "FORBIDDEN", httpStatus.FORBIDDEN);
+    throw new AppError("Bạn không có quyền truy cập danh sách thú cưng", "FORBIDDEN", httpStatus.FORBIDDEN);
   }
 }
 
@@ -94,7 +85,7 @@ export async function getStaffPet(authUser: AuthUser, petId: string) {
   const pet = await petsRepository.findStaffPetById(petId);
 
   if (!pet) {
-    throw new AppError("Khong tim thay ho so thu cung", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không tìm thấy hồ sơ thú cưng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   return pet;
@@ -113,14 +104,14 @@ export async function createStaffOwner(authUser: AuthUser, payload: StaffCreateO
   const existingPhoneOwner = await petsRepository.findOwnerByPhoneNumber(phoneNumber);
 
   if (existingPhoneOwner) {
-    throw new AppError("So dien thoai nay da thuoc ve mot chu nuoi", "OWNER_PHONE_ALREADY_EXISTS", httpStatus.CONFLICT);
+    throw new AppError("Số điện thoại này đã thuộc về một chủ nuôi", "OWNER_PHONE_ALREADY_EXISTS", httpStatus.CONFLICT);
   }
 
   const email = payload.email?.trim() || createInternalOwnerEmail(phoneNumber);
   const existingEmailOwner = await petsRepository.findOwnerByEmail(email);
 
   if (existingEmailOwner) {
-    throw new AppError("Email nay da thuoc ve mot chu nuoi", "OWNER_EMAIL_ALREADY_EXISTS", httpStatus.CONFLICT);
+    throw new AppError("Email này đã thuộc về một chủ nuôi", "OWNER_EMAIL_ALREADY_EXISTS", httpStatus.CONFLICT);
   }
 
   return petsRepository.createStaffOwner({
@@ -139,14 +130,14 @@ export async function createStaffPet(authUser: AuthUser, payload: StaffCreatePet
   const owner = await petsRepository.findOwnerById(payload.ownerUserId);
 
   if (!owner) {
-    throw new AppError("Khong tim thay chu nuoi hop le", "OWNER_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không tìm thấy chủ nuôi hợp lệ", "OWNER_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   const createdPet = await petsRepository.createPet(payload.ownerUserId, payload);
   const staffPet = await petsRepository.findStaffPetById(createdPet.petId);
 
   if (!staffPet) {
-    throw new AppError("Khong the tai ho so thu cung vua tao", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không thể tải hồ sơ thú cưng vừa tạo", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   return staffPet;
@@ -158,19 +149,19 @@ export async function updateStaffPet(authUser: AuthUser, petId: string, payload:
   const existingPet = await petsRepository.findStaffPetById(petId);
 
   if (!existingPet) {
-    throw new AppError("Khong tim thay ho so thu cung", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không tìm thấy hồ sơ thú cưng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   const updatedPet = await petsRepository.updatePet(existingPet.owner.userId, petId, payload);
 
   if (!updatedPet) {
-    throw new AppError("Khong tim thay ho so thu cung", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không tìm thấy hồ sơ thú cưng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   const staffPet = await petsRepository.findStaffPetById(petId);
 
   if (!staffPet) {
-    throw new AppError("Khong the tai ho so thu cung vua cap nhat", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không thể tải hồ sơ thú cưng vừa cập nhật", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   return staffPet;
@@ -194,7 +185,7 @@ export async function listOwnerPetMedicalExams(authUser: AuthUser, petId: string
   const pet = await petsRepository.findPetById(authUser.userId, petId);
 
   if (!pet) {
-    throw new AppError("KhÃ´ng tÃ¬m tháº¥y há»“ sÆ¡ thÃº cÆ°ng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không tìm thấy hồ sơ thú cưng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   const paginationInput = normalizePagination(query.page, query.limit);
@@ -232,7 +223,7 @@ export async function listOwnerPetVaccinations(authUser: AuthUser, petId: string
   const pet = await petsRepository.findPetById(authUser.userId, petId);
 
   if (!pet) {
-    throw new AppError("KhÃ´ng tÃ¬m tháº¥y há»“ sÆ¡ thÃº cÆ°ng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không tìm thấy hồ sơ thú cưng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   const paginationInput = normalizePagination(query.page, query.limit);
@@ -256,7 +247,7 @@ export async function listOwnerPetSpaHistory(authUser: AuthUser, petId: string, 
   const pet = await petsRepository.findPetById(authUser.userId, petId);
 
   if (!pet) {
-    throw new AppError("Khong tim thay ho so thu cung", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không tìm thấy hồ sơ thú cưng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   const paginationInput = normalizePagination(query.page, query.limit);

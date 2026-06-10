@@ -1,5 +1,4 @@
-import { randomBytes, scrypt as scryptCallback } from "node:crypto";
-import { promisify } from "node:util";
+import { hashPassword } from "../../shared/security/password.service.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import { createId } from "../../shared/utils/id.js";
@@ -8,14 +7,7 @@ import * as repo from "./users.repository.js";
 import type { AdminUserActivityDto, AdminUserActivityRow, AdminUserDto, AdminUserListRow, AdminUserPetDto, AdminUserPetRow, AdminUsersQuery } from "./users.types.js";
 import type { CreateAdminUserBody, UpdateAdminUserBody } from "./users.schema.js";
 
-const scrypt = promisify(scryptCallback);
 
-async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString("base64url");
-  const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
-
-  return `scrypt$${salt}$${derivedKey.toString("base64url")}`;
-}
 
 function mapAdminUser(row: AdminUserListRow): AdminUserDto {
   return {
@@ -294,13 +286,13 @@ export async function updateAdminUser(userId: string, body: UpdateAdminUserBody)
 
 export async function deleteAdminUser(userId: string, currentUserId?: string): Promise<AdminUserDto> {
   if (currentUserId === userId) {
-    throw new AppError("KhÃ´ng thá»ƒ xÃ³a chÃ­nh tÃ i khoáº£n Ä‘ang Ä‘Äƒng nháº­p", "CANNOT_DELETE_SELF", httpStatus.BAD_REQUEST);
+    throw new AppError("Không thể xóa chính tài khoản đang đăng nhập", "CANNOT_DELETE_SELF", httpStatus.BAD_REQUEST);
   }
 
   const row = await repo.updateAdminUser(userId, { accountStatus: "inactive" });
 
   if (!row) {
-    throw new AppError("KhÃ´ng tÃ¬m tháº¥y ngÆ°á»i dÃ¹ng", "USER_NOT_FOUND", httpStatus.NOT_FOUND);
+    throw new AppError("Không tìm thấy người dùng", "USER_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   return mapAdminUser(row);

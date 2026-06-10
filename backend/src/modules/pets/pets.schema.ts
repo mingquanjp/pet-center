@@ -103,11 +103,11 @@ export const createPetSchema = z
 export const staffCreatePetSchema = z
   .object({
     ownerUserId: z.string().trim().min(1).max(30),
-    petName: z.string().trim().min(1, "Ten thu cung la bat buoc").max(100),
+    petName: z.string().trim().min(1, "Tên thú cưng là bắt buộc").max(100),
     species: petSpeciesSchema,
     breed: optionalText(100),
     gender: petGenderSchema.optional().nullable(),
-    birthDate: z.coerce.date().max(new Date(), "Ngay sinh khong duoc o tuong lai").optional().nullable(),
+    birthDate: z.coerce.date().max(new Date(), "Ngày sinh không được ở tương lai").optional().nullable(),
     estimatedAge: z.coerce.number().min(0).max(999.99).optional().nullable(),
     furColor: optionalText(80),
     weightKg: optionalPositiveNumber,
@@ -117,7 +117,7 @@ export const staffCreatePetSchema = z
   })
   .refine((value) => value.birthDate || (value.estimatedAge !== undefined && value.estimatedAge !== null), {
     path: ["estimatedAge"],
-    message: "Can nhap ngay sinh hoac tuoi uoc tinh"
+    message: "Cần nhập ngày sinh hoặc tuổi ước tính"
   });
 
 export const staffOwnerSearchQuerySchema = z.object({

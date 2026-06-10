@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import { query } from "../../db/query.js";
+import { query } from "../../../db/query.js";
 import type {
   OwnerAppointmentCountRow,
   OwnerAppointmentDetailRow,

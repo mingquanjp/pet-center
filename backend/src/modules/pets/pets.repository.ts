@@ -30,8 +30,9 @@ import type {
   StaffPetDto,
   StaffPetListFilters
 } from "./pets.types.js";
+import { mapPet, mapStaffOwnerCandidate, mapStaffPet, mapStaffPetDetail, mapPetDetail, mapPetActivityLog, toDateInput, mapPetMedicalExam, mapPrescriptionItem, mapPetMedicalExamFieldValue, mapPetVaccination, mapPetSpaHistory } from "./pets.mapper.js";
 
-type PetRow = QueryResultRow & {
+export type PetRow = QueryResultRow & {
   pet_id: string;
   pet_name: string;
   species: PetSpecies;
@@ -48,7 +49,7 @@ type PetRow = QueryResultRow & {
   needs_attention: boolean;
 };
 
-type PetDetailRow = PetRow & {
+export type PetDetailRow = PetRow & {
   medical_history: string | null;
   allergy_notes: string | null;
   chronic_condition_notes: string | null;
@@ -58,13 +59,13 @@ type PetDetailRow = PetRow & {
   health_profile_updated_at: string | null;
 };
 
-type StaffPetRow = PetRow & {
+export type StaffPetRow = PetRow & {
   owner_user_id: string;
   owner_name: string;
   owner_phone_number: string | null;
 };
 
-type StaffPetDetailRow = PetDetailRow & {
+export type StaffPetDetailRow = PetDetailRow & {
   owner_user_id: string;
   owner_name: string;
   owner_phone_number: string | null;
@@ -72,7 +73,7 @@ type StaffPetDetailRow = PetDetailRow & {
   owner_address: string | null;
 };
 
-type StaffOwnerCandidateRow = QueryResultRow & {
+export type StaffOwnerCandidateRow = QueryResultRow & {
   user_id: string;
   full_name: string;
   email: string | null;
@@ -80,7 +81,7 @@ type StaffOwnerCandidateRow = QueryResultRow & {
   address: string | null;
 };
 
-type PetActivityLogRow = QueryResultRow & {
+export type PetActivityLogRow = QueryResultRow & {
   activity_log_id: string;
   pet_id: string;
   owner_user_id: string;
@@ -97,11 +98,11 @@ type PetActivityLogRow = QueryResultRow & {
   metadata: Record<string, unknown> | string | null;
 };
 
-type CountRow = QueryResultRow & {
+export type CountRow = QueryResultRow & {
   total: string;
 };
 
-type PetMedicalExamRow = QueryResultRow & {
+export type PetMedicalExamRow = QueryResultRow & {
   exam_id: string;
   appointment_id: string;
   pet_id: string;
@@ -123,13 +124,13 @@ type PetMedicalExamRow = QueryResultRow & {
   follow_up_reason: string | null;
 };
 
-type PetMedicalExamDetailRow = PetMedicalExamRow &
+export type PetMedicalExamDetailRow = PetMedicalExamRow &
   PetRow & {
     follow_up_id: string | null;
     follow_up_owner_note: string | null;
   };
 
-type PetMedicalExamFieldValueRow = QueryResultRow & {
+export type PetMedicalExamFieldValueRow = QueryResultRow & {
   field_value_id: string;
   field_definition_id: string;
   field_name: string;
@@ -142,13 +143,13 @@ type PetMedicalExamFieldValueRow = QueryResultRow & {
   created_at: string;
 };
 
-type PrescriptionRow = QueryResultRow & {
+export type PrescriptionRow = QueryResultRow & {
   prescription_id: string;
   prescribed_at: string;
   general_note: string | null;
 };
 
-type PrescriptionItemRow = QueryResultRow & {
+export type PrescriptionItemRow = QueryResultRow & {
   prescription_item_id: string;
   medicine_id: string;
   medicine_name: string;
@@ -159,7 +160,7 @@ type PrescriptionItemRow = QueryResultRow & {
   note: string | null;
 };
 
-type PetVaccinationRow = QueryResultRow & {
+export type PetVaccinationRow = QueryResultRow & {
   vaccination_id: string;
   pet_id: string;
   exam_id: string | null;
@@ -173,7 +174,7 @@ type PetVaccinationRow = QueryResultRow & {
   veterinarian_name: string | null;
 };
 
-type PetSpaHistoryRow = QueryResultRow & {
+export type PetSpaHistoryRow = QueryResultRow & {
   grooming_ticket_id: string;
   pet_id: string;
   service_name: string;
@@ -186,279 +187,6 @@ type PetSpaHistoryRow = QueryResultRow & {
   total_amount: string | number;
   included_services: string;
 };
-
-function toDateInput(value?: Date | null): string | null {
-  return value ? value.toISOString().slice(0, 10) : null;
-}
-
-function toNumber(value: string | number | null): number | null {
-  if (value === null) return null;
-  return Number(value);
-}
-
-function getSpeciesLabel(species: PetSpecies): string {
-  const labels = {
-    Dog: "Chó",
-    Cat: "Mèo",
-    Other: "Khác"
-  } as const;
-
-  return labels[species];
-}
-
-function getGenderLabel(gender: PetRow["gender"]): string {
-  const labels = {
-    male: "Đực",
-    female: "Cái",
-    unknown: "Chưa rõ"
-  } as const;
-
-  return gender ? labels[gender] : "Chưa cập nhật";
-}
-
-function getAgeLabel(row: PetRow): string {
-  if (row.birth_date) {
-    const birthDate = new Date(row.birth_date);
-    const now = new Date();
-    let years = now.getFullYear() - birthDate.getFullYear();
-    const hasHadBirthday =
-      now.getMonth() > birthDate.getMonth() ||
-      (now.getMonth() === birthDate.getMonth() && now.getDate() >= birthDate.getDate());
-
-    if (!hasHadBirthday) years -= 1;
-
-    return years > 0 ? `${years} năm tuổi` : "Dưới 1 năm tuổi";
-  }
-
-  const estimatedAge = toNumber(row.estimated_age);
-
-  if (estimatedAge === null) return "Chưa cập nhật";
-  if (estimatedAge < 1) return "Dưới 1 năm tuổi";
-
-  return `${Math.floor(estimatedAge)} năm tuổi`;
-}
-
-function getDisplayStatus(row: PetRow): PetDisplayStatus {
-  if (row.pet_status === "inactive") return "inactive";
-  if (row.pet_status === "deceased") return "deceased";
-  if (row.has_active_boarding) return "boarding";
-  if (row.needs_attention) return "watching";
-
-  return "healthy";
-}
-
-function getDisplayStatusLabel(displayStatus: PetDisplayStatus): string {
-  const labels = {
-    healthy: "Khỏe mạnh",
-    watching: "Cần theo dõi",
-    boarding: "Đang lưu trú",
-    inactive: "Ngưng theo dõi",
-    deceased: "Đã mất"
-  } as const;
-
-  return labels[displayStatus];
-}
-
-function mapPet(row: PetRow): PetDto {
-  const displayStatus = getDisplayStatus(row);
-
-  return {
-    petId: row.pet_id,
-    petName: row.pet_name,
-    species: row.species,
-    speciesLabel: getSpeciesLabel(row.species),
-    breed: row.breed,
-    gender: row.gender,
-    genderLabel: getGenderLabel(row.gender),
-    birthDate: row.birth_date,
-    estimatedAge: toNumber(row.estimated_age),
-    ageLabel: getAgeLabel(row),
-    furColor: row.fur_color,
-    weightKg: toNumber(row.weight_kg),
-    profileImageUrl: row.profile_image_url,
-    identifyingMarks: row.identifying_marks,
-    petStatus: row.pet_status,
-    displayStatus,
-    displayStatusLabel: getDisplayStatusLabel(displayStatus)
-  };
-}
-
-function mapStaffPet(row: StaffPetRow): StaffPetDto {
-  return {
-    ...mapPet(row),
-    owner: {
-      userId: row.owner_user_id,
-      fullName: row.owner_name,
-      phoneNumber: row.owner_phone_number
-    }
-  };
-}
-
-function mapStaffPetDetail(row: StaffPetDetailRow, recentActivities: PetActivityLogDto[] = []): StaffPetDetailDto {
-  return {
-    ...mapPetDetail(row, recentActivities),
-    owner: {
-      userId: row.owner_user_id,
-      fullName: row.owner_name,
-      phoneNumber: row.owner_phone_number,
-      email: row.owner_email,
-      address: row.owner_address
-    }
-  };
-}
-
-function mapStaffOwnerCandidate(row: StaffOwnerCandidateRow): StaffOwnerCandidateDto {
-  return {
-    userId: row.user_id,
-    fullName: row.full_name,
-    email: row.email,
-    phoneNumber: row.phone_number,
-    address: row.address
-  };
-}
-
-function mapPetDetail(row: PetDetailRow, recentActivities: PetActivityLogDto[] = []): PetDetailDto {
-  return {
-    ...mapPet(row),
-    healthProfile: {
-      medicalHistory: row.medical_history,
-      allergyNotes: row.allergy_notes,
-      chronicConditionNotes: row.chronic_condition_notes,
-      foodType: row.food_type,
-      feedingPortion: row.feeding_portion,
-      specialCareNotes: row.special_care_notes,
-      updatedAt: row.health_profile_updated_at
-    },
-    recentActivities
-  };
-}
-
-function normalizeMetadata(value: PetActivityLogRow["metadata"]): Record<string, unknown> {
-  if (!value) return {};
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
-    } catch {
-      return {};
-    }
-  }
-
-  return value;
-}
-
-function mapPetActivityLog(row: PetActivityLogRow): PetActivityLogDto {
-  return {
-    activityLogId: row.activity_log_id,
-    petId: row.pet_id,
-    ownerUserId: row.owner_user_id,
-    actorUserId: row.actor_user_id,
-    actorName: row.actor_name,
-    activityCategory: row.activity_category,
-    activityType: row.activity_type,
-    activityStatus: row.activity_status,
-    occurredAt: row.occurred_at,
-    title: row.title,
-    summary: row.summary,
-    sourceType: row.source_type,
-    sourceId: row.source_id,
-    metadata: normalizeMetadata(row.metadata)
-  };
-}
-
-function mapPetMedicalExam(row: PetMedicalExamRow): PetMedicalExamDto {
-  return {
-    examId: row.exam_id,
-    appointmentId: row.appointment_id,
-    petId: row.pet_id,
-    examTypeId: row.exam_type_id,
-    examTypeCode: row.type_code,
-    examTypeName: row.type_name,
-    scheduledAt: row.scheduled_at,
-    examDate: row.exam_date,
-    veterinarianUserId: row.veterinarian_user_id,
-    veterinarianName: row.veterinarian_name,
-    diagnosis: row.diagnosis,
-    conclusion: row.conclusion,
-    healthNote: row.health_note,
-    examStatus: row.exam_status,
-    symptomDescription: row.symptom_description,
-    hasPrescription: row.has_prescription,
-    hasFollowUp: row.has_follow_up,
-    followUpDate: row.follow_up_date,
-    followUpReason: row.follow_up_reason
-  };
-}
-
-function mapPetMedicalExamFieldValue(row: PetMedicalExamFieldValueRow): PetMedicalExamFieldValueDto {
-  return {
-    fieldValueId: row.field_value_id,
-    fieldDefinitionId: row.field_definition_id,
-    fieldName: row.field_name,
-    fieldLabel: row.field_label,
-    fieldType: row.field_type,
-    valueText: row.value_text,
-    valueNumber: toNumber(row.value_number),
-    valueDate: row.value_date,
-    fileUrl: row.file_url,
-    createdAt: row.created_at
-  };
-}
-
-function mapPrescriptionItem(row: PrescriptionItemRow): PetPrescriptionItemDto {
-  return {
-    prescriptionItemId: row.prescription_item_id,
-    medicineId: row.medicine_id,
-    medicineName: row.medicine_name,
-    dosage: row.dosage,
-    frequency: row.frequency,
-    duration: row.duration,
-    usageInstruction: row.usage_instruction,
-    note: row.note
-  };
-}
-
-function mapPetVaccination(row: PetVaccinationRow): PetVaccinationDto {
-  return {
-    vaccinationId: row.vaccination_id,
-    petId: row.pet_id,
-    examId: row.exam_id,
-    appointmentId: row.appointment_id,
-    vaccineName: row.vaccine_name,
-    vaccinationDate: row.vaccination_date,
-    nextReminderDate: row.next_reminder_date,
-    status: row.status,
-    note: row.note,
-    veterinarianUserId: row.veterinarian_user_id,
-    veterinarianName: row.veterinarian_name
-  };
-}
-
-function getSpaTicketStatusLabel(status: PetSpaHistoryDto["ticketStatus"]): string {
-  const labels = {
-    completed: "Hoàn thành",
-    cancelled: "Đã hủy"
-  } as const;
-
-  return labels[status];
-}
-
-function mapPetSpaHistory(row: PetSpaHistoryRow): PetSpaHistoryDto {
-  return {
-    groomingTicketId: row.grooming_ticket_id,
-    petId: row.pet_id,
-    serviceName: row.service_name,
-    serviceTypeName: row.service_type_name,
-    scheduledAt: row.scheduled_at,
-    scheduledDate: row.scheduled_date,
-    scheduledTime: row.scheduled_time,
-    ticketStatus: row.ticket_status,
-    ticketStatusLabel: getSpaTicketStatusLabel(row.ticket_status),
-    specialRequest: row.special_request,
-    totalAmount: Number(row.total_amount),
-    includedServices: row.included_services
-  };
-}
 
 function buildListWhere(filters: PetListFilters): { whereSql: string; params: unknown[] } {
   const params: unknown[] = [filters.ownerUserId];

@@ -44,20 +44,20 @@ export async function searchStaffOwners(req: Request, res: Response): Promise<vo
 export async function createStaffOwner(req: Request, res: Response): Promise<void> {
   const owner = await petsService.createStaffOwner(req.user!, req.body as StaffCreateOwnerPayload);
 
-  sendSuccess(res, owner, "Tao tai khoan chu nuoi thanh cong", httpStatus.CREATED);
+  sendSuccess(res, owner, "Tạo tài khoản chủ nuôi thành công", httpStatus.CREATED);
 }
 
 export async function createStaffPet(req: Request, res: Response): Promise<void> {
   const pet = await petsService.createStaffPet(req.user!, req.body as StaffCreatePetPayload);
 
-  sendSuccess(res, pet, "Tao ho so thu cung tai quay thanh cong", httpStatus.CREATED);
+  sendSuccess(res, pet, "Tạo hồ sơ thú cưng tại quầy thành công", httpStatus.CREATED);
 }
 
 export async function updateStaffPet(req: Request, res: Response): Promise<void> {
   const { petId } = req.params as PetParams;
   const pet = await petsService.updateStaffPet(req.user!, petId, req.body as UpdatePetPayload);
 
-  sendSuccess(res, pet, "Cap nhat ho so thu cung thanh cong");
+  sendSuccess(res, pet, "Cập nhật hồ sơ thú cưng thành công");
 }
 
 export async function getPet(req: Request, res: Response): Promise<void> {

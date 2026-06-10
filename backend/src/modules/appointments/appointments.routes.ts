@@ -4,7 +4,7 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRole } from "../../middlewares/role.middleware.js";
 import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as appointmentsController from "./appointments.controller.js";
-import * as ownerAppointmentsController from "./owner-appointments.controller.js";
+import * as ownerAppointmentsController from "./owner/owner-appointments.controller.js";
 import { 
   listStaffAppointmentsQuerySchema,
   listDoctorExaminationsQuerySchema,
@@ -21,7 +21,7 @@ import {
   listOwnerAppointmentsQuerySchema,
   ownerAppointmentIdParamsSchema,
   ownerAvailableSlotsQuerySchema,
-} from "./owner-appointments.schema.js";
+} from "./owner/owner-appointments.schema.js";
 
 export const appointmentsRouter = Router();
 
