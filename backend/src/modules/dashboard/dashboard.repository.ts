@@ -39,8 +39,6 @@ type PetRow = QueryResultRow & {
   birth_date: string | null;
   estimated_age: string | number | null;
   profile_image_url: string | null;
-  has_active_boarding: boolean;
-  needs_attention: boolean;
 };
 
 type AppointmentRow = QueryResultRow & {
@@ -240,23 +238,6 @@ function getAgeLabel(row: PetRow): string {
   return `${Math.floor(estimatedAge)} năm tuổi`;
 }
 
-function getDisplayStatus(row: PetRow): OwnerDashboardPet["displayStatus"] {
-  if (row.has_active_boarding) return "boarding";
-  if (row.needs_attention) return "watching";
-
-  return "healthy";
-}
-
-function getDisplayStatusLabel(displayStatus: OwnerDashboardPet["displayStatus"]): string {
-  const labels = {
-    healthy: "Khỏe mạnh",
-    watching: "Cần theo dõi",
-    boarding: "Đang lưu trú",
-  } as const;
-
-  return labels[displayStatus];
-}
-
 function getAppointmentStatusLabel(status: OwnerDashboardAppointment["appointmentStatus"]): string {
   const labels = {
     pending_payment: "Chờ thanh toán",
@@ -270,8 +251,6 @@ function getAppointmentStatusLabel(status: OwnerDashboardAppointment["appointmen
 }
 
 function mapPet(row: PetRow): OwnerDashboardPet {
-  const displayStatus = getDisplayStatus(row);
-
   return {
     petId: row.pet_id,
     petName: row.pet_name,
@@ -279,8 +258,6 @@ function mapPet(row: PetRow): OwnerDashboardPet {
     breed: row.breed,
     ageLabel: getAgeLabel(row),
     profileImageUrl: row.profile_image_url,
-    displayStatus,
-    displayStatusLabel: getDisplayStatusLabel(displayStatus),
   };
 }
 
@@ -626,20 +603,7 @@ export async function getOwnerDashboard(ownerUserId: string): Promise<OwnerDashb
          p.breed,
          p.birth_date::text as birth_date,
          p.estimated_age,
-         p.profile_image_url,
-         exists (
-           select 1 from pet_center.boarding_records br
-           where br.pet_id = p.pet_id and br.boarding_status = 'staying'
-         ) as has_active_boarding,
-         exists (
-           select 1 from pet_center.pet_health_profiles php
-           where php.pet_id = p.pet_id
-             and (
-               nullif(trim(coalesce(php.allergy_notes, '')), '') is not null
-               or nullif(trim(coalesce(php.chronic_condition_notes, '')), '') is not null
-               or nullif(trim(coalesce(php.special_care_notes, '')), '') is not null
-             )
-         ) as needs_attention
+         p.profile_image_url
        from pet_center.pets p
        where p.owner_user_id = $1
        order by p.pet_name asc, p.pet_id asc

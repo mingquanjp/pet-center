@@ -1,6 +1,5 @@
 export type PetSpecies = "Dog" | "Cat" | "Other";
 export type PetGender = "male" | "female" | "unknown";
-export type PetDisplayStatus = "healthy" | "watching" | "boarding";
 
 export type Pet = {
   petId: string;
@@ -17,8 +16,6 @@ export type Pet = {
   weightKg: number | null;
   profileImageUrl: string | null;
   identifyingMarks: string | null;
-  displayStatus: PetDisplayStatus;
-  displayStatusLabel: string;
 };
 
 export type StaffPet = Pet & {

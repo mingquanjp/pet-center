@@ -10,7 +10,6 @@ import type {
   PetActivitySourceType,
   PetActivityStatus,
   PetDetailDto,
-  PetDisplayStatus,
   PetDto,
   PetListFilters,
   PetMedicalExamDetailDto,
@@ -44,8 +43,6 @@ export type PetRow = QueryResultRow & {
   weight_kg: string | number | null;
   profile_image_url: string | null;
   identifying_marks: string | null;
-  has_active_boarding: boolean;
-  needs_attention: boolean;
 };
 
 export type PetDetailRow = PetRow & {
@@ -266,20 +263,7 @@ const petSelectSql = `
   p.fur_color,
   p.weight_kg,
   p.profile_image_url,
-  p.identifying_marks,
-  exists (
-    select 1 from pet_center.boarding_records br
-    where br.pet_id = p.pet_id and br.boarding_status = 'staying'
-  ) as has_active_boarding,
-  exists (
-    select 1 from pet_center.pet_health_profiles php
-    where php.pet_id = p.pet_id
-      and (
-        nullif(trim(coalesce(php.allergy_notes, '')), '') is not null
-        or nullif(trim(coalesce(php.chronic_condition_notes, '')), '') is not null
-        or nullif(trim(coalesce(php.special_care_notes, '')), '') is not null
-      )
-  ) as needs_attention
+  p.identifying_marks
 `;
 
 export async function findPets(filters: PetListFilters): Promise<{ pets: PetDto[]; total: number }> {
