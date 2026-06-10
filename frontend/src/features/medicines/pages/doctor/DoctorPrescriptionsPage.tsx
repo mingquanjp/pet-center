@@ -40,6 +40,11 @@ const defaultFilters: DoctorPrescriptionFilters = {
   limit: pageSize,
 }
 
+const formatPrescriptionQuantity = (quantity?: string | null, unit?: string | null) => {
+  if (!quantity) return "-"
+  return unit ? `${quantity} ${unit}` : quantity
+}
+
 const statusLabels: Record<DoctorPrescriptionStatus, string> = {
   prescribed: "Đã kê",
 }
@@ -426,7 +431,7 @@ function PrescriptionDetailDialog({
                               <MedicineBodyCell className="font-medium text-[#1b1c15]">
                                 {medicine.medicineName}
                               </MedicineBodyCell>
-                              <MedicineBodyCell>{medicine.quantity ?? "-"}</MedicineBodyCell>
+                              <MedicineBodyCell>{formatPrescriptionQuantity(medicine.quantity, medicine.medicineUnit)}</MedicineBodyCell>
                               <MedicineBodyCell>{medicine.dosage}</MedicineBodyCell>
                               <MedicineBodyCell>{medicine.frequency}</MedicineBodyCell>
                               <MedicineBodyCell>{medicine.duration}</MedicineBodyCell>

@@ -25,7 +25,7 @@ export function ConfirmPaymentModal({ invoice, isOpen, onClose, onSuccess }: Con
 
   const handleConfirm = async () => {
     try {
-      await mutateAsync({ invoiceId: invoice.id, paymentMethod: "cash_at_counter" })
+      await mutateAsync({ invoiceId: invoice.id, paymentMethod: "at_counter" })
       if (onSuccess) onSuccess()
       onClose()
     } catch (err) {

@@ -289,7 +289,6 @@ export function mapGroomingTicketDetail(row: GroomingTicketDetailRow, services: 
       ? {
           paymentId: payment.payment_id,
           paymentMethod: payment.payment_method,
-          paymentProvider: payment.payment_provider,
           transactionCode: payment.transaction_code,
           paidAmount: Number(payment.paid_amount),
           paidAt: payment.paid_at,

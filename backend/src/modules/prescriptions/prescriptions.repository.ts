@@ -25,8 +25,9 @@ function appendDoctorPrescriptionFilters(
       OR EXISTS (
         SELECT 1
         FROM pet_center.prescription_items pi
+        JOIN pet_center.medicines m ON m.medicine_id = pi.medicine_id
         WHERE pi.prescription_id = pr.prescription_id
-          AND pi.medicine_name ILIKE $${params.length}
+          AND m.medicine_name ILIKE $${params.length}
       )
     )`;
   }
@@ -196,14 +197,16 @@ export async function getDoctorPrescriptionItems(prescriptionId: string) {
     SELECT
       pi.prescription_item_id,
       pi.medicine_id,
-      pi.medicine_name,
-      pi.quantity,
+      m.medicine_name,
+      m.unit AS medicine_unit,
+      pi.quantity::text AS quantity,
       pi.dosage,
       pi.frequency,
       pi.duration,
       pi.usage_instruction,
       pi.note
     FROM pet_center.prescription_items pi
+    JOIN pet_center.medicines m ON m.medicine_id = pi.medicine_id
     WHERE pi.prescription_id = $1
     ORDER BY pi.prescription_item_id ASC
     `,

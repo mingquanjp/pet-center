@@ -170,6 +170,7 @@ export interface MedicalRecordPrescriptionItemRow {
   prescription_id: string;
   prescription_item_id: string;
   medicine_name: string;
+  medicine_unit: string;
   quantity: string | null;
   dosage: string;
   frequency: string;
@@ -242,7 +243,7 @@ export async function findDoctorMedicalRecordDetailRows(petId: string) {
         FROM pet_center.medical_exams me
         JOIN pet_center.medical_appointments ma ON ma.appointment_id = me.appointment_id
         JOIN pet_center.users vet ON vet.user_id = me.examined_by_veterinarian_id
-        LEFT JOIN pet_center.exam_types et ON et.exam_type_id = me.exam_type_id
+        LEFT JOIN pet_center.exam_types et ON et.exam_type_id = ma.exam_type_id
         WHERE ma.pet_id = $1
         ORDER BY me.exam_date DESC NULLS LAST, me.exam_id DESC;
       `,
@@ -303,14 +304,16 @@ export async function findDoctorMedicalRecordDetailRows(petId: string) {
         SELECT
           pr.prescription_id,
           pi.prescription_item_id,
-          pi.medicine_name,
-          pi.quantity,
+          m.medicine_name,
+          m.unit AS medicine_unit,
+          pi.quantity::text AS quantity,
           pi.dosage,
           pi.frequency,
           pi.duration,
           pi.usage_instruction,
           pi.note
         FROM pet_center.prescription_items pi
+        JOIN pet_center.medicines m ON m.medicine_id = pi.medicine_id
         JOIN pet_center.prescriptions pr ON pr.prescription_id = pi.prescription_id
         JOIN pet_center.medical_exams me ON me.exam_id = pr.exam_id
         JOIN pet_center.medical_appointments ma ON ma.appointment_id = me.appointment_id

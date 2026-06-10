@@ -24,5 +24,5 @@ export const invoiceParamsSchema = z.object({
 });
 
 export const confirmPaymentSchema = z.object({
-  paymentMethod: z.enum(["cash_at_counter", "card_at_counter"]),
+  paymentMethod: z.enum(["at_counter"]),
 });

@@ -106,6 +106,7 @@ export async function mapDoctorExaminationDetail(row: DoctorExaminationDetailRow
             id: item.prescription_item_id,
             medicineId: item.medicine_id,
             medicineName: item.medicine_name,
+            medicineUnit: item.medicine_unit,
             quantity: item.quantity ? Number(item.quantity) : undefined,
             dosage: item.dosage,
             frequency: item.frequency,

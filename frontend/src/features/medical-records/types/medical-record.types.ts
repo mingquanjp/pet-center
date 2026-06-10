@@ -99,6 +99,7 @@ export interface DoctorVaccinationItem {
 export interface DoctorPrescriptionItem {
   prescriptionItemId: string;
   medicineName: string;
+  medicineUnit: string;
   quantity: string | null;
   dosage: string;
   frequency: string;

@@ -2,8 +2,8 @@ import { query } from "../../db/query.js";
 import { ReportPeriodDto, ReportGroupBy, ReportPaymentMethodGroup } from "./reports.types.js";
 
 const getPaymentMethodFilter = (paymentMethodGroup: ReportPaymentMethodGroup, prefix = "p") => {
-  if (paymentMethodGroup === "ONLINE") return `AND ${prefix}.payment_method IN ('e_wallet', 'online_bank_card')`;
-  if (paymentMethodGroup === "COUNTER") return `AND ${prefix}.payment_method IN ('cash_at_counter', 'card_at_counter')`;
+  if (paymentMethodGroup === "ONLINE") return `AND ${prefix}.payment_method = 'online'`;
+  if (paymentMethodGroup === "COUNTER") return `AND ${prefix}.payment_method = 'at_counter'`;
   return "";
 };
 

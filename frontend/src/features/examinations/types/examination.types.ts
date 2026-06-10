@@ -91,6 +91,7 @@ export interface DoctorPrescriptionItem {
   id?: string
   medicineId: string
   medicineName?: string
+  medicineUnit?: string
   quantity?: number
   dosage: string
   frequency: string

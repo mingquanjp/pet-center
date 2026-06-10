@@ -77,11 +77,11 @@ export async function createBoardingPayment(params: {
 }, client: PoolClient) {
   const sql = `
     INSERT INTO pet_center.payments (
-      payment_id, invoice_id, payment_method, payment_provider, transaction_code,
+      payment_id, invoice_id, payment_method, transaction_code,
       paid_amount, paid_at, payment_status, receipt_code, receipt_url
     )
     VALUES (
-      $1, $2, 'cash_at_counter', NULL, NULL,
+      $1, $2, 'at_counter', NULL,
       $3, NOW(), 'success', NULL, NULL
     )
   `;

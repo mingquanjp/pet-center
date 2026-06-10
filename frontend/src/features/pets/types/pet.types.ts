@@ -138,6 +138,8 @@ export type PetPrescriptionItem = {
   prescriptionItemId: string;
   medicineId: string;
   medicineName: string;
+  medicineUnit: string;
+  quantity: string | null;
   dosage: string;
   frequency: string;
   duration: string;

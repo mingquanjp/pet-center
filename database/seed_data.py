@@ -258,14 +258,7 @@ def build_seed() -> dict[str, list[tuple]]:
         ("svc24", "Phòng ve rận", "medicine", 10, 140000),
         ("svc25", "Bổ sung vitamin", "medicine", 10, 100000),
     ]
-    other_services = [
-        ("svc26", "Đón thú cưng", "other", 30, 120000),
-        ("svc27", "Chụp ảnh thú cưng", "other", 15, 60000),
-        ("svc28", "Tư vấn hành vi", "other", 60, 300000),
-        ("svc29", "Đăng ký vi mạch", "other", 20, 250000),
-        ("svc30", "Sao y hồ sơ sức khỏe", "other", 10, 30000),
-    ]
-    services = grooming_services + medical_services + boarding_services + medicine_services + other_services
+    services = grooming_services + medical_services + boarding_services + medicine_services
     grooming_descriptions = {
         "svc1": "Làm sạch lông, khử mùi nhẹ và sấy khô cho thú cưng.",
         "svc2": "Cắt tỉa gọn gàng, tạo kiểu lông cơ bản theo nhu cầu chăm sóc.",
@@ -471,7 +464,6 @@ def build_seed() -> dict[str, list[tuple]]:
             (
                 exam_id,
                 appointment_id,
-                exam_type_id,
                 random.choice(["Sức khỏe ổn định", "Nhiễm trùng nhẹ", "Viêm da", "Rối loạn tiêu hóa"]),
                 random.choice(["Tình trạng ổn định", "Cần dùng thuốc theo hướng dẫn", "Theo dõi tại nhà", "Cần tái khám"]),
                 random.choice(["Mức nước cơ thể bình thường", "Đã tư vấn khẩu phần ăn cho chủ nuôi", "Cần cho thú cưng nghỉ ngơi"]),
@@ -512,14 +504,12 @@ def build_seed() -> dict[str, list[tuple]]:
             prescriptions.append((prescription_id, exam_id, min(scheduled.date(), today), "Dùng đúng liều và liên hệ phòng khám nếu triệu chứng nặng hơn."))
             for _ in range(random.randint(1, 4)):
                 med_id = f"med{random.randint(1, 80)}"
-                med_row = data["medicines"][int(med_id.removeprefix("med")) - 1]
                 prescription_items.append(
                     (
                         f"rxi{len(prescription_items) + 1}",
                         prescription_id,
                         med_id,
-                        med_row[1],
-                        random.choice(["10 viên", "14 viên", "1 chai", "5 gói", "2 liều", "30 ml"]),
+                        random.choice([10, 14, 1, 5, 2, 30]),
                         random.choice(["1 viên", "2 ml", "1 liều", "Bôi một lớp mỏng"]),
                         random.choice(["Mỗi ngày một lần", "Mỗi ngày hai lần", "Mỗi 12 giờ", "Sau bữa ăn"]),
                         random.choice(["3 ngày", "5 ngày", "7 ngày", "10 ngày"]),
@@ -695,8 +685,7 @@ def build_seed() -> dict[str, list[tuple]]:
                 (
                     f"pay{len(payments) + 1}",
                     invoice_id,
-                    random.choice(["e_wallet", "online_bank_card", "cash_at_counter", "card_at_counter"]),
-                    random.choice(["Momo", "VNPay", "Stripe", None]),
+                    "online" if invoice[8] == "online" else "at_counter",
                     f"TXN{index:06d}" if pay_status == "success" else f"FAIL{index:06d}",
                     total,
                     utc_dt(-random.randint(0, 280), random.randint(8, 22)) if pay_status == "success" else None,
@@ -711,9 +700,9 @@ def build_seed() -> dict[str, list[tuple]]:
                 owner_id,
                 random.choice(["Cập nhật hóa đơn", "Nhắc lịch hẹn", "Thông báo từ trung tâm thú cưng"]),
                 f"Thông báo liên quan đến {source_type_labels[source_type]} {source_id}.",
-                random.choice(["app", "email", "sms"]),
+                random.choice(["app", "email"]),
                 utc_dt(-random.randint(0, 120), random.randint(8, 21)),
-                random.choices(["unread", "read", "failed"], [42, 55, 3])[0],
+                random.choices(["unread", "read"], [42, 58])[0],
                 source_type,
                 source_id,
             )
@@ -726,9 +715,9 @@ def build_seed() -> dict[str, list[tuple]]:
                 receiver,
                 random.choice(["Thông báo hệ thống", "Cập nhật lịch hẹn", "Cập nhật chăm sóc"]),
                 "Đây là thông báo seed dùng cho dữ liệu kiểm thử.",
-                random.choice(["app", "email", "sms"]),
+                random.choice(["app", "email"]),
                 utc_dt(-random.randint(0, 180), random.randint(8, 21)),
-                random.choices(["unread", "read", "failed"], [40, 57, 3])[0],
+                random.choices(["unread", "read"], [40, 60])[0],
                 None,
                 None,
             )
@@ -784,8 +773,9 @@ def build_seed() -> dict[str, list[tuple]]:
         )
 
     for exam in data["medical_exams"][:420]:
-        exam_id, appointment_id, exam_type_id, diagnosis, conclusion, _health_note, exam_status, exam_date, vet_id = exam
+        exam_id, appointment_id, diagnosis, conclusion, _health_note, exam_status, exam_date, vet_id = exam
         appointment = appointment_by_id[appointment_id]
+        exam_type_id = appointment[3]
         append_activity(
             appointment[1],
             appointment[2],
@@ -904,12 +894,12 @@ def seed() -> None:
         ("exam_types", ["exam_type_id", "type_code", "type_name", "description", "service_id", "type_status"]),
         ("exam_field_definitions", ["field_definition_id", "exam_type_id", "field_name", "field_label", "field_type", "is_required", "display_order", "option_source", "validation_rule", "field_status"]),
         ("medical_appointments", ["appointment_id", "pet_id", "owner_user_id", "exam_type_id", "veterinarian_user_id", "scheduled_at", "symptom_description", "appointment_status", "internal_note", "rejection_reason", "handled_by_staff_id"]),
-        ("medical_exams", ["exam_id", "appointment_id", "exam_type_id", "diagnosis", "conclusion", "health_note", "exam_status", "exam_date", "examined_by_veterinarian_id"]),
+        ("medical_exams", ["exam_id", "appointment_id", "diagnosis", "conclusion", "health_note", "exam_status", "exam_date", "examined_by_veterinarian_id"]),
         ("medical_exam_field_values", ["field_value_id", "exam_id", "field_definition_id", "value_text", "value_number", "value_date", "file_url", "created_at"]),
         ("vaccinations", ["vaccination_id", "pet_id", "exam_id", "vaccine_name", "vaccination_date", "note"]),
         ("medicines", ["medicine_id", "medicine_name", "unit", "description", "usage_note", "unit_price", "medicine_status"]),
         ("prescriptions", ["prescription_id", "exam_id", "prescribed_at", "general_note"]),
-        ("prescription_items", ["prescription_item_id", "prescription_id", "medicine_id", "medicine_name", "quantity", "dosage", "frequency", "duration", "usage_instruction", "note"]),
+        ("prescription_items", ["prescription_item_id", "prescription_id", "medicine_id", "quantity", "dosage", "frequency", "duration", "usage_instruction", "note"]),
         ("follow_up_instructions", ["follow_up_id", "exam_id", "follow_up_date", "reason", "owner_note"]),
         ("grooming_tickets", ["grooming_ticket_id", "pet_id", "owner_user_id", "created_by_user_id", "source_type", "scheduled_at", "received_at", "special_request", "estimated_total", "ticket_status"]),
         ("grooming_ticket_items", ["grooming_ticket_item_id", "grooming_ticket_id", "service_id", "quantity", "applied_unit_price", "line_amount"]),
@@ -918,7 +908,7 @@ def seed() -> None:
         ("boarding_updates", ["boarding_update_id", "boarding_record_id", "created_by_user_id", "updated_at", "update_note", "attachment_url", "alert_level", "visibility_status"]),
         ("invoices", ["invoice_id", "owner_user_id", "pet_id", "issued_at", "subtotal_amount", "discount_amount", "surcharge_amount", "total_amount", "payment_option", "payment_due_at", "invoice_status"]),
         ("invoice_lines", ["invoice_line_id", "invoice_id", "service_id", "source_type", "source_id", "description", "quantity", "unit_price", "line_discount_amount", "line_amount"]),
-        ("payments", ["payment_id", "invoice_id", "payment_method", "payment_provider", "transaction_code", "paid_amount", "paid_at", "payment_status", "receipt_code", "receipt_url"]),
+        ("payments", ["payment_id", "invoice_id", "payment_method", "transaction_code", "paid_amount", "paid_at", "payment_status", "receipt_code", "receipt_url"]),
         ("notifications", ["notification_id", "receiver_user_id", "title", "message", "delivery_channel", "created_at", "notification_status", "related_object_type", "related_object_id"]),
         ("pet_activity_logs", ["activity_log_id", "pet_id", "owner_user_id", "actor_user_id", "activity_category", "activity_type", "activity_status", "occurred_at", "title", "summary", "source_type", "source_id", "visibility_status", "metadata", "created_at"]),
     ]

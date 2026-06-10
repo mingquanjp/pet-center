@@ -1,6 +1,6 @@
-export type NotificationChannel = "app" | "email" | "sms";
+export type NotificationChannel = "app" | "email";
 
-export type NotificationStatus = "unread" | "read" | "failed";
+export type NotificationStatus = "unread" | "read";
 
 export type NotificationType =
   | "APPOINTMENT_CREATED"

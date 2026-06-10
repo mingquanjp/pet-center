@@ -153,6 +153,8 @@ export type PrescriptionItemRow = QueryResultRow & {
   prescription_item_id: string;
   medicine_id: string;
   medicine_name: string;
+  medicine_unit: string;
+  quantity: string | null;
   dosage: string;
   frequency: string;
   duration: string;
@@ -582,7 +584,7 @@ export async function findPetMedicalExams(
          me.exam_id,
          me.appointment_id,
          ma.pet_id,
-         me.exam_type_id,
+         ma.exam_type_id,
          et.type_code,
          et.type_name,
          ma.scheduled_at::text as scheduled_at,
@@ -606,7 +608,7 @@ export async function findPetMedicalExams(
          fui.reason as follow_up_reason
        from pet_center.medical_exams me
        inner join pet_center.medical_appointments ma on ma.appointment_id = me.appointment_id
-       inner join pet_center.exam_types et on et.exam_type_id = me.exam_type_id
+       inner join pet_center.exam_types et on et.exam_type_id = ma.exam_type_id
        inner join pet_center.users u on u.user_id = me.examined_by_veterinarian_id
        left join pet_center.follow_up_instructions fui on fui.exam_id = me.exam_id
        where ${whereSql}
@@ -618,7 +620,7 @@ export async function findPetMedicalExams(
       `select count(*)::text as total
        from pet_center.medical_exams me
        inner join pet_center.medical_appointments ma on ma.appointment_id = me.appointment_id
-       inner join pet_center.exam_types et on et.exam_type_id = me.exam_type_id
+       inner join pet_center.exam_types et on et.exam_type_id = ma.exam_type_id
        inner join pet_center.users u on u.user_id = me.examined_by_veterinarian_id
        where ${whereSql}`,
       params
@@ -641,7 +643,7 @@ export async function findPetMedicalExamDetail(
        me.exam_id,
        me.appointment_id,
        ma.pet_id,
-       me.exam_type_id,
+       ma.exam_type_id,
        et.type_code,
        et.type_name,
        ma.scheduled_at::text as scheduled_at,
@@ -668,7 +670,7 @@ export async function findPetMedicalExamDetail(
        ${petSelectSql}
      from pet_center.medical_exams me
      inner join pet_center.medical_appointments ma on ma.appointment_id = me.appointment_id
-     inner join pet_center.exam_types et on et.exam_type_id = me.exam_type_id
+     inner join pet_center.exam_types et on et.exam_type_id = ma.exam_type_id
      inner join pet_center.users u on u.user_id = me.examined_by_veterinarian_id
      inner join pet_center.pets p on p.pet_id = ma.pet_id
      left join pet_center.follow_up_instructions fui on fui.exam_id = me.exam_id
@@ -724,6 +726,8 @@ export async function findPetMedicalExamDetail(
          pi.prescription_item_id,
          pi.medicine_id,
          m.medicine_name,
+         m.unit as medicine_unit,
+         pi.quantity::text as quantity,
          pi.dosage,
          pi.frequency,
          pi.duration,

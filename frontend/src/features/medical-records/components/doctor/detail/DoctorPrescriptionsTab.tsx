@@ -7,6 +7,11 @@ interface Props {
   prescriptions: DoctorPrescriptionRecord[];
 }
 
+const formatPrescriptionQuantity = (quantity: string | null, unit?: string | null) => {
+  if (!quantity) return "-";
+  return unit ? `${quantity} ${unit}` : quantity;
+};
+
 export function DoctorPrescriptionsTab({ prescriptions }: Props) {
   if (prescriptions.length === 0) {
     return <div className="py-12 text-center text-petcenter-text-secondary">Chưa có đơn thuốc.</div>;
@@ -54,7 +59,7 @@ export function DoctorPrescriptionsTab({ prescriptions }: Props) {
                 {prescription.items.map((item) => (
                   <tr key={item.prescriptionItemId} className="bg-white hover:bg-gray-50">
                     <td className="px-5 py-3 font-medium text-petcenter-text">{item.medicineName}</td>
-                    <td className="px-5 py-3 text-petcenter-text">{item.quantity || "-"}</td>
+                    <td className="px-5 py-3 text-petcenter-text">{formatPrescriptionQuantity(item.quantity, item.medicineUnit)}</td>
                     <td className="px-5 py-3 text-petcenter-text">{item.dosage}</td>
                     <td className="px-5 py-3 text-petcenter-text">{item.frequency}</td>
                     <td className="px-5 py-3 text-petcenter-text">{item.duration}</td>

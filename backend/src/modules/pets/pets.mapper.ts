@@ -228,6 +228,8 @@ export function mapPrescriptionItem(row: PrescriptionItemRow): PetPrescriptionIt
     prescriptionItemId: row.prescription_item_id,
     medicineId: row.medicine_id,
     medicineName: row.medicine_name,
+    medicineUnit: row.medicine_unit,
+    quantity: row.quantity,
     dosage: row.dosage,
     frequency: row.frequency,
     duration: row.duration,

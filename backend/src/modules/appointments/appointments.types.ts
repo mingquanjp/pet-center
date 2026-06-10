@@ -242,6 +242,7 @@ export interface DoctorPrescriptionItemRow {
   prescription_item_id: string;
   medicine_id: string;
   medicine_name: string;
+  medicine_unit: string;
   quantity: string | null;
   dosage: string;
   frequency: string;

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as transactions from "../../../src/db/transactions.js";
-import * as repo from "../../../src/modules/appointments/appointments.repository.js";
-import { completeDoctorExamination } from "../../../src/modules/appointments/appointments.service.js";
+import * as repo from "../../../src/modules/appointments/doctor/doctor-examination.repository.js";
+import { completeDoctorExamination } from "../../../src/modules/appointments/doctor/doctor-examination.service.js";
 import * as notifications from "../../../src/modules/notifications/notification-events.js";
 import * as idUtils from "../../../src/shared/utils/id.js";
 
-vi.mock("../../../src/modules/appointments/appointments.repository.js");
+vi.mock("../../../src/modules/appointments/doctor/doctor-examination.repository.js");
 vi.mock("../../../src/db/transactions.js", () => ({
   withTransaction: vi.fn((cb) => cb({ query: vi.fn() })),
 }));

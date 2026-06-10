@@ -106,7 +106,7 @@ CREATE TABLE services (
     estimated_duration_minutes INTEGER,
     base_price NUMERIC(12,2) NOT NULL DEFAULT 0,
     service_status VARCHAR(20) NOT NULL DEFAULT 'active',
-    CONSTRAINT chk_services_category CHECK (service_category IN ('medical', 'grooming', 'boarding', 'medicine', 'other')),
+    CONSTRAINT chk_services_category CHECK (service_category IN ('medical', 'grooming', 'boarding', 'medicine')),
     CONSTRAINT chk_services_duration CHECK (estimated_duration_minutes IS NULL OR estimated_duration_minutes > 0),
     CONSTRAINT chk_services_base_price CHECK (base_price >= 0),
     CONSTRAINT chk_services_status CHECK (service_status IN ('active', 'inactive'))
@@ -165,7 +165,6 @@ CREATE TABLE medical_appointments (
 CREATE TABLE medical_exams (
     exam_id VARCHAR(30) PRIMARY KEY,
     appointment_id VARCHAR(30) NOT NULL UNIQUE REFERENCES medical_appointments(appointment_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    exam_type_id VARCHAR(30) NOT NULL REFERENCES exam_types(exam_type_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     diagnosis TEXT,
     conclusion TEXT,
     health_note TEXT,
@@ -224,14 +223,13 @@ CREATE TABLE prescription_items (
     prescription_item_id VARCHAR(30) PRIMARY KEY,
     prescription_id VARCHAR(30) NOT NULL REFERENCES prescriptions(prescription_id) ON UPDATE CASCADE ON DELETE CASCADE,
     medicine_id VARCHAR(30) NOT NULL REFERENCES medicines(medicine_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    medicine_name VARCHAR(150) NOT NULL,
-    quantity VARCHAR(120),
+    quantity INTEGER NOT NULL DEFAULT 1,
     dosage VARCHAR(120) NOT NULL,
     frequency VARCHAR(120) NOT NULL,
     duration VARCHAR(120) NOT NULL,
     usage_instruction TEXT,
     note TEXT,
-    CONSTRAINT chk_prescription_items_quantity CHECK (quantity IS NULL OR btrim(quantity) <> '')
+    CONSTRAINT chk_prescription_items_quantity CHECK (quantity > 0)
 );
 
 CREATE TABLE follow_up_instructions (
@@ -370,14 +368,13 @@ CREATE TABLE payments (
     payment_id VARCHAR(30) PRIMARY KEY,
     invoice_id VARCHAR(30) NOT NULL REFERENCES invoices(invoice_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     payment_method VARCHAR(30) NOT NULL,
-    payment_provider VARCHAR(80),
     transaction_code VARCHAR(100),
     paid_amount NUMERIC(12,2) NOT NULL,
     paid_at TIMESTAMPTZ,
     payment_status VARCHAR(20) NOT NULL,
     receipt_code VARCHAR(100) UNIQUE,
     receipt_url TEXT,
-    CONSTRAINT chk_payments_method CHECK (payment_method IN ('e_wallet', 'online_bank_card', 'cash_at_counter', 'card_at_counter')),
+    CONSTRAINT chk_payments_method CHECK (payment_method IN ('online', 'at_counter')),
     CONSTRAINT chk_payments_amount CHECK (paid_amount > 0),
     CONSTRAINT chk_payments_status CHECK (payment_status IN ('success', 'failed', 'cancelled')),
     CONSTRAINT chk_payments_success_paid_at CHECK ((payment_status = 'success' AND paid_at IS NOT NULL) OR payment_status <> 'success')
@@ -386,7 +383,6 @@ CREATE TABLE payments (
 CREATE TABLE online_payment_attempts (
     payment_attempt_id VARCHAR(30) PRIMARY KEY,
     invoice_id VARCHAR(30) NOT NULL REFERENCES invoices(invoice_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    payment_provider VARCHAR(80) NOT NULL,
     provider_txn_ref VARCHAR(100) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
     attempt_status VARCHAR(20) NOT NULL DEFAULT 'pending',
@@ -399,7 +395,6 @@ CREATE TABLE online_payment_attempts (
     transaction_status VARCHAR(20),
     raw_return_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
     raw_ipn_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-    CONSTRAINT chk_online_payment_attempts_provider CHECK (payment_provider IN ('vnpay')),
     CONSTRAINT chk_online_payment_attempts_amount CHECK (amount > 0),
     CONSTRAINT chk_online_payment_attempts_status CHECK (attempt_status IN ('pending', 'success', 'failed', 'cancelled', 'expired')),
     CONSTRAINT chk_online_payment_attempts_completed_at CHECK (
@@ -423,8 +418,8 @@ CREATE TABLE notifications (
     read_at TIMESTAMPTZ,
     metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     dedupe_key VARCHAR(180),
-    CONSTRAINT chk_notifications_channel CHECK (delivery_channel IN ('app', 'email', 'sms')),
-    CONSTRAINT chk_notifications_status CHECK (notification_status IN ('unread', 'read', 'failed')),
+    CONSTRAINT chk_notifications_channel CHECK (delivery_channel IN ('app', 'email')),
+    CONSTRAINT chk_notifications_status CHECK (notification_status IN ('unread', 'read')),
     CONSTRAINT chk_notifications_related CHECK (
         (related_object_type IS NULL AND related_object_id IS NULL)
         OR (related_object_type IS NOT NULL AND related_object_id IS NOT NULL)
@@ -515,8 +510,8 @@ CREATE UNIQUE INDEX uq_invoice_success_payment
     ON payments(invoice_id)
     WHERE payment_status = 'success';
 
-CREATE UNIQUE INDEX uq_online_payment_attempts_provider_txn_ref
-    ON online_payment_attempts(payment_provider, provider_txn_ref);
+CREATE UNIQUE INDEX uq_online_payment_attempts_txn_ref
+    ON online_payment_attempts(provider_txn_ref);
 
 CREATE UNIQUE INDEX uq_online_payment_attempts_pending_invoice
     ON online_payment_attempts(invoice_id)
@@ -539,7 +534,7 @@ CREATE INDEX idx_medical_appointments_owner_status ON medical_appointments(owner
 CREATE INDEX idx_medical_appointments_exam_status ON medical_appointments(veterinarian_user_id, examination_status);
 CREATE INDEX idx_medical_appointments_vet_time ON medical_appointments(veterinarian_user_id, scheduled_at);
 CREATE INDEX idx_medical_appointments_staff ON medical_appointments(handled_by_staff_id);
-CREATE INDEX idx_medical_exams_type_date ON medical_exams(exam_type_id, exam_date);
+CREATE INDEX idx_medical_exams_exam_date ON medical_exams(exam_date);
 CREATE INDEX idx_medical_exams_vet_date ON medical_exams(examined_by_veterinarian_id, exam_date);
 CREATE INDEX idx_exam_values_exam ON medical_exam_field_values(exam_id);
 CREATE INDEX idx_exam_values_definition ON medical_exam_field_values(field_definition_id);

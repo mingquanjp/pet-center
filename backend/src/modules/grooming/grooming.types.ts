@@ -144,7 +144,6 @@ export type GroomingTicketDetailDto = GroomingTicketListItemDto & {
   payment: {
     paymentId: string;
     paymentMethod: string;
-    paymentProvider: string | null;
     transactionCode: string | null;
     paidAmount: number;
     paidAt: string | null;

@@ -49,7 +49,6 @@ const categoryOptions: Array<{ value: ServiceCategoryKind; label: string; classN
   { value: "grooming", label: "Spa & Grooming", className: "bg-petcenter-warning-bg text-petcenter-warning-text" },
   { value: "boarding", label: "Lưu trú", className: "bg-[#EEE8FF] text-[#6D4AFF]" },
   { value: "medicine", label: "Thuốc", className: "bg-petcenter-success-bg text-petcenter-success-text" },
-  { value: "other", label: "Khác", className: "bg-stone-100 text-petcenter-text-secondary" },
 ]
 
 const defaultFilters: ServiceCategoryFilters = {

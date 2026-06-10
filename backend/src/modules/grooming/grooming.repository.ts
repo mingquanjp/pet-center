@@ -96,7 +96,6 @@ export type GroomingTicketItemRow = QueryResultRow & {
 export type PaymentRow = QueryResultRow & {
   payment_id: string;
   payment_method: string;
-  payment_provider: string | null;
   transaction_code: string | null;
   paid_amount: string | number;
   paid_at: string | null;
@@ -563,7 +562,6 @@ export async function findBookedGroomingTicketById(
               `select
              p.payment_id,
              p.payment_method,
-             p.payment_provider,
              p.transaction_code,
              p.paid_amount,
              p.paid_at::text as paid_at,
