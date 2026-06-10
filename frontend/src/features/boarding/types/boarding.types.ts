@@ -1,7 +1,7 @@
 export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out" | "cancelled" | "rejected"
 export type BoardingCreateStatus = "pending_payment" | "pending"
 export type BoardingPaymentOption = "online" | "counter"
-export type BoardingPaymentStatus = "paid" | "unpaid" | "refunded" | "cancelled"
+export type BoardingPaymentStatus = "paid" | "unpaid" | "cancelled"
 export type BoardingHealthStatus = "normal" | "attention" | "urgent" | "unknown"
 export type BoardingTimeRange = "all" | "upcoming" | "current" | "past"
 export type BoardingCareLogType = "booking_created" | "check_in" | "daily_update" | "check_out"

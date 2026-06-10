@@ -49,7 +49,6 @@ export async function listOwnerPets(authUser: AuthUser, query: ListPetsQuery) {
     q: query.q,
     species: query.species,
     gender: query.gender,
-    petStatus: query.petStatus,
     sort: query.sort,
     ...paginationInput
   });
@@ -68,7 +67,6 @@ export async function listStaffPets(authUser: AuthUser, query: ListPetsQuery) {
     q: query.q,
     species: query.species,
     gender: query.gender,
-    petStatus: query.petStatus,
     sort: query.sort,
     ...paginationInput
   });

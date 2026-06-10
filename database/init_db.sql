@@ -76,13 +76,11 @@ CREATE TABLE pets (
     weight_kg NUMERIC(7,2),
     profile_image_url TEXT,
     identifying_marks TEXT,
-    pet_status VARCHAR(20) NOT NULL DEFAULT 'active',
     CONSTRAINT chk_pets_species CHECK (species IN ('Dog', 'Cat', 'Other')),
     CONSTRAINT chk_pets_gender CHECK (gender IS NULL OR gender IN ('male', 'female', 'unknown')),
     CONSTRAINT chk_pets_age CHECK (estimated_age IS NULL OR estimated_age >= 0),
     CONSTRAINT chk_pets_weight CHECK (weight_kg IS NULL OR weight_kg > 0),
     CONSTRAINT chk_pets_birth_date CHECK (birth_date IS NULL OR birth_date <= CURRENT_DATE),
-    CONSTRAINT chk_pets_status CHECK (pet_status IN ('active', 'inactive', 'deceased')),
     CONSTRAINT chk_pets_age_source CHECK (birth_date IS NOT NULL OR estimated_age IS NOT NULL)
 );
 
@@ -344,7 +342,7 @@ CREATE TABLE invoices (
     ),
     CONSTRAINT chk_invoices_total CHECK (total_amount = subtotal_amount - discount_amount + surcharge_amount),
     CONSTRAINT chk_invoices_payment_option CHECK (payment_option IN ('online', 'counter')),
-    CONSTRAINT chk_invoices_status CHECK (invoice_status IN ('draft', 'pending_payment', 'paid', 'cancelled', 'refunded'))
+    CONSTRAINT chk_invoices_status CHECK (invoice_status IN ('draft', 'pending_payment', 'paid', 'cancelled'))
 );
 
 CREATE TABLE invoice_lines (
@@ -524,7 +522,7 @@ CREATE INDEX idx_password_reset_expiry
     ON password_reset_tokens(expires_at)
     WHERE used_at IS NULL;
 CREATE INDEX idx_pets_owner ON pets(owner_user_id);
-CREATE INDEX idx_pets_species_status ON pets(species, pet_status);
+CREATE INDEX idx_pets_species ON pets(species);
 CREATE INDEX idx_health_profiles_pet ON pet_health_profiles(pet_id);
 CREATE INDEX idx_services_category_status ON services(service_category, service_status);
 CREATE INDEX idx_exam_types_service ON exam_types(service_id);

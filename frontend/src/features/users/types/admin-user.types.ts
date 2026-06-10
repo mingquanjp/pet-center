@@ -33,8 +33,6 @@ export type AdminUserPet = {
   estimatedAge: number | null;
   ageLabel: string;
   profileImageUrl: string | null;
-  status: "active" | "inactive" | "deceased";
-  statusLabel: string;
 };
 
 export type AdminUserActivity = {

@@ -1,7 +1,6 @@
 export type PetSpecies = "Dog" | "Cat" | "Other";
 export type PetGender = "male" | "female" | "unknown";
-export type PetStatus = "active" | "inactive" | "deceased";
-export type PetDisplayStatus = "healthy" | "watching" | "boarding" | "inactive" | "deceased";
+export type PetDisplayStatus = "healthy" | "watching" | "boarding";
 
 export type PetHealthProfileInput = {
   medicalHistory?: string | null;
@@ -27,7 +26,6 @@ export type PetDto = {
   weightKg: number | null;
   profileImageUrl: string | null;
   identifyingMarks: string | null;
-  petStatus: PetStatus;
   displayStatus: PetDisplayStatus;
   displayStatusLabel: string;
 };
@@ -242,7 +240,6 @@ export type PetListFilters = {
   q?: string;
   species?: PetSpecies;
   gender?: PetDto["gender"];
-  petStatus?: PetStatus;
   sort: "petName:asc" | "petName:desc";
   page: number;
   limit: number;

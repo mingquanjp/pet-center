@@ -5,7 +5,7 @@ export type OwnerDashboardPet = {
   breed: string | null;
   ageLabel: string;
   profileImageUrl: string | null;
-  displayStatus: "healthy" | "watching" | "boarding" | "inactive" | "deceased";
+  displayStatus: "healthy" | "watching" | "boarding";
   displayStatusLabel: string;
 };
 

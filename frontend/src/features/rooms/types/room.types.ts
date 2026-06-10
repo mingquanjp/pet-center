@@ -85,7 +85,7 @@ export interface AdminBoardingRoomUsageRecord {
     | "checked_out"
     | "rejected"
     | "cancelled";
-  paymentStatus: "paid" | "unpaid" | "refunded";
+  paymentStatus: "paid" | "unpaid";
   totalAmount: number;
 }
 

@@ -85,7 +85,6 @@ export function getPaymentMethodLabel(paymentOption: GroomingPaymentOption | nul
 
 export function getPaymentStatusLabel(invoiceStatus: InvoiceStatus | null, hasSuccessPayment: boolean): string {
     if (invoiceStatus === "paid" || hasSuccessPayment) return "Đã thanh toán";
-    if (invoiceStatus === "refunded") return "Đã hoàn tiền";
 
     return "Chưa thanh toán";
 }

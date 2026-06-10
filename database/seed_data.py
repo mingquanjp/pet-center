@@ -351,7 +351,6 @@ def build_seed() -> dict[str, list[tuple]]:
         weight = round(random.uniform(1.0, 45.0), 2) if species == "Dog" else round(random.uniform(0.7, 8.5), 2)
         if species == "Other":
             weight = round(random.uniform(0.2, 4.5), 2)
-        status = random.choices(["active", "inactive", "deceased"], weights=[92, 6, 2])[0]
         owner_for_pet[pet_id] = owner_id
         pets.append(
             (
@@ -367,7 +366,6 @@ def build_seed() -> dict[str, list[tuple]]:
                 money(weight),
                 random.choice(PET_IMAGE_URLS[species]),
                 random.choice(["Bốn chân trắng", "Có sẹo nhỏ", "Đuôi cong", None]),
-                status,
             )
         )
         health_profiles.append(
@@ -642,7 +640,8 @@ def build_seed() -> dict[str, list[tuple]]:
         discount_amount = money(min(discount, max(0, amount - 10000)))
         surcharge_amount = money(surcharge)
         total = subtotal - discount_amount + surcharge_amount
-        status = "paid" if index <= 1100 else random.choices(["draft", "pending_payment", "paid", "cancelled", "refunded"], [10, 20, 55, 10, 5])[0]
+        status = "paid" if index <= 1100 else random.choices(["draft", "pending_payment", "paid", "cancelled"], [10, 25, 55, 10])[0]
+        payment_option = random.choice(["online", "counter"])
         invoices.append(
             (
                 invoice_id,
@@ -653,7 +652,7 @@ def build_seed() -> dict[str, list[tuple]]:
                 discount_amount,
                 surcharge_amount,
                 total,
-                random.choice(["online", "counter"]),
+                payment_option,
                 utc_dt(random.randint(-10, 20), 23, 59) if status == "pending_payment" else None,
                 status,
             )
@@ -679,13 +678,13 @@ def build_seed() -> dict[str, list[tuple]]:
         )
         if surcharge_amount > 0:
             invoice_lines.append((f"inl{len(invoice_lines) + 1}", invoice_id, None, source_type, source_id, "Phụ thu dịch vụ", 1, surcharge_amount, money(0), surcharge_amount))
-        if status in ["paid", "refunded"] or random.random() < 0.18:
-            pay_status = "success" if status in ["paid", "refunded"] else random.choice(["failed", "cancelled"])
+        if status == "paid" or random.random() < 0.18:
+            pay_status = "success" if status == "paid" else random.choice(["failed", "cancelled"])
             payments.append(
                 (
                     f"pay{len(payments) + 1}",
                     invoice_id,
-                    "online" if invoice[8] == "online" else "at_counter",
+                    "online" if payment_option == "online" else "at_counter",
                     f"TXN{index:06d}" if pay_status == "success" else f"FAIL{index:06d}",
                     total,
                     utc_dt(-random.randint(0, 280), random.randint(8, 22)) if pay_status == "success" else None,
@@ -798,7 +797,7 @@ def build_seed() -> dict[str, list[tuple]]:
         append_activity(
             pet_id,
             owner_for_pet[pet_id],
-            exam[8] if exam else None,
+            exam[7] if exam else None,
             "vaccination",
             "vaccination_recorded",
             "completed",
@@ -869,7 +868,7 @@ def build_seed() -> dict[str, list[tuple]]:
             None,
             "invoice",
             "invoice_issued",
-            "completed" if invoice_status in ["paid", "refunded"] else "pending",
+            "completed" if invoice_status == "paid" else "pending",
             issued_at,
             "Hóa đơn đã được tạo",
             f"Tổng thanh toán: {total} VND",
@@ -888,7 +887,7 @@ def seed() -> None:
     data = build_seed()
     insert_order = [
         ("users", ["user_id", "full_name", "email", "password_hash", "phone_number", "address", "role", "account_status", "created_at"]),
-        ("pets", ["pet_id", "owner_user_id", "pet_name", "species", "breed", "gender", "birth_date", "estimated_age", "fur_color", "weight_kg", "profile_image_url", "identifying_marks", "pet_status"]),
+        ("pets", ["pet_id", "owner_user_id", "pet_name", "species", "breed", "gender", "birth_date", "estimated_age", "fur_color", "weight_kg", "profile_image_url", "identifying_marks"]),
         ("pet_health_profiles", ["health_profile_id", "pet_id", "medical_history", "allergy_notes", "chronic_condition_notes", "food_type", "feeding_portion", "special_care_notes", "updated_at"]),
         ("services", ["service_id", "service_name", "service_category", "description", "estimated_duration_minutes", "base_price", "service_status"]),
         ("exam_types", ["exam_type_id", "type_code", "type_name", "description", "service_id", "type_status"]),

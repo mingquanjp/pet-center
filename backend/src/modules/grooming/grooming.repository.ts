@@ -324,7 +324,6 @@ export async function findOwnerBookingPets(ownerUserId: string): Promise<Groomin
         `select p.pet_id, p.pet_name, p.species, p.weight_kg, p.profile_image_url
      from pet_center.pets p
      where p.owner_user_id = $1
-       and p.pet_status = 'active'
      order by p.pet_name asc, p.pet_id asc`,
         [ownerUserId]
       );
@@ -339,7 +338,6 @@ export async function findOwnerBookingPet(ownerUserId: string, petId: string): P
      from pet_center.pets p
      where p.owner_user_id = $1
        and p.pet_id = $2
-       and p.pet_status = 'active'
      limit 1`,
         [ownerUserId, petId]
       );
@@ -353,7 +351,7 @@ export async function findStaffCounterPets(input: {
 }): Promise<StaffCounterGroomingPetDto[]> {
 
       const params: Array<string | number> = [];
-      const conditions = ["p.pet_status = 'active'", "u.account_status = 'active'"];
+      const conditions = ["u.account_status = 'active'"];
 
       if (input.search) {
         params.push(`%${input.search.toLowerCase()}%`);
@@ -406,7 +404,6 @@ export async function findStaffCounterPet(petId: string): Promise<StaffCounterGr
      from pet_center.pets p
      join pet_center.users u on u.user_id = p.owner_user_id
      where p.pet_id = $1
-       and p.pet_status = 'active'
        and u.account_status = 'active'
      limit 1`,
         [petId]

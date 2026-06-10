@@ -200,10 +200,9 @@ export async function seedIntegrationTestData(): Promise<IntegrationTestSeedData
         breed,
         gender,
         estimated_age,
-        weight_kg,
-        pet_status
+        weight_kg
       )
-      VALUES ($1, $2, 'Milo Integration', 'Dog', 'Poodle', 'male', 3, 6.5, 'active')
+      VALUES ($1, $2, 'Milo Integration', 'Dog', 'Poodle', 'male', 3, 6.5)
       `,
       [integrationTestIds.petId, integrationTestIds.ownerUserId]
     );

@@ -26,7 +26,7 @@ export async function findDoctorMedicalRecords(params: {
   limit: number;
   offset: number;
 }): Promise<{ rows: MedicalRecordRow[]; total: number }> {
-  let conditions: string[] = ["p.pet_status != 'deceased'"];
+  const conditions: string[] = [];
   const values: any[] = [];
   let paramIndex = 1;
 
@@ -220,7 +220,6 @@ export async function findDoctorMedicalRecordDetailRows(petId: string) {
         FROM pet_center.pets p
         JOIN pet_center.users owner ON owner.user_id = p.owner_user_id
         WHERE p.pet_id = $1
-          AND p.pet_status != 'deceased'
         LIMIT 1;
       `,
       [petId]

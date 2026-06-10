@@ -44,7 +44,6 @@ export type PetRow = QueryResultRow & {
   weight_kg: string | number | null;
   profile_image_url: string | null;
   identifying_marks: string | null;
-  pet_status: "active" | "inactive" | "deceased";
   has_active_boarding: boolean;
   needs_attention: boolean;
 };
@@ -209,11 +208,6 @@ function buildListWhere(filters: PetListFilters): { whereSql: string; params: un
     conditions.push(`p.gender = $${params.length}`);
   }
 
-  if (filters.petStatus) {
-    params.push(filters.petStatus);
-    conditions.push(`p.pet_status = $${params.length}`);
-  }
-
   return {
     whereSql: conditions.join(" and "),
     params
@@ -247,11 +241,6 @@ function buildStaffListWhere(filters: StaffPetListFilters): { whereSql: string; 
     conditions.push(`p.gender = $${params.length}`);
   }
 
-  if (filters.petStatus) {
-    params.push(filters.petStatus);
-    conditions.push(`p.pet_status = $${params.length}`);
-  }
-
   return {
     whereSql: conditions.join(" and "),
     params
@@ -278,7 +267,6 @@ const petSelectSql = `
   p.weight_kg,
   p.profile_image_url,
   p.identifying_marks,
-  p.pet_status,
   exists (
     select 1 from pet_center.boarding_records br
     where br.pet_id = p.pet_id and br.boarding_status = 'staying'
@@ -1011,7 +999,6 @@ export async function updatePet(ownerUserId: string, petId: string, payload: Upd
     if ("weightKg" in payload) addField("weight_kg", payload.weightKg ?? null);
     if ("profileImageUrl" in payload) addField("profile_image_url", payload.profileImageUrl ?? null);
     if ("identifyingMarks" in payload) addField("identifying_marks", payload.identifyingMarks ?? null);
-    if ("petStatus" in payload) addField("pet_status", payload.petStatus);
 
     if (setClauses.length > 0) {
       params.push(ownerUserId, petId);

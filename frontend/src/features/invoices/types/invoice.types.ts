@@ -3,7 +3,6 @@ export type InvoicePaymentStatus =
   | "PENDING_PAYMENT"
   | "OVERDUE"
   | "CANCELLED"
-  | "REFUNDED"
   | "DRAFT";
 
 export type InvoiceServiceType =

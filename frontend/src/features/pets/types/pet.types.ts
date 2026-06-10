@@ -1,6 +1,6 @@
 export type PetSpecies = "Dog" | "Cat" | "Other";
 export type PetGender = "male" | "female" | "unknown";
-export type PetDisplayStatus = "healthy" | "watching" | "boarding" | "inactive" | "deceased";
+export type PetDisplayStatus = "healthy" | "watching" | "boarding";
 
 export type Pet = {
   petId: string;
@@ -17,7 +17,6 @@ export type Pet = {
   weightKg: number | null;
   profileImageUrl: string | null;
   identifyingMarks: string | null;
-  petStatus: "active" | "inactive" | "deceased";
   displayStatus: PetDisplayStatus;
   displayStatusLabel: string;
 };
@@ -253,15 +252,12 @@ export type StaffCreatePetInput = CreatePetInput & {
 
 export type StaffUpdatePetInput = Partial<CreatePetInput>;
 
-export type UpdatePetInput = Partial<CreatePetInput> & {
-  petStatus?: "active" | "inactive" | "deceased";
-};
+export type UpdatePetInput = Partial<CreatePetInput>;
 
 export type PetsListParams = {
   q?: string;
   species?: "all" | PetSpecies;
   gender?: "all" | PetGender;
-  petStatus?: "all" | Pet["petStatus"];
   page?: number;
   limit?: number;
   sort?: "petName:asc" | "petName:desc";

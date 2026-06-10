@@ -191,7 +191,7 @@ export type GetAdminBoardingRoomsQuery = z.infer<typeof getAdminBoardingRoomsQue
 export const getAdminBoardingRoomUsageHistoryQuerySchema = z.object({
   search: z.string().max(100).optional(),
   boardingStatus: z.enum(["ALL", "pending_payment", "pending", "confirmed", "staying", "checked_out", "rejected", "cancelled"]).optional(),
-  paymentStatus: z.enum(["ALL", "paid", "unpaid", "refunded"]).optional(),
+  paymentStatus: z.enum(["ALL", "paid", "unpaid"]).optional(),
   timeRange: z.enum(["ALL", "TODAY", "THIS_WEEK", "THIS_MONTH"]).optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional()

@@ -268,10 +268,8 @@ export async function findAdminBoardingRoomUsageHistoryRows(roomTypeId: string, 
   if (filters.paymentStatus && filters.paymentStatus !== "ALL") {
     if (filters.paymentStatus === "paid") {
       clauses.push(`i.invoice_status = 'paid'`);
-    } else if (filters.paymentStatus === "refunded") {
-      clauses.push(`i.invoice_status = 'refunded'`);
     } else if (filters.paymentStatus === "unpaid") {
-      clauses.push(`(i.invoice_status IS NULL OR i.invoice_status NOT IN ('paid', 'refunded'))`);
+      clauses.push(`(i.invoice_status IS NULL OR i.invoice_status <> 'paid')`);
     }
   }
 
@@ -330,10 +328,8 @@ export async function countAdminBoardingRoomUsageHistory(roomTypeId: string, fil
   if (filters.paymentStatus && filters.paymentStatus !== "ALL") {
     if (filters.paymentStatus === "paid") {
       clauses.push(`i.invoice_status = 'paid'`);
-    } else if (filters.paymentStatus === "refunded") {
-      clauses.push(`i.invoice_status = 'refunded'`);
     } else if (filters.paymentStatus === "unpaid") {
-      clauses.push(`(i.invoice_status IS NULL OR i.invoice_status NOT IN ('paid', 'refunded'))`);
+      clauses.push(`(i.invoice_status IS NULL OR i.invoice_status <> 'paid')`);
     }
   }
 
@@ -443,4 +439,4 @@ export async function updateAdminBoardingRoomStatus(roomTypeId: string, status: 
 export async function deleteAdminBoardingRoom(roomTypeId: string) {
   await query(`DELETE FROM pet_center.room_types WHERE room_type_id = $1`, [roomTypeId]);
 }
-
+

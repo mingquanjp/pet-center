@@ -206,7 +206,6 @@ const statusTextClassByStatus: Record<InvoicePaymentStatus, string> = {
   PENDING_PAYMENT: "text-petcenter-warning-text",
   OVERDUE: "text-petcenter-danger-text",
   CANCELLED: "text-petcenter-text-secondary",
-  REFUNDED: "text-petcenter-info-text",
   DRAFT: "text-petcenter-text-secondary",
 };
 
@@ -218,8 +217,6 @@ const noteClassByStatus: Record<InvoicePaymentStatus, string> = {
     "border-petcenter-danger-text bg-petcenter-danger-bg text-petcenter-danger-text",
   CANCELLED:
     "border-petcenter-text-muted bg-petcenter-background text-petcenter-text-secondary",
-  REFUNDED:
-    "border-petcenter-info-text bg-petcenter-info-bg text-petcenter-info-text",
   DRAFT:
     "border-petcenter-text-muted bg-petcenter-background text-petcenter-text-secondary",
 };
@@ -229,6 +226,5 @@ const noteByStatus: Record<InvoicePaymentStatus, string> = {
   PENDING_PAYMENT: "Vui lòng thanh toán tại trung tâm.",
   OVERDUE: "Hóa đơn đã quá hạn thanh toán.",
   CANCELLED: "Hóa đơn đã được hủy.",
-  REFUNDED: "Hóa đơn đã được hoàn tiền.",
   DRAFT: "Hóa đơn đang ở trạng thái nháp.",
 };

@@ -152,12 +152,10 @@ export async function findAdminUserPets(userId: string, limit = 4) {
       p.gender,
       p.birth_date::text as birth_date,
       p.estimated_age,
-      p.profile_image_url,
-      p.pet_status
+      p.profile_image_url
     from pet_center.pets p
     where p.owner_user_id = $1
     order by
-      case p.pet_status when 'active' then 0 when 'inactive' then 1 else 2 end,
       p.pet_name asc,
       p.pet_id asc
     limit $2
