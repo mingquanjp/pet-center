@@ -388,7 +388,7 @@ export function StaffPetsPage() {
             <span className="text-[13px] text-petcenter-text-secondary">
               Hiển thị {startItem}-{endItem} {text.paginationOf} {pagination.total} {text.records}
             </span>
-            <nav className="flex items-center gap-2" aria-label="Phan trang">
+            <nav className="flex items-center gap-2" aria-label="Phân trang">
               <button
                 aria-label={text.previousPage}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-petcenter-border-strong text-petcenter-text-muted transition hover:bg-petcenter-sidebar disabled:cursor-not-allowed disabled:opacity-50"

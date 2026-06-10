@@ -20,3 +20,4 @@ spec
 
 .agent/
 backend/coverage/
+backend/scratch/

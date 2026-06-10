@@ -137,3 +137,11 @@ export async function markAllAsRead(userId: string): Promise<number> {
   );
   return result.rowCount ?? 0;
 }
+
+export async function getActiveUsersByRole(role: string): Promise<string[]> {
+  const result = await query<{ user_id: string }>(
+    `SELECT user_id FROM pet_center.users WHERE role = $1 AND account_status = 'active'`,
+    [role]
+  );
+  return result.rows.map(r => r.user_id);
+}

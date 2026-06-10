@@ -58,6 +58,6 @@ export async function deleteAdminUser(req: Request, res: Response) {
   res.json({
     success: true,
     data: user,
-    message: "XÃ³a ngÆ°á»i dÃ¹ng thÃ nh cÃ´ng",
+    message: "Xóa người dùng thành công",
   });
 }

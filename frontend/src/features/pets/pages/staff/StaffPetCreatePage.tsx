@@ -2,22 +2,23 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
+  Camera,
   CheckCircle2,
   Contact,
-  Info,
   Loader2,
   Mail,
   PawPrint,
   Phone,
+  Plus,
   Save,
   Search,
   TriangleAlert,
-  Upload,
-  UserRound,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,45 +52,6 @@ const initialFormState: FormState = {
   weightKg: "",
   furColor: "",
   identifyingMarks: "",
-};
-
-const text = {
-  breadcrumbRoot: "Hồ sơ thú cưng",
-  breadcrumbCurrent: "Tạo hồ sơ",
-  title: "Tạo hồ sơ thú cưng tại quầy",
-  back: "Quay lại danh sách",
-  findOwnerTitle: "Tìm chủ nuôi",
-  findOwnerDescription: "Nhập SĐT hoặc Email để tìm tài khoản chủ nuôi đã tồn tại.",
-  ownerSearchLabel: "SĐT hoặc Email chủ nuôi",
-  ownerSearchPlaceholder: "Nhập thông tin tìm kiếm...",
-  findOwner: "Tìm chủ nuôi",
-  searchResult: "Kết quả tìm kiếm",
-  chooseOwner: "Chọn chủ nuôi này",
-  selectedOwner: "Đã chọn chủ nuôi",
-  noOwner: "Không tìm thấy chủ nuôi phù hợp.",
-  noOwnerTitle: "Không tìm thấy Chủ nuôi",
-  noOwnerDescription: "Chủ nuôi này chưa có tài khoản trong hệ thống. Vui lòng tạo tài khoản Chủ nuôi trước khi tạo hồ sơ thú cưng.",
-  searchedOwner: "SĐT/Email đã nhập:",
-  createOwner: "Tạo tài khoản Chủ nuôi",
-  searchAgain: "Tìm lại",
-  petInfoTitle: "Nhập thông tin thú cưng",
-  petInfoDescription: "Điền thông tin chi tiết cho thú cưng mới. Vui lòng chọn chủ nuôi trước.",
-  requiredInfo: "Thông tin bắt buộc",
-  optionalInfo: "Thông tin bổ sung",
-  petName: "Tên thú cưng",
-  species: "Loài",
-  gender: "Giới tính",
-  breed: "Giống",
-  birthDate: "Ngày sinh",
-  estimatedAge: "Tuổi ước tính",
-  weight: "Cân nặng (kg)",
-  furColor: "Màu lông",
-  identifyingMarks: "Đặc điểm nhận dạng",
-  uploadTitle: "Upload ảnh thú cưng",
-  uploadHint: "Kéo thả ảnh hoặc click để tải lên",
-  uploadMeta: "Hỗ trợ JPG, PNG. Tối đa 5MB.",
-  cancel: "Hủy",
-  submit: "Lưu hồ sơ",
 };
 
 const speciesOptions: Array<{ value: PetSpecies; label: string }> = [
@@ -133,10 +95,48 @@ function buildPayload(form: FormState, ownerUserId: string, profileImageUrl: str
   };
 }
 
+function getSpeciesLabel(value: FormState["species"]) {
+  return speciesOptions.find((option) => option.value === value)?.label ?? "---";
+}
+
+function getGenderLabel(value: FormState["gender"]) {
+  return genderOptions.find((option) => option.value === value)?.label ?? "---";
+}
+
+function StepIcon({
+  disabled,
+  icon,
+  number,
+}: {
+  disabled?: boolean;
+  icon: React.ReactNode;
+  number: number;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full",
+        disabled ? "bg-petcenter-sidebar text-petcenter-text-muted" : "bg-petcenter-primary/10 text-petcenter-primary"
+      )}
+    >
+      <span className="sr-only">Bước {number}</span>
+      {icon}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 text-sm">
+      <span className="text-petcenter-text-secondary">{label}:</span>
+      <span className="max-w-[190px] text-right font-semibold text-petcenter-text">{value || "---"}</span>
+    </div>
+  );
+}
+
 export function StaffPetCreatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const fileInputId = React.useId();
   const ownerSearchInputRef = React.useRef<HTMLInputElement | null>(null);
   const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
   const avatarPreviewRef = React.useRef<string | null>(null);
@@ -202,8 +202,8 @@ export function StaffPetCreatePage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setErrorMessage("Vui lòng chọn file ảnh định dạng JPG hoặc PNG.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setErrorMessage("Vui lòng chọn ảnh JPG, PNG hoặc WEBP.");
       event.target.value = "";
       return;
     }
@@ -290,433 +290,463 @@ export function StaffPetCreatePage() {
   };
 
   const isPetFormLocked = !selectedOwner;
+  const canSubmit = !!selectedOwner && !!form.petName.trim() && !!form.species && !!form.gender && (!!form.birthDate || !!form.estimatedAge.trim());
 
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 pb-28">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <nav className="mb-2 flex items-center gap-2 text-sm text-petcenter-text-secondary">
-            <Link className="flex items-center gap-1 transition-colors hover:text-petcenter-primary" href="/staff/pets">
-              <PawPrint className="h-4 w-4" />
-              {text.breadcrumbRoot}
-            </Link>
-            <span>/</span>
-            <span className="font-medium text-petcenter-primary">{text.breadcrumbCurrent}</span>
-          </nav>
-          <h1 className="text-[24px] font-semibold leading-8 tracking-[-0.01em] text-petcenter-text">{text.title}</h1>
-        </div>
-
-        <Button
-          asChild
-          className="h-10 rounded-xl border border-petcenter-primary bg-white px-4 text-sm font-semibold text-petcenter-primary shadow-card transition hover:bg-petcenter-sidebar"
-          variant="outline"
-        >
-          <Link href="/staff/pets">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {text.back}
-          </Link>
-        </Button>
-      </div>
-
-      {errorMessage ? (
-        <section className="flex items-start gap-3 rounded-[16px] border border-petcenter-danger-text/20 bg-petcenter-danger-bg p-4 text-petcenter-danger-text">
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
-          <p className="text-sm leading-5">{errorMessage}</p>
-        </section>
-      ) : null}
-
-      <section className="relative overflow-hidden rounded-[16px] border border-petcenter-border bg-white p-8 shadow-card">
-        <div className="absolute inset-y-0 left-0 w-1 bg-petcenter-primary" />
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="flex items-center gap-3 text-[18px] font-bold leading-7 text-petcenter-text">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D8F3EE] text-sm font-bold text-petcenter-primary">
-                1
-              </span>
-              {text.findOwnerTitle}
-            </h2>
-            <p className="mt-2 text-sm text-petcenter-text-secondary">{text.findOwnerDescription}</p>
-          </div>
-          <UserRound className="h-12 w-12 text-petcenter-border-strong" />
-        </div>
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <label className="block flex-1">
-            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">
-              {text.ownerSearchLabel}
-            </span>
-            <span className="relative block">
-              <Contact className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
-              <Input
-                className="h-12 rounded-xl border-petcenter-border-strong bg-white pl-10 text-sm text-petcenter-text placeholder:text-petcenter-text-muted focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                placeholder={text.ownerSearchPlaceholder}
-                ref={ownerSearchInputRef}
-                value={ownerQuery}
-                onChange={(event) => setOwnerQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    void handleOwnerSearch();
-                  }
-                }}
-              />
-            </span>
-          </label>
-          <Button
-            className="h-12 rounded-xl bg-petcenter-primary px-8 text-sm font-medium text-white shadow-sm transition hover:bg-petcenter-primary-hover"
-            disabled={isSearchingOwner}
-            onClick={handleOwnerSearch}
-            type="button"
-          >
-            {isSearchingOwner ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-            {text.findOwner}
-          </Button>
-        </div>
-
-        {hasSearchedOwner && owners.length === 0 ? (
-          <div className="mt-6 rounded-xl border border-[#FACC15]/60 bg-[#FEFCE8] p-5">
-            <div className="flex items-start gap-3">
-              <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-[#B45309]" />
-              <div className="flex-1">
-                <h3 className="mb-1 text-sm font-bold text-petcenter-text">{text.noOwnerTitle}</h3>
-                <p className="mb-3 text-sm leading-5 text-petcenter-text-secondary">{text.noOwnerDescription}</p>
-                <p className="mb-4 inline-block rounded-md border border-petcenter-border bg-petcenter-sidebar px-3 py-1.5 text-xs font-medium text-petcenter-text-secondary">
-                  {text.searchedOwner} <span className="font-bold text-petcenter-text">{lastOwnerQuery}</span>
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    asChild
-                    className="h-9 rounded-lg bg-petcenter-primary px-4 text-sm font-medium text-white shadow-sm transition hover:bg-petcenter-primary-hover"
-                  >
-                    <Link href={`/staff/pets/create-owner?q=${encodeURIComponent(lastOwnerQuery || ownerQuery.trim())}`}>
-                      {text.createOwner}
-                    </Link>
-                  </Button>
-                  <Button
-                    className="h-9 rounded-lg border border-petcenter-border-strong bg-white px-4 text-sm font-medium text-petcenter-text-secondary transition hover:bg-petcenter-sidebar"
-                    onClick={() => {
-                      setHasSearchedOwner(false);
-                      setOwners([]);
-                      window.setTimeout(() => ownerSearchInputRef.current?.focus(), 0);
-                    }}
-                    type="button"
-                    variant="outline"
-                  >
-                    {text.searchAgain}
-                  </Button>
-                </div>
-              </div>
+    <div className="flex-1 px-6 pt-6">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <div className="pb-10 lg:col-span-2">
+          <div className="mb-6 flex flex-col gap-4">
+            <div className="flex items-center text-sm text-petcenter-text-secondary">
+              <Link className="hover:text-petcenter-primary" href="/staff/pets">
+                Hồ sơ thú cưng
+              </Link>
+              <span className="mx-2 text-petcenter-text-muted">›</span>
+              <span className="font-medium text-petcenter-text">Tạo hồ sơ</span>
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-petcenter-text">Tạo hồ sơ thú cưng tại quầy</h1>
+              <p className="mt-1 text-sm text-petcenter-text-secondary">
+                Tạo nhanh hồ sơ thú cưng cho chủ nuôi đã có tài khoản tại trung tâm.
+              </p>
             </div>
           </div>
-        ) : owners.length > 0 ? (
-          <div className="mt-8 rounded-xl border border-[#AAD0AF] bg-[#C5ECCA] p-5">
-            <p className="mb-4 text-xs font-semibold uppercase tracking-[0.04em] text-[#2C4E35]">
-              {text.searchResult} ({owners.length})
-            </p>
-            <div className="space-y-3">
-              {owners.map((owner) => {
-                const active = selectedOwner?.userId === owner.userId;
 
-                return (
-                  <article
-                    className={cn(
-                      "flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-card sm:flex-row sm:items-center sm:justify-between",
-                      active ? "border-petcenter-primary ring-2 ring-petcenter-primary/15" : "border-petcenter-border"
-                    )}
-                    key={owner.userId}
-                  >
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#507357] text-lg font-bold text-white">
-                        {owner.fullName.charAt(0).toUpperCase()}
+          {errorMessage ? (
+            <section className="mb-6 flex items-start gap-3 rounded-[16px] border border-petcenter-danger-text/20 bg-petcenter-danger-bg p-4 text-petcenter-danger-text">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+              <p className="text-sm leading-5">{errorMessage}</p>
+            </section>
+          ) : null}
+
+          <div className="space-y-6">
+            <section className="rounded-[16px] border border-petcenter-border bg-petcenter-card p-6 shadow-sm">
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <StepIcon icon={<User className="h-5 w-5" />} number={1} />
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight text-petcenter-text">1. Chủ nuôi</h2>
+                    <p className="mt-1 text-sm text-petcenter-text-secondary">
+                      Tìm khách hàng bằng số điện thoại hoặc email.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  asChild
+                  className="h-9 rounded-[8px] border-petcenter-border bg-white text-sm font-medium text-petcenter-text hover:border-petcenter-primary hover:bg-petcenter-primary/10 hover:text-petcenter-primary"
+                  variant="outline"
+                >
+                  <Link href={`/staff/pets/create-owner?q=${encodeURIComponent(ownerQuery.trim())}`}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Thêm chủ nuôi
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <span className="relative block flex-1">
+                  <Contact className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+                  <Input
+                    className="h-14 rounded-[12px] border-petcenter-border bg-white pl-12 text-sm shadow-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
+                    placeholder="Tìm kiếm khách hàng bằng SĐT hoặc Email..."
+                    ref={ownerSearchInputRef}
+                    value={ownerQuery}
+                    onChange={(event) => setOwnerQuery(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void handleOwnerSearch();
+                      }
+                    }}
+                  />
+                </span>
+                <Button
+                  className="h-14 rounded-[12px] bg-petcenter-primary px-8 text-sm font-bold text-white shadow-md hover:bg-petcenter-primary-hover"
+                  disabled={isSearchingOwner}
+                  onClick={handleOwnerSearch}
+                  type="button"
+                >
+                  {isSearchingOwner ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                  Tìm chủ nuôi
+                </Button>
+              </div>
+
+              {hasSearchedOwner && owners.length === 0 ? (
+                <div className="mt-5 rounded-[12px] border border-petcenter-warning-text/30 bg-petcenter-warning-bg p-4">
+                  <div className="flex items-start gap-3">
+                    <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-petcenter-warning-text" />
+                    <div className="flex-1">
+                      <h3 className="text-sm font-bold text-petcenter-text">Không tìm thấy chủ nuôi</h3>
+                      <p className="mt-1 text-sm leading-5 text-petcenter-text-secondary">
+                        Chủ nuôi này chưa có tài khoản trong hệ thống. Vui lòng tạo tài khoản chủ nuôi trước khi tạo hồ sơ thú cưng.
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <Button asChild className="h-9 rounded-[8px] bg-petcenter-primary px-4 text-sm font-semibold text-white hover:bg-petcenter-primary-hover">
+                          <Link href={`/staff/pets/create-owner?q=${encodeURIComponent(lastOwnerQuery || ownerQuery.trim())}`}>
+                            Tạo tài khoản chủ nuôi
+                          </Link>
+                        </Button>
+                        <Button
+                          className="h-9 rounded-[8px] border-petcenter-border bg-white px-4 text-sm font-semibold text-petcenter-text-secondary hover:bg-petcenter-sidebar"
+                          onClick={() => {
+                            setHasSearchedOwner(false);
+                            setOwners([]);
+                            window.setTimeout(() => ownerSearchInputRef.current?.focus(), 0);
+                          }}
+                          type="button"
+                          variant="outline"
+                        >
+                          Tìm lại
+                        </Button>
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-base font-bold text-petcenter-text">{owner.fullName}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-petcenter-text-secondary">
-                          {owner.phoneNumber ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <Phone className="h-4 w-4" />
-                              {owner.phoneNumber}
-                            </span>
-                          ) : null}
-                          {owner.email ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <Mail className="h-4 w-4" />
-                              {owner.email}
-                            </span>
+                    </div>
+                  </div>
+                </div>
+              ) : owners.length > 0 ? (
+                <div className="mt-5 space-y-3">
+                  {owners.map((owner) => {
+                    const active = selectedOwner?.userId === owner.userId;
+
+                    return (
+                      <article
+                        className={cn(
+                          "flex flex-col gap-4 rounded-[12px] border bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between",
+                          active ? "border-petcenter-primary ring-2 ring-petcenter-primary/15" : "border-petcenter-border"
+                        )}
+                        key={owner.userId}
+                      >
+                        <div className="flex min-w-0 items-center gap-4">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-petcenter-primary text-base font-bold text-white">
+                            {owner.fullName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-base font-bold text-petcenter-text">{owner.fullName}</p>
+                            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-petcenter-text-secondary">
+                              {owner.phoneNumber ? (
+                                <span className="inline-flex items-center gap-1.5">
+                                  <Phone className="h-4 w-4" />
+                                  {owner.phoneNumber}
+                                </span>
+                              ) : null}
+                              {owner.email ? (
+                                <span className="inline-flex items-center gap-1.5">
+                                  <Mail className="h-4 w-4" />
+                                  {owner.email}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          className={cn(
+                            "h-10 rounded-[10px] px-5 text-sm font-semibold",
+                            active
+                              ? "bg-petcenter-success-bg text-petcenter-success-text hover:bg-petcenter-success-bg"
+                              : "bg-petcenter-primary text-white hover:bg-petcenter-primary-hover"
+                          )}
+                          onClick={() => setSelectedOwner(owner)}
+                          type="button"
+                        >
+                          {active ? <CheckCircle2 className="mr-2 h-4 w-4" /> : null}
+                          {active ? "Đã chọn" : "Chọn chủ nuôi"}
+                        </Button>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </section>
+
+            <section className={cn("rounded-[16px] border border-petcenter-border bg-petcenter-card p-6 shadow-sm", isPetFormLocked && "opacity-60")}>
+              <div className="mb-6 flex items-center gap-4">
+                <StepIcon disabled={isPetFormLocked} icon={<PawPrint className="h-5 w-5" />} number={2} />
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight text-petcenter-text">2. Thú cưng</h2>
+                  <p className="mt-1 text-sm text-petcenter-text-secondary">
+                    Điền thông tin chi tiết cho thú cưng mới. Vui lòng chọn chủ nuôi trước.
+                  </p>
+                </div>
+              </div>
+
+              {isPetFormLocked ? (
+                <div className="flex h-14 items-center justify-center rounded-[12px] border border-dashed border-petcenter-border bg-petcenter-background/50 text-sm text-petcenter-text-secondary">
+                  Vui lòng chọn chủ nuôi trước
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="rounded-[14px] border border-petcenter-border bg-white p-5">
+                    <div className="mb-5 flex items-center gap-2 border-b border-petcenter-border pb-4">
+                      <span className="h-4 w-1.5 rounded-full bg-petcenter-primary" />
+                      <h3 className="font-bold text-petcenter-text">Thông tin bắt buộc</h3>
+                    </div>
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <label className="space-y-2 md:col-span-2">
+                        <span className="text-sm font-semibold text-petcenter-text">
+                          Tên thú cưng <span className="text-petcenter-danger-text">*</span>
+                        </span>
+                        <Input
+                          className="h-11 rounded-[10px] border-petcenter-border focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
+                          placeholder="Nhập tên gọi ở nhà"
+                          value={form.petName}
+                          onChange={(event) => updateField("petName", event.target.value)}
+                        />
+                      </label>
+
+                      <label className="space-y-2">
+                        <span className="text-sm font-semibold text-petcenter-text">
+                          Loài <span className="text-petcenter-danger-text">*</span>
+                        </span>
+                        <select
+                          className="h-11 w-full rounded-[10px] border border-petcenter-border bg-white px-4 text-sm text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20"
+                          value={form.species}
+                          onChange={(event) => updateField("species", event.target.value as FormState["species"])}
+                        >
+                          <option value="" disabled>
+                            Chọn loài
+                          </option>
+                          {speciesOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label className="space-y-2">
+                        <span className="text-sm font-semibold text-petcenter-text">
+                          Giới tính <span className="text-petcenter-danger-text">*</span>
+                        </span>
+                        <select
+                          className="h-11 w-full rounded-[10px] border border-petcenter-border bg-white px-4 text-sm text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20"
+                          value={form.gender}
+                          onChange={(event) => updateField("gender", event.target.value as FormState["gender"])}
+                        >
+                          <option value="" disabled>
+                            Chọn giới tính
+                          </option>
+                          {genderOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[14px] border border-petcenter-border bg-white p-5">
+                    <div className="mb-5 flex items-center gap-2 border-b border-petcenter-border pb-4">
+                      <span className="h-4 w-1.5 rounded-full bg-petcenter-primary" />
+                      <div>
+                        <h3 className="font-bold text-petcenter-text">Thông tin bổ sung</h3>
+                        <p className="mt-1 text-xs text-petcenter-text-secondary">
+                          Cần nhập ngày sinh hoặc tuổi ước tính để lưu hồ sơ.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <label className="space-y-2 md:col-span-2">
+                        <span className="text-sm font-semibold text-petcenter-text">Giống</span>
+                        <Input
+                          className="h-11 rounded-[10px] border-petcenter-border focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
+                          placeholder="VD: Poodle, Golden Retriever..."
+                          value={form.breed}
+                          onChange={(event) => updateField("breed", event.target.value)}
+                        />
+                      </label>
+
+                      <label className="space-y-2">
+                        <span className="text-sm font-semibold text-petcenter-text">Ngày sinh</span>
+                        <Input
+                          className="h-11 rounded-[10px] border-petcenter-border focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
+                          max={new Date().toISOString().slice(0, 10)}
+                          type="date"
+                          value={form.birthDate}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            setForm((current) => ({ ...current, birthDate: value, estimatedAge: value ? "" : current.estimatedAge }));
+                          }}
+                        />
+                      </label>
+
+                      <label className="space-y-2">
+                        <span className="text-sm font-semibold text-petcenter-text">Tuổi ước tính</span>
+                        <div className="relative">
+                          <Input
+                            className="h-11 rounded-[10px] border-petcenter-border pr-14 focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
+                            disabled={Boolean(form.birthDate)}
+                            min="0"
+                            placeholder="VD: 2"
+                            step="0.1"
+                            type="number"
+                            value={form.estimatedAge}
+                            onChange={(event) => updateField("estimatedAge", event.target.value)}
+                          />
+                          <span className="absolute right-4 top-3 text-sm text-petcenter-text-muted">năm</span>
+                        </div>
+                      </label>
+
+                      <label className="space-y-2">
+                        <span className="text-sm font-semibold text-petcenter-text">Cân nặng</span>
+                        <div className="relative">
+                          <Input
+                            className="h-11 rounded-[10px] border-petcenter-border pr-12 focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
+                            min="0"
+                            placeholder="VD: 12.5"
+                            step="0.1"
+                            type="number"
+                            value={form.weightKg}
+                            onChange={(event) => updateField("weightKg", event.target.value)}
+                          />
+                          <span className="absolute right-4 top-3 text-sm text-petcenter-text-muted">kg</span>
+                        </div>
+                      </label>
+
+                      <label className="space-y-2">
+                        <span className="text-sm font-semibold text-petcenter-text">Màu lông</span>
+                        <Input
+                          className="h-11 rounded-[10px] border-petcenter-border focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
+                          placeholder="VD: Vàng, trắng..."
+                          value={form.furColor}
+                          onChange={(event) => updateField("furColor", event.target.value)}
+                        />
+                      </label>
+
+                      <label className="space-y-2 md:col-span-2">
+                        <span className="text-sm font-semibold text-petcenter-text">Đặc điểm nhận dạng</span>
+                        <Textarea
+                          className="min-h-[96px] resize-y rounded-[10px] border-petcenter-border focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
+                          placeholder="Ghi chú vết sẹo, đốm lông, dấu hiệu nhận dạng hoặc lưu ý chăm sóc..."
+                          value={form.identifyingMarks}
+                          onChange={(event) => updateField("identifyingMarks", event.target.value)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[14px] border border-petcenter-border bg-white p-5">
+                    <div className="mb-4 flex items-center gap-2">
+                      <span className="h-4 w-1.5 rounded-full bg-petcenter-primary" />
+                      <h3 className="font-bold text-petcenter-text">Ảnh đại diện thú cưng</h3>
+                    </div>
+                    <input
+                      accept="image/png,image/jpeg,image/webp"
+                      className="sr-only"
+                      onChange={handleAvatarChange}
+                      ref={avatarInputRef}
+                      type="file"
+                    />
+                    <div className="flex flex-col gap-4 rounded-[12px] border border-dashed border-petcenter-border bg-petcenter-background/50 p-5 sm:flex-row sm:items-center">
+                      <button
+                        className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border border-petcenter-border bg-white text-petcenter-text-muted transition hover:border-petcenter-primary hover:text-petcenter-primary"
+                        onClick={() => avatarInputRef.current?.click()}
+                        type="button"
+                      >
+                        {avatarPreviewUrl ? (
+                          <Image alt="Ảnh đại diện thú cưng" className="h-full w-full object-cover" height={96} src={avatarPreviewUrl} width={96} />
+                        ) : (
+                          <Camera className="h-8 w-8" />
+                        )}
+                      </button>
+                      <div className="flex-1">
+                        <p className="font-semibold text-petcenter-text">Tải ảnh thú cưng</p>
+                        <p className="mt-1 text-sm text-petcenter-text-secondary">Hỗ trợ JPG, PNG hoặc WEBP. Tối đa 5MB.</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button
+                            className="h-9 rounded-[8px] border-petcenter-border bg-white text-sm font-semibold text-petcenter-primary hover:bg-petcenter-primary/10"
+                            onClick={() => avatarInputRef.current?.click()}
+                            type="button"
+                            variant="outline"
+                          >
+                            Chọn ảnh
+                          </Button>
+                          {avatarPreviewUrl ? (
+                            <Button
+                              className="h-9 rounded-[8px] border-petcenter-border bg-white text-sm font-semibold text-petcenter-text-secondary hover:bg-petcenter-sidebar"
+                              onClick={clearAvatar}
+                              type="button"
+                              variant="outline"
+                            >
+                              Xóa ảnh
+                            </Button>
                           ) : null}
                         </div>
                       </div>
                     </div>
-                    <Button
-                      className={cn(
-                        "h-10 rounded-xl px-6 text-sm font-medium transition",
-                        active
-                          ? "bg-petcenter-success-bg text-petcenter-success-text hover:bg-petcenter-success-bg"
-                          : "bg-[#97F3E2] text-[#00201B] hover:bg-[#7AD7C6]"
-                      )}
-                      onClick={() => setSelectedOwner(owner)}
-                      type="button"
-                    >
-                      {active ? <CheckCircle2 className="mr-2 h-4 w-4" /> : null}
-                      {active ? text.selectedOwner : text.chooseOwner}
-                    </Button>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="relative overflow-hidden rounded-[16px] border border-petcenter-border bg-white p-8 shadow-card">
-        <div className={cn("absolute inset-y-0 left-0 w-1", isPetFormLocked ? "bg-petcenter-border-strong" : "bg-petcenter-primary")} />
-        <div className="mb-8 border-b border-petcenter-border pb-5">
-          <h2 className="flex items-center gap-3 text-[18px] font-bold leading-7 text-petcenter-text">
-            <span
-              className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-                isPetFormLocked ? "bg-petcenter-sidebar text-petcenter-text-secondary" : "bg-[#D8F3EE] text-petcenter-primary"
+                  </div>
+                </div>
               )}
-            >
-              2
-            </span>
-            {text.petInfoTitle}
-          </h2>
-          <p className="mt-2 text-sm text-petcenter-text-secondary">{text.petInfoDescription}</p>
+            </section>
+          </div>
         </div>
 
-        <div className={cn("grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2", isPetFormLocked && "pointer-events-none opacity-50")}>
-          <div className="md:col-span-2">
-            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.04em] text-petcenter-primary">
-              <Info className="h-[18px] w-[18px]" />
-              {text.requiredInfo}
-            </h3>
-          </div>
-
-          <label className="block">
-            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">
-              {text.petName} <span className="text-petcenter-danger-text">*</span>
-            </span>
-            <Input
-              className="h-12 rounded-xl border-petcenter-border-strong bg-white px-4 text-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-              disabled={isPetFormLocked}
-              placeholder="Nhập tên..."
-              value={form.petName}
-              onChange={(event) => updateField("petName", event.target.value)}
-            />
-          </label>
-
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">
-                {text.species} <span className="text-petcenter-danger-text">*</span>
-              </span>
-              <select
-                className="h-12 w-full rounded-xl border border-petcenter-border-strong bg-white px-4 text-sm text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isPetFormLocked}
-                value={form.species}
-                onChange={(event) => updateField("species", event.target.value as FormState["species"])}
-              >
-                <option value="" disabled>
-                  Chọn loài
-                </option>
-                {speciesOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">
-                {text.gender} <span className="text-petcenter-danger-text">*</span>
-              </span>
-              <select
-                className="h-12 w-full rounded-xl border border-petcenter-border-strong bg-white px-4 text-sm text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-2 focus:ring-petcenter-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isPetFormLocked}
-                value={form.gender}
-                onChange={(event) => updateField("gender", event.target.value as FormState["gender"])}
-              >
-                <option value="" disabled>
-                  Chọn giới tính
-                </option>
-                {genderOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="mt-6 border-t border-petcenter-border pt-6 md:col-span-2">
-            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.04em] text-petcenter-text-muted">
-              <PawPrint className="h-[18px] w-[18px]" />
-              {text.optionalInfo}
-            </h3>
-          </div>
-
-          <label className="block">
-            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">{text.breed}</span>
-            <Input
-              className="h-12 rounded-xl border-petcenter-border-strong bg-white px-4 text-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-              disabled={isPetFormLocked}
-              placeholder="VD: Poodle, Corgi..."
-              value={form.breed}
-              onChange={(event) => updateField("breed", event.target.value)}
-            />
-          </label>
-
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">
-                {text.birthDate}
-              </span>
-              <Input
-                className="h-12 rounded-xl border-petcenter-border-strong bg-white px-4 text-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                disabled={isPetFormLocked}
-                max={new Date().toISOString().slice(0, 10)}
-                type="date"
-                value={form.birthDate}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setForm((current) => ({ ...current, birthDate: value, estimatedAge: value ? "" : current.estimatedAge }));
-                }}
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">
-                {text.estimatedAge}
-              </span>
-              <Input
-                className="h-12 rounded-xl border-petcenter-border-strong bg-white px-4 text-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                disabled={isPetFormLocked || Boolean(form.birthDate)}
-                min="0"
-                placeholder="VD: 2"
-                step="0.1"
-                type="number"
-                value={form.estimatedAge}
-                onChange={(event) => updateField("estimatedAge", event.target.value)}
-              />
-            </label>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">{text.weight}</span>
-              <Input
-                className="h-12 rounded-xl border-petcenter-border-strong bg-white px-4 text-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                disabled={isPetFormLocked}
-                min="0"
-                placeholder="0.0"
-                step="0.1"
-                type="number"
-                value={form.weightKg}
-                onChange={(event) => updateField("weightKg", event.target.value)}
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">
-                {text.furColor}
-              </span>
-              <Input
-                className="h-12 rounded-xl border-petcenter-border-strong bg-white px-4 text-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-                disabled={isPetFormLocked}
-                placeholder="VD: Vàng, Trắng..."
-                value={form.furColor}
-                onChange={(event) => updateField("furColor", event.target.value)}
-              />
-            </label>
-          </div>
-
-          <label className="block md:col-span-2">
-            <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">
-              {text.identifyingMarks}
-            </span>
-            <Textarea
-              className="min-h-[96px] resize-none rounded-xl border-petcenter-border-strong bg-white px-4 py-3 text-sm focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
-              disabled={isPetFormLocked}
-              placeholder="Mô tả các đặc điểm nổi bật để dễ nhận diện..."
-              value={form.identifyingMarks}
-              onChange={(event) => updateField("identifyingMarks", event.target.value)}
-            />
-          </label>
-
-          <div className="md:col-span-2">
-            <span className="mb-3 block text-[11px] font-semibold uppercase tracking-[0.02em] text-petcenter-text-secondary">
-              {text.uploadTitle}
-            </span>
-            <input
-              accept="image/png,image/jpeg"
-              className="sr-only"
-              disabled={isPetFormLocked}
-              id={fileInputId}
-              onChange={handleAvatarChange}
-              ref={avatarInputRef}
-              type="file"
-            />
-            <label
-              className={cn(
-                "group flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-[16px] border-2 border-dashed border-petcenter-border-strong bg-white p-8 text-center transition hover:bg-petcenter-filter",
-                isPetFormLocked && "cursor-not-allowed opacity-60"
-              )}
-              htmlFor={isPetFormLocked ? undefined : fileInputId}
+        <aside className="sticky top-6 z-10 lg:col-span-1">
+          <div className="mb-6 flex h-10 items-center justify-end">
+            <Button
+              asChild
+              className="h-auto shrink-0 rounded-control border-petcenter-primary px-4 py-2 text-base font-medium text-petcenter-primary transition-colors hover:bg-petcenter-primary hover:text-white"
+              variant="outline"
             >
-              {avatarPreviewUrl ? (
-                <div className="flex flex-col items-center gap-4">
-                  <div
-                    aria-label="Ảnh thú cưng đã chọn"
-                    className="h-28 w-28 rounded-[16px] border border-petcenter-border bg-cover bg-center shadow-card"
-                    role="img"
-                    style={{ backgroundImage: `url(${avatarPreviewUrl})` }}
-                  />
-                  <button
-                    className="text-sm font-semibold text-petcenter-primary transition hover:text-petcenter-primary-hover"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      clearAvatar();
-                    }}
-                    type="button"
-                  >
-                    Chọn ảnh khác
-                  </button>
-                </div>
+              <Link href="/staff/pets">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Quay lại danh sách
+              </Link>
+            </Button>
+          </div>
+
+          <div className="rounded-card border border-petcenter-border bg-petcenter-card p-6 shadow-card">
+            <h2 className="mb-4 border-b border-petcenter-border pb-3 text-lg font-semibold text-petcenter-text">
+              Tóm tắt hồ sơ
+            </h2>
+
+            <div className="mb-5 flex items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[14px] border border-petcenter-border bg-petcenter-background text-petcenter-primary">
+                {avatarPreviewUrl ? (
+                  <Image alt="Ảnh thú cưng" className="h-full w-full object-cover" height={64} src={avatarPreviewUrl} width={64} />
+                ) : (
+                  <PawPrint className="h-7 w-7" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-base font-bold text-petcenter-text">{form.petName.trim() || "Chưa nhập tên"}</p>
+                <p className="mt-1 text-sm text-petcenter-text-secondary">
+                  {getSpeciesLabel(form.species)} {form.breed.trim() ? `• ${form.breed.trim()}` : ""}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <SummaryRow label="Chủ nuôi" value={selectedOwner?.fullName} />
+              <SummaryRow label="Số điện thoại" value={selectedOwner?.phoneNumber} />
+              <SummaryRow label="Email" value={selectedOwner?.email} />
+              <SummaryRow label="Loài" value={getSpeciesLabel(form.species)} />
+              <SummaryRow label="Giới tính" value={getGenderLabel(form.gender)} />
+              <SummaryRow label="Ngày sinh" value={form.birthDate || "---"} />
+              <SummaryRow label="Tuổi ước tính" value={form.estimatedAge.trim() ? `${form.estimatedAge.trim()} năm` : "---"} />
+              <SummaryRow label="Cân nặng" value={form.weightKg.trim() ? `${form.weightKg.trim()} kg` : "---"} />
+            </div>
+
+            <Button
+              className="mt-6 w-full rounded-control bg-petcenter-cta py-6 text-base font-bold text-white shadow-md transition-all hover:bg-petcenter-cta-hover"
+              disabled={!canSubmit || isSubmitting}
+              onClick={handleSubmit}
+              type="button"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Đang lưu...
+                </>
               ) : (
                 <>
-                  <Upload className="mb-3 h-10 w-10 text-petcenter-text-muted transition group-hover:text-petcenter-primary" />
-                  <p className="text-base font-medium text-petcenter-text">{text.uploadHint}</p>
-                  <p className="mt-2 text-sm text-petcenter-text-secondary">{text.uploadMeta}</p>
+                  <Save className="mr-2 h-5 w-5" />
+                  Lưu hồ sơ
                 </>
               )}
-            </label>
+            </Button>
           </div>
-        </div>
-      </section>
-
-      <div className="sticky bottom-[-32px] z-20 -mx-8 border-t border-petcenter-border bg-petcenter-background/95 px-8 py-6 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-[1200px] justify-end gap-4">
-          <Button
-            asChild
-            className="h-12 rounded-xl border border-petcenter-primary bg-white px-8 text-sm font-medium text-petcenter-primary shadow-sm transition hover:bg-petcenter-sidebar"
-            variant="outline"
-          >
-            <Link href="/staff/pets">{text.cancel}</Link>
-          </Button>
-          <Button
-            className="h-12 rounded-xl bg-petcenter-cta px-10 text-sm font-medium text-white shadow-md transition hover:bg-petcenter-cta-hover"
-            disabled={isSubmitting}
-            onClick={handleSubmit}
-            type="button"
-          >
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {text.submit}
-          </Button>
-        </div>
+        </aside>
       </div>
-
     </div>
   );
 }

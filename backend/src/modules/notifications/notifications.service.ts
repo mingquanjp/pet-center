@@ -1,7 +1,8 @@
 import * as repo from "./notifications.repository.js";
-import { query } from "../../db/query.js";
 import type { CreateNotificationPayload, NotificationDto, NotificationFilters, NotificationRow } from "./notifications.types.js";
 import { emitToUser } from "../../realtime/notification.gateway.js";
+import { AppError } from "../../shared/errors/app-error.js";
+import { httpStatus } from "../../shared/errors/http-status.js";
 
 function mapToDto(row: NotificationRow): NotificationDto {
   return {
@@ -61,16 +62,13 @@ export async function notifyUser(userId: string, payload: Omit<CreateNotificatio
 }
 
 export async function notifyRole(role: "Owner" | "Staff" | "Doctor" | "Admin", payload: Omit<CreateNotificationPayload, "receiverUserId">) {
-  const result = await query<{ user_id: string }>(
-    `SELECT user_id FROM pet_center.users WHERE role = $1 AND account_status = 'active'`,
-    [role]
-  );
+  const userIds = await repo.getActiveUsersByRole(role);
   
-  const promises = result.rows.map(user => 
+  const promises = userIds.map(userId => 
     createNotification({
       ...payload,
-      receiverUserId: user.user_id,
-      dedupeKey: payload.dedupeKey ? `${payload.dedupeKey}:${user.user_id}` : undefined
+      receiverUserId: userId,
+      dedupeKey: payload.dedupeKey ? `${payload.dedupeKey}:${userId}` : undefined
     })
   );
   
@@ -93,7 +91,7 @@ export async function getUnreadCount(userId: string) {
 export async function markAsRead(notificationId: string, userId: string) {
   const row = await repo.markAsRead(notificationId, userId);
   if (!row) {
-    throw new Error("Notification not found or access denied");
+    throw new AppError("Không tìm thấy thông báo hoặc không có quyền truy cập", "NOT_FOUND", httpStatus.NOT_FOUND);
   }
   return mapToDto(row);
 }

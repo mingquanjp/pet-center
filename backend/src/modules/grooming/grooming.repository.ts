@@ -24,8 +24,9 @@ import type {
   StaffGroomingTicketStatusFilter,
   StaffGroomingTicketStatusTone
 } from "./grooming.types.js";
+import * as mapper from "./grooming.mapper.js";
 
-type GroomingServiceRow = QueryResultRow & {
+export type GroomingServiceRow = QueryResultRow & {
   service_id: string;
   service_name: string;
   description: string | null;
@@ -33,7 +34,7 @@ type GroomingServiceRow = QueryResultRow & {
   base_price: string | number;
 };
 
-type BookingPetRow = QueryResultRow & {
+export type BookingPetRow = QueryResultRow & {
   pet_id: string;
   pet_name: string;
   species: "Dog" | "Cat" | "Other";
@@ -41,14 +42,14 @@ type BookingPetRow = QueryResultRow & {
   profile_image_url: string | null;
 };
 
-type StaffCounterPetRow = BookingPetRow & {
+export type StaffCounterPetRow = BookingPetRow & {
   breed: string | null;
   owner_user_id: string;
   owner_name: string;
   owner_phone_number: string | null;
 };
 
-type BookingServiceRow = QueryResultRow & {
+export type BookingServiceRow = QueryResultRow & {
   service_id: string;
   service_name: string;
   description: string | null;
@@ -56,11 +57,11 @@ type BookingServiceRow = QueryResultRow & {
   base_price: string | number;
 };
 
-type CountRow = QueryResultRow & {
+export type CountRow = QueryResultRow & {
   total: string;
 };
 
-type GroomingTicketListRow = QueryResultRow & {
+export type GroomingTicketListRow = QueryResultRow & {
   grooming_ticket_id: string;
   service_name: string;
   pet_name: string;
@@ -79,12 +80,12 @@ type GroomingTicketListRow = QueryResultRow & {
   estimated_total: string | number;
 };
 
-type GroomingTicketDetailRow = GroomingTicketListRow & {
+export type GroomingTicketDetailRow = GroomingTicketListRow & {
   pet_id: string;
   invoice_id: string | null;
 };
 
-type GroomingTicketItemRow = QueryResultRow & {
+export type GroomingTicketItemRow = QueryResultRow & {
   service_id: string;
   service_name: string;
   quantity: number;
@@ -92,7 +93,7 @@ type GroomingTicketItemRow = QueryResultRow & {
   line_amount: string | number;
 };
 
-type PaymentRow = QueryResultRow & {
+export type PaymentRow = QueryResultRow & {
   payment_id: string;
   payment_method: string;
   payment_provider: string | null;
@@ -104,12 +105,12 @@ type PaymentRow = QueryResultRow & {
   receipt_url: string | null;
 };
 
-type BookedUnitsRow = QueryResultRow & {
+export type BookedUnitsRow = QueryResultRow & {
   slot_time: string;
   booked_units: string | number;
 };
 
-type CreateBookingInput = {
+export type CreateBookingInput = {
   ownerUserId: string;
   createdByUserId?: string;
   sourceType?: "online" | "counter";
@@ -120,7 +121,7 @@ type CreateBookingInput = {
   paymentOption: GroomingPaymentOption;
 };
 
-type StaffGroomingTicketRow = QueryResultRow & {
+export type StaffGroomingTicketRow = QueryResultRow & {
   grooming_ticket_id: string;
   pet_name: string;
   species: "Dog" | "Cat" | "Other";
@@ -138,7 +139,7 @@ type StaffGroomingTicketRow = QueryResultRow & {
   ticket_status: GroomingTicketStatus;
 };
 
-type StaffGroomingSummaryRow = QueryResultRow & {
+export type StaffGroomingSummaryRow = QueryResultRow & {
   total: string;
   waiting_accept: string;
   accepted: string;
@@ -151,363 +152,94 @@ const slotStartHour = 8;
 const slotEndHour = 17;
 const slotEndMinute = 30;
 
-function formatMoney(value: number): string {
-  return new Intl.NumberFormat("vi-VN").format(value);
-}
-
-function formatStartingPrice(price: number): string {
-  return `Từ ${formatMoney(price)} VNĐ`;
-}
-
-function formatDuration(minutes: number | null): string {
-  if (minutes === null) return "Chưa cập nhật";
-  if (minutes < 60) return `${minutes} phút`;
-  if (minutes % 60 === 0) return `${minutes / 60} giờ`;
-
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-
-  return `${hours} giờ ${remainingMinutes} phút`;
-}
-
-function getSpeciesLabel(species: BookingPetRow["species"]): string {
-  const labels = {
-    Dog: "Chó",
-    Cat: "Mèo",
-    Other: "Khác"
-  } as const;
-
-  return labels[species];
-}
-
-function getTicketStatusLabel(status: GroomingTicketStatus): string {
-  const labels = {
-    pending_payment: "Chờ thanh toán",
-    pending: "Chờ tiếp nhận",
-    waiting: "Đã tiếp nhận",
-    in_progress: "Đang thực hiện",
-    completed: "Hoàn thành",
-    cancelled: "Đã hủy"
-  } as const;
-
-  return labels[status];
-}
-
-function getPaymentMethodLabel(paymentOption: GroomingPaymentOption | null): string {
-  if (paymentOption === "online") return "Thanh toán online";
-  if (paymentOption === "counter") return "Tại trung tâm";
-
-  return "Chưa cập nhật";
-}
-
-function getPaymentStatusLabel(invoiceStatus: InvoiceStatus | null, hasSuccessPayment: boolean): string {
-  if (invoiceStatus === "paid" || hasSuccessPayment) return "Đã thanh toán";
-  if (invoiceStatus === "refunded") return "Đã hoàn tiền";
-
-  return "Chưa thanh toán";
-}
-
-function canCancelTicket(status: GroomingTicketStatus, invoiceStatus: InvoiceStatus | null, hasSuccessPayment: boolean): boolean {
-  return status === "pending" && invoiceStatus !== "paid" && !hasSuccessPayment;
-}
-
-function mapBookingPet(row: BookingPetRow): GroomingBookingPetDto {
-  return {
-    petId: row.pet_id,
-    petName: row.pet_name,
-    species: row.species,
-    speciesLabel: getSpeciesLabel(row.species),
-    weightKg: row.weight_kg === null ? null : Number(row.weight_kg),
-    profileImageUrl: row.profile_image_url
-  };
-}
-
-function mapStaffCounterPet(row: StaffCounterPetRow): StaffCounterGroomingPetDto {
-  return {
-    ...mapBookingPet(row),
-    breed: row.breed,
-    ownerUserId: row.owner_user_id,
-    ownerName: row.owner_name,
-    ownerPhoneNumber: row.owner_phone_number
-  };
-}
-
-function getStaffTicketStatusLabel(status: GroomingTicketStatus): string {
-  const labels: Record<GroomingTicketStatus, string> = {
-    pending_payment: "Chờ thanh toán",
-    pending: "Chờ tiếp nhận",
-    waiting: "Đã tiếp nhận",
-    in_progress: "Đã tiếp nhận",
-    completed: "Hoàn tất",
-    cancelled: "Đã hủy"
-  };
-
-  return labels[status];
-}
-
-function getStaffTicketStatusTone(status: GroomingTicketStatus): StaffGroomingTicketStatusTone {
-  const tones: Record<GroomingTicketStatus, StaffGroomingTicketStatusTone> = {
-    pending_payment: "payment",
-    pending: "pending",
-    waiting: "accepted",
-    in_progress: "inProgress",
-    completed: "completed",
-    cancelled: "cancelled"
-  };
-
-  return tones[status];
-}
-
-function getSourceLabel(sourceType: StaffGroomingTicketRow["source_type"]): string {
-  return sourceType === "counter" ? "Tại quầy" : "Online";
-}
-
-function getStaffPaymentMethodLabel(paymentOption: GroomingPaymentOption | null, sourceType: StaffGroomingTicketRow["source_type"]): string {
-  if (paymentOption === "counter") return "Tại quầy";
-  if (paymentOption === "online") return "Online";
-
-  return getSourceLabel(sourceType);
-}
-
-function mapStaffGroomingTicket(row: StaffGroomingTicketRow): StaffGroomingTicketDto {
-  const serviceCount = Number(row.service_count);
-  const serviceName = row.service_names ?? row.service_name;
-  const status = row.ticket_status;
-  const isPaid = row.invoice_status === "paid";
-
-  return {
-    groomingTicketId: row.grooming_ticket_id,
-    bookingCode: row.grooming_ticket_id,
-    petName: row.pet_name,
-    petDescription: row.breed ? `${getSpeciesLabel(row.species)} - ${row.breed}` : getSpeciesLabel(row.species),
-    ownerName: row.owner_name,
-    serviceName,
-    serviceCount,
-    scheduledAt: row.scheduled_at.toISOString(),
-    sourceType: row.source_type,
-    sourceLabel: getSourceLabel(row.source_type),
-    paymentMethodLabel: getStaffPaymentMethodLabel(row.payment_option, row.source_type),
-    paymentStatusLabel: isPaid ? "Đã TT" : "Chưa TT",
-    paymentStatusTone: isPaid ? "paid" : "pending",
-    specialRequest: row.special_request,
-    totalAmount: Number(row.estimated_total),
-    totalAmountText: `${formatMoney(Number(row.estimated_total))} VNĐ`,
-    status,
-    statusLabel: status === "in_progress" ? "Đang thực hiện" : getStaffTicketStatusLabel(status),
-    statusTone: getStaffTicketStatusTone(status),
-    canAccept: status === "pending",
-    canStart: status === "waiting",
-    canComplete: status === "in_progress",
-    canCancel: status === "pending"
-  };
-}
-
-function toVietnamDateString(value: Date): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).formatToParts(value);
-  const year = parts.find((part) => part.type === "year")?.value;
-  const month = parts.find((part) => part.type === "month")?.value;
-  const day = parts.find((part) => part.type === "day")?.value;
-
-  return `${year}-${month}-${day}`;
-}
-
-function mapBookingServicePriceBase(row: BookingServiceRow): GroomingBookingServicePriceBaseDto | null {
-  return {
-    serviceId: row.service_id,
-    serviceName: row.service_name,
-    description: row.description,
-    estimatedDurationMinutes: row.estimated_duration_minutes,
-    durationText: formatDuration(row.estimated_duration_minutes),
-    basePrice: Number(row.base_price)
-  };
-}
-
-function mapGroomingServices(rows: GroomingServiceRow[]): GroomingServiceDto[] {
-  const services = new Map<string, GroomingServiceDto>();
-
-  for (const row of rows) {
-    const basePrice = Number(row.base_price);
-    const existing = services.get(row.service_id);
-    const service =
-      existing ??
-      {
-        serviceId: row.service_id,
-        serviceName: row.service_name,
-        description: row.description,
-        estimatedDurationMinutes: row.estimated_duration_minutes,
-        durationText: formatDuration(row.estimated_duration_minutes),
-        basePrice,
-        priceMin: basePrice,
-        priceMax: basePrice,
-        priceText: formatStartingPrice(basePrice)
-      };
-
-    services.set(row.service_id, service);
-  }
-
-  return [...services.values()];
-}
-
-function mapGroomingTicketListItem(row: GroomingTicketListRow): GroomingTicketListItemDto {
-  const totalAmount = row.invoice_total_amount === null ? Number(row.estimated_total) : Number(row.invoice_total_amount);
-
-  return {
-    groomingTicketId: row.grooming_ticket_id,
-    bookingCode: row.grooming_ticket_id,
-    serviceName: row.service_name,
-    petName: row.pet_name,
-    scheduledAt: row.scheduled_at,
-    scheduledDate: row.scheduled_date,
-    scheduledTime: row.scheduled_time,
-    ticketStatus: row.ticket_status,
-    ticketStatusLabel: getTicketStatusLabel(row.ticket_status),
-    paymentOption: row.payment_option ?? "counter",
-    paymentMethodLabel: getPaymentMethodLabel(row.payment_option),
-    invoiceStatus: row.invoice_status,
-    paymentStatusLabel: getPaymentStatusLabel(row.invoice_status, row.has_success_payment),
-    totalAmount,
-    specialRequest: row.special_request,
-    canCancel: canCancelTicket(row.ticket_status, row.invoice_status, row.has_success_payment)
-  };
-}
-
-function mapGroomingTicketDetail(
-  row: GroomingTicketDetailRow,
-  services: GroomingTicketItemRow[],
-  payment: PaymentRow | null
-): GroomingTicketDetailDto {
-  return {
-    ...mapGroomingTicketListItem(row),
-    pet: {
-      petId: row.pet_id,
-      petName: row.pet_name,
-      species: row.species,
-      speciesLabel: getSpeciesLabel(row.species),
-      weightKg: row.weight_kg === null ? null : Number(row.weight_kg),
-      profileImageUrl: row.profile_image_url
-    },
-    services: services.map((service) => ({
-      serviceId: service.service_id,
-      serviceName: service.service_name,
-      quantity: service.quantity,
-      appliedUnitPrice: Number(service.applied_unit_price),
-      lineAmount: Number(service.line_amount)
-    })),
-    invoice: row.invoice_id && row.invoice_status && row.payment_option
-      ? {
-          invoiceId: row.invoice_id,
-          invoiceStatus: row.invoice_status,
-          paymentOption: row.payment_option,
-          totalAmount: Number(row.invoice_total_amount ?? row.estimated_total)
-        }
-      : null,
-    payment: payment
-      ? {
-          paymentId: payment.payment_id,
-          paymentMethod: payment.payment_method,
-          paymentProvider: payment.payment_provider,
-          transactionCode: payment.transaction_code,
-          paidAmount: Number(payment.paid_amount),
-          paidAt: payment.paid_at,
-          paymentStatus: payment.payment_status,
-          receiptCode: payment.receipt_code,
-          receiptUrl: payment.receipt_url
-        }
-      : null
-  };
-}
-
 function buildBookedTicketsWhere(filters: GroomingTicketListFilters): { whereSql: string; params: unknown[] } {
-  const params: unknown[] = [filters.ownerUserId];
-  const conditions = [
-    "gt.owner_user_id = $1",
-    "gt.ticket_status in ('pending', 'waiting', 'in_progress')"
-  ];
 
-  if (filters.search) {
-    params.push(`%${filters.search}%`);
-    conditions.push(
-      `(gt.grooming_ticket_id ilike $${params.length} or p.pet_name ilike $${params.length} or exists (
+      const params: unknown[] = [filters.ownerUserId];
+      const conditions = [
+        "gt.owner_user_id = $1",
+        "gt.ticket_status in ('pending', 'waiting', 'in_progress')"
+      ];
+
+      if (filters.search) {
+        params.push(`%${filters.search}%`);
+        conditions.push(
+          `(gt.grooming_ticket_id ilike $${params.length} or p.pet_name ilike $${params.length} or exists (
         select 1
         from pet_center.grooming_ticket_items search_gti
         join pet_center.services search_s on search_s.service_id = search_gti.service_id
         where search_gti.grooming_ticket_id = gt.grooming_ticket_id
           and search_s.service_name ilike $${params.length}
       ))`
-    );
-  }
+        );
+      }
 
-  if (filters.petId) {
-    params.push(filters.petId);
-    conditions.push(`gt.pet_id = $${params.length}`);
-  }
+      if (filters.petId) {
+        params.push(filters.petId);
+        conditions.push(`gt.pet_id = $${params.length}`);
+      }
 
-  if (filters.status && filters.status !== "all") {
-    params.push(filters.status);
-    conditions.push(`gt.ticket_status = $${params.length}`);
-  }
+      if (filters.status && filters.status !== "all") {
+        params.push(filters.status);
+        conditions.push(`gt.ticket_status = $${params.length}`);
+      }
 
-  if (filters.timeRange === "today") {
-    conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date = (now() at time zone '${timeZone}')::date`);
-  } else if (filters.timeRange === "upcoming") {
-    conditions.push("gt.scheduled_at >= now()");
-  } else if (filters.timeRange === "past") {
-    conditions.push("gt.scheduled_at < now()");
-  }
+      if (filters.timeRange === "today") {
+        conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date = (now() at time zone '${timeZone}')::date`);
+      } else if (filters.timeRange === "upcoming") {
+        conditions.push("gt.scheduled_at >= now()");
+      } else if (filters.timeRange === "past") {
+        conditions.push("gt.scheduled_at < now()");
+      }
 
-  return {
-    whereSql: conditions.join(" and "),
-    params
-  };
+      return {
+        whereSql: conditions.join(" and "),
+        params
+      };
 }
 
 function buildTicketHistoryWhere(filters: GroomingTicketHistoryFilters): { whereSql: string; params: unknown[] } {
-  const params: unknown[] = [filters.ownerUserId];
-  const conditions = [
-    "gt.owner_user_id = $1",
-    "gt.ticket_status in ('completed', 'cancelled')"
-  ];
 
-  if (filters.search) {
-    params.push(`%${filters.search}%`);
-    conditions.push(
-      `(gt.grooming_ticket_id ilike $${params.length} or p.pet_name ilike $${params.length} or exists (
+      const params: unknown[] = [filters.ownerUserId];
+      const conditions = [
+        "gt.owner_user_id = $1",
+        "gt.ticket_status in ('completed', 'cancelled')"
+      ];
+
+      if (filters.search) {
+        params.push(`%${filters.search}%`);
+        conditions.push(
+          `(gt.grooming_ticket_id ilike $${params.length} or p.pet_name ilike $${params.length} or exists (
         select 1
         from pet_center.grooming_ticket_items search_gti
         join pet_center.services search_s on search_s.service_id = search_gti.service_id
         where search_gti.grooming_ticket_id = gt.grooming_ticket_id
           and search_s.service_name ilike $${params.length}
       ))`
-    );
-  }
+        );
+      }
 
-  if (filters.petId) {
-    params.push(filters.petId);
-    conditions.push(`gt.pet_id = $${params.length}`);
-  }
+      if (filters.petId) {
+        params.push(filters.petId);
+        conditions.push(`gt.pet_id = $${params.length}`);
+      }
 
-  if (filters.status && filters.status !== "all") {
-    params.push(filters.status);
-    conditions.push(`gt.ticket_status = $${params.length}`);
-  }
+      if (filters.status && filters.status !== "all") {
+        params.push(filters.status);
+        conditions.push(`gt.ticket_status = $${params.length}`);
+      }
 
-  if (filters.timeRange === "today") {
-    conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date = (now() at time zone '${timeZone}')::date`);
-  } else if (filters.timeRange === "upcoming") {
-    conditions.push("gt.scheduled_at >= now()");
-  } else if (filters.timeRange === "past") {
-    conditions.push("gt.scheduled_at < now()");
-  }
+      if (filters.timeRange === "today") {
+        conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date = (now() at time zone '${timeZone}')::date`);
+      } else if (filters.timeRange === "upcoming") {
+        conditions.push("gt.scheduled_at >= now()");
+      } else if (filters.timeRange === "past") {
+        conditions.push("gt.scheduled_at < now()");
+      }
 
-  return {
-    whereSql: conditions.join(" and "),
-    params
-  };
+      return {
+        whereSql: conditions.join(" and "),
+        params
+      };
 }
 
 const groomingTicketListSelectSql = `
@@ -570,8 +302,9 @@ const groomingTicketListGroupSql = `
 `;
 
 export async function findActiveGroomingServices(): Promise<GroomingServiceDto[]> {
-  const result = await query<GroomingServiceRow>(
-    `select
+
+      const result = await query<GroomingServiceRow>(
+        `select
        s.service_id,
        s.service_name,
        s.description,
@@ -581,60 +314,63 @@ export async function findActiveGroomingServices(): Promise<GroomingServiceDto[]
      where s.service_category = 'grooming'
        and s.service_status = 'active'
      order by s.service_id asc`
-  );
+      );
 
-  return mapGroomingServices(result.rows);
+      return mapper.mapGroomingServices(result.rows);
 }
 
 export async function findOwnerBookingPets(ownerUserId: string): Promise<GroomingBookingPetDto[]> {
-  const result = await query<BookingPetRow>(
-    `select p.pet_id, p.pet_name, p.species, p.weight_kg, p.profile_image_url
+
+      const result = await query<BookingPetRow>(
+        `select p.pet_id, p.pet_name, p.species, p.weight_kg, p.profile_image_url
      from pet_center.pets p
      where p.owner_user_id = $1
        and p.pet_status = 'active'
      order by p.pet_name asc, p.pet_id asc`,
-    [ownerUserId]
-  );
+        [ownerUserId]
+      );
 
-  return result.rows.map(mapBookingPet);
+      return result.rows.map(mapper.mapBookingPet);
 }
 
 export async function findOwnerBookingPet(ownerUserId: string, petId: string): Promise<GroomingBookingPetDto | null> {
-  const result = await query<BookingPetRow>(
-    `select p.pet_id, p.pet_name, p.species, p.weight_kg, p.profile_image_url
+
+      const result = await query<BookingPetRow>(
+        `select p.pet_id, p.pet_name, p.species, p.weight_kg, p.profile_image_url
      from pet_center.pets p
      where p.owner_user_id = $1
        and p.pet_id = $2
        and p.pet_status = 'active'
      limit 1`,
-    [ownerUserId, petId]
-  );
+        [ownerUserId, petId]
+      );
 
-  return result.rows[0] ? mapBookingPet(result.rows[0]) : null;
+      return result.rows[0] ? mapper.mapBookingPet(result.rows[0]) : null;
 }
 
 export async function findStaffCounterPets(input: {
   search: string;
   limit: number;
 }): Promise<StaffCounterGroomingPetDto[]> {
-  const params: Array<string | number> = [];
-  const conditions = ["p.pet_status = 'active'", "u.account_status = 'active'"];
 
-  if (input.search) {
-    params.push(`%${input.search.toLowerCase()}%`);
-    conditions.push(`(
+      const params: Array<string | number> = [];
+      const conditions = ["p.pet_status = 'active'", "u.account_status = 'active'"];
+
+      if (input.search) {
+        params.push(`%${input.search.toLowerCase()}%`);
+        conditions.push(`(
       lower(p.pet_id) like $${params.length}
       or lower(p.pet_name) like $${params.length}
       or lower(coalesce(p.breed, '')) like $${params.length}
       or lower(u.full_name) like $${params.length}
       or lower(coalesce(u.phone_number, '')) like $${params.length}
     )`);
-  }
+      }
 
-  params.push(input.limit);
+      params.push(input.limit);
 
-  const result = await query<StaffCounterPetRow>(
-    `select
+      const result = await query<StaffCounterPetRow>(
+        `select
        p.pet_id,
        p.pet_name,
        p.species,
@@ -649,15 +385,16 @@ export async function findStaffCounterPets(input: {
      where ${conditions.join(" and ")}
      order by p.pet_name asc, p.pet_id asc
      limit $${params.length}`,
-    params
-  );
+        params
+      );
 
-  return result.rows.map(mapStaffCounterPet);
+      return result.rows.map(mapper.mapStaffCounterPet);
 }
 
 export async function findStaffCounterPet(petId: string): Promise<StaffCounterGroomingPetDto | null> {
-  const result = await query<StaffCounterPetRow>(
-    `select
+
+      const result = await query<StaffCounterPetRow>(
+        `select
        p.pet_id,
        p.pet_name,
        p.species,
@@ -673,15 +410,16 @@ export async function findStaffCounterPet(petId: string): Promise<StaffCounterGr
        and p.pet_status = 'active'
        and u.account_status = 'active'
      limit 1`,
-    [petId]
-  );
+        [petId]
+      );
 
-  return result.rows[0] ? mapStaffCounterPet(result.rows[0]) : null;
+      return result.rows[0] ? mapper.mapStaffCounterPet(result.rows[0]) : null;
 }
 
 export async function findBookingServicePriceBases(): Promise<GroomingBookingServicePriceBaseDto[]> {
-  const result = await query<BookingServiceRow>(
-    `select
+
+      const result = await query<BookingServiceRow>(
+        `select
        s.service_id,
        s.service_name,
        s.description,
@@ -691,14 +429,15 @@ export async function findBookingServicePriceBases(): Promise<GroomingBookingSer
      where s.service_category = 'grooming'
        and s.service_status = 'active'
      order by s.service_id asc`
-  );
+      );
 
-  return result.rows.map(mapBookingServicePriceBase).filter((service): service is GroomingBookingServicePriceBaseDto => service !== null);
+      return result.rows.map(mapper.mapBookingServicePriceBase).filter((service): service is GroomingBookingServicePriceBaseDto => service !== null);
 }
 
 export async function findBookingServicePriceBase(serviceId: string): Promise<GroomingBookingServicePriceBaseDto | null> {
-  const result = await query<BookingServiceRow>(
-    `select
+
+      const result = await query<BookingServiceRow>(
+        `select
        s.service_id,
        s.service_name,
        s.description,
@@ -709,83 +448,86 @@ export async function findBookingServicePriceBase(serviceId: string): Promise<Gr
        and s.service_category = 'grooming'
        and s.service_status = 'active'
      limit 1`,
-    [serviceId]
-  );
-  const row = result.rows[0];
+        [serviceId]
+      );
+      const row = result.rows[0];
 
-  if (!row) return null;
+      if (!row) return null;
 
-  return mapBookingServicePriceBase(row);
+      return mapper.mapBookingServicePriceBase(row);
 }
 
 export async function findBookedGroomingTickets(
   filters: GroomingTicketListFilters
 ): Promise<{ tickets: GroomingTicketListItemDto[]; total: number }> {
-  const { whereSql, params } = buildBookedTicketsWhere(filters);
-  const listParams = [...params, filters.limit, filters.offset];
 
-  const [listResult, countResult] = await Promise.all([
-    query<GroomingTicketListRow>(
-      `select ${groomingTicketListSelectSql}
+      const { whereSql, params } = buildBookedTicketsWhere(filters);
+      const listParams = [...params, filters.limit, filters.offset];
+
+      const [listResult, countResult] = await Promise.all([
+        query<GroomingTicketListRow>(
+          `select ${groomingTicketListSelectSql}
        ${groomingTicketListJoinSql}
        where ${whereSql}
        ${groomingTicketListGroupSql}
        order by gt.scheduled_at asc, gt.grooming_ticket_id asc
        limit $${params.length + 1} offset $${params.length + 2}`,
-      listParams
-    ),
-    query<CountRow>(
-      `select count(*)::text as total
+          listParams
+        ),
+        query<CountRow>(
+          `select count(*)::text as total
        from pet_center.grooming_tickets gt
        join pet_center.pets p on p.pet_id = gt.pet_id
        where ${whereSql}`,
-      params
-    )
-  ]);
+          params
+        )
+      ]);
 
-  return {
-    tickets: listResult.rows.map(mapGroomingTicketListItem),
-    total: Number(countResult.rows[0]?.total ?? 0)
-  };
+      return {
+        tickets: listResult.rows.map(mapper.mapGroomingTicketListItem),
+        total: Number(countResult.rows[0]?.total ?? 0)
+      };
 }
 
 export async function findGroomingTicketHistory(
   filters: GroomingTicketHistoryFilters
 ): Promise<{ tickets: GroomingTicketListItemDto[]; total: number }> {
-  const { whereSql, params } = buildTicketHistoryWhere(filters);
-  const listParams = [...params, filters.limit, filters.offset];
 
-  const [listResult, countResult] = await Promise.all([
-    query<GroomingTicketListRow>(
-      `select ${groomingTicketListSelectSql}
+      const { whereSql, params } = buildTicketHistoryWhere(filters);
+      const listParams = [...params, filters.limit, filters.offset];
+
+      const [listResult, countResult] = await Promise.all([
+        query<GroomingTicketListRow>(
+          `select ${groomingTicketListSelectSql}
        ${groomingTicketListJoinSql}
        where ${whereSql}
        ${groomingTicketListGroupSql}
        order by gt.scheduled_at desc, gt.grooming_ticket_id desc
        limit $${params.length + 1} offset $${params.length + 2}`,
-      listParams
-    ),
-    query<CountRow>(
-      `select count(*)::text as total
+          listParams
+        ),
+        query<CountRow>(
+          `select count(*)::text as total
        from pet_center.grooming_tickets gt
        join pet_center.pets p on p.pet_id = gt.pet_id
        where ${whereSql}`,
-      params
-    )
-  ]);
+          params
+        )
+      ]);
 
-  return {
-    tickets: listResult.rows.map(mapGroomingTicketListItem),
-    total: Number(countResult.rows[0]?.total ?? 0)
-  };
+      return {
+        tickets: listResult.rows.map(mapper.mapGroomingTicketListItem),
+        total: Number(countResult.rows[0]?.total ?? 0)
+      };
 }
 
 export async function findBookedGroomingTicketById(
   ownerUserId: string,
   ticketId: string
 ): Promise<GroomingTicketDetailDto | null> {
-  const ticketResult = await query<GroomingTicketDetailRow>(
-    `select ${groomingTicketListSelectSql},
+
+      const ticketResult = await query<GroomingTicketDetailRow>(
+        `select ${groomingTicketListSelectSql},
        p.pet_id,
        inv.invoice_id
      ${groomingTicketListJoinSql}
@@ -796,15 +538,15 @@ export async function findBookedGroomingTicketById(
        p.pet_id,
        inv.invoice_id
      limit 1`,
-    [ownerUserId, ticketId]
-  );
-  const ticket = ticketResult.rows[0];
+        [ownerUserId, ticketId]
+      );
+      const ticket = ticketResult.rows[0];
 
-  if (!ticket) return null;
+      if (!ticket) return null;
 
-  const [itemsResult, paymentResult] = await Promise.all([
-    query<GroomingTicketItemRow>(
-      `select
+      const [itemsResult, paymentResult] = await Promise.all([
+        query<GroomingTicketItemRow>(
+          `select
          s.service_id,
          s.service_name,
          gti.quantity,
@@ -814,11 +556,11 @@ export async function findBookedGroomingTicketById(
        join pet_center.services s on s.service_id = gti.service_id
        where gti.grooming_ticket_id = $1
        order by s.service_name asc`,
-      [ticketId]
-    ),
-    ticket.invoice_id
-      ? query<PaymentRow>(
-          `select
+          [ticketId]
+        ),
+        ticket.invoice_id
+          ? query<PaymentRow>(
+              `select
              p.payment_id,
              p.payment_method,
              p.payment_provider,
@@ -833,24 +575,25 @@ export async function findBookedGroomingTicketById(
              and p.payment_status = 'success'
            order by p.paid_at desc nulls last, p.payment_id desc
            limit 1`,
-          [ticket.invoice_id]
-        )
-      : Promise.resolve({ rows: [] as PaymentRow[] })
-  ]);
+              [ticket.invoice_id]
+            )
+          : Promise.resolve({ rows: [] as PaymentRow[] })
+      ]);
 
-  return mapGroomingTicketDetail(ticket, itemsResult.rows, paymentResult.rows[0] ?? null);
+      return mapper.mapGroomingTicketDetail(ticket, itemsResult.rows, paymentResult.rows[0] ?? null);
 }
 
 export async function cancelBookedGroomingTicket(ownerUserId: string, ticketId: string): Promise<GroomingTicketCancelledDto | null> {
-  const cancelled = await withTransaction(async (client) => {
-    const ticketResult = await client.query<QueryResultRow & {
-      grooming_ticket_id: string;
-      ticket_status: GroomingTicketStatus;
-      invoice_id: string | null;
-      invoice_status: InvoiceStatus | null;
-      has_success_payment: boolean;
-    }>(
-      `select
+
+      const cancelled = await withTransaction(async (client) => {
+        const ticketResult = await client.query<QueryResultRow & {
+          grooming_ticket_id: string;
+          ticket_status: GroomingTicketStatus;
+          invoice_id: string | null;
+          invoice_status: InvoiceStatus | null;
+          has_success_payment: boolean;
+        }>(
+          `select
          gt.grooming_ticket_id,
          gt.ticket_status,
          inv.invoice_id,
@@ -876,62 +619,64 @@ export async function cancelBookedGroomingTicket(ownerUserId: string, ticketId: 
        where gt.owner_user_id = $1
          and gt.grooming_ticket_id = $2
        for update of gt`,
-      [ownerUserId, ticketId]
-    );
-    const ticket = ticketResult.rows[0];
+          [ownerUserId, ticketId]
+        );
+        const ticket = ticketResult.rows[0];
 
-    if (!ticket) return null;
+        if (!ticket) return null;
 
-    if (ticket.ticket_status !== "pending") {
-      throw new Error("GROOMING_TICKET_CANCEL_NOT_ALLOWED");
-    }
+        if (ticket.ticket_status !== "pending") {
+          throw new Error("GROOMING_TICKET_CANCEL_NOT_ALLOWED");
+        }
 
-    if (ticket.invoice_status === "paid" || ticket.has_success_payment) {
-      throw new Error("GROOMING_TICKET_PAID_CANCEL_NOT_ALLOWED");
-    }
+        if (ticket.invoice_status === "paid" || ticket.has_success_payment) {
+          throw new Error("GROOMING_TICKET_PAID_CANCEL_NOT_ALLOWED");
+        }
 
-    await client.query(
-      `update pet_center.grooming_tickets
+        await client.query(
+          `update pet_center.grooming_tickets
        set ticket_status = 'cancelled'
        where owner_user_id = $1
          and grooming_ticket_id = $2`,
-      [ownerUserId, ticketId]
-    );
+          [ownerUserId, ticketId]
+        );
 
-    if (ticket.invoice_id) {
-      await client.query(
-        `update pet_center.invoices
+        if (ticket.invoice_id) {
+          await client.query(
+            `update pet_center.invoices
          set invoice_status = 'cancelled'
          where invoice_id = $1
            and invoice_status <> 'paid'`,
-        [ticket.invoice_id]
-      );
-    }
+            [ticket.invoice_id]
+          );
+        }
 
-    return {
-      groomingTicketId: ticket.grooming_ticket_id,
-      bookingCode: ticket.grooming_ticket_id,
-      ticketStatus: "cancelled" as const,
-      ticketStatusLabel: getTicketStatusLabel("cancelled"),
-      invoiceStatus: ticket.invoice_id ? "cancelled" as const : ticket.invoice_status
-    };
-  });
+        return {
+          groomingTicketId: ticket.grooming_ticket_id,
+          bookingCode: ticket.grooming_ticket_id,
+          ticketStatus: "cancelled" as const,
+          ticketStatusLabel: mapper.getTicketStatusLabel("cancelled"),
+          invoiceStatus: ticket.invoice_id ? "cancelled" as const : ticket.invoice_status
+        };
+      });
 
-  return cancelled;
+      return cancelled;
 }
 
 export async function countActiveStaff(client?: PoolClient): Promise<number> {
-  const sql = `select count(*)::text as total
+
+      const sql = `select count(*)::text as total
    from pet_center.users u
    where u.role = 'Staff'
      and u.account_status = 'active'`;
-  const result = client ? await client.query<CountRow>(sql) : await query<CountRow>(sql);
+      const result = client ? await client.query<CountRow>(sql) : await query<CountRow>(sql);
 
-  return Number(result.rows[0]?.total ?? 0);
+      return Number(result.rows[0]?.total ?? 0);
 }
 
 export async function findBookedUnitsBySlot(date: string, client?: PoolClient): Promise<Map<string, number>> {
-  const sql = `select
+
+      const sql = `select
      to_char(gt.scheduled_at at time zone $2, 'HH24:MI') as slot_time,
      coalesce(sum(gti.quantity), 0)::text as booked_units
    from pet_center.grooming_tickets gt
@@ -939,44 +684,45 @@ export async function findBookedUnitsBySlot(date: string, client?: PoolClient): 
    where (gt.scheduled_at at time zone $2)::date = $1::date
      and gt.ticket_status in ('pending', 'waiting', 'in_progress', 'completed')
    group by to_char(gt.scheduled_at at time zone $2, 'HH24:MI')`;
-  const params = [date, timeZone];
-  const result = client
-    ? await client.query<BookedUnitsRow>(sql, params)
-    : await query<BookedUnitsRow>(sql, params);
+      const params = [date, timeZone];
+      const result = client
+        ? await client.query<BookedUnitsRow>(sql, params)
+        : await query<BookedUnitsRow>(sql, params);
 
-  return new Map(result.rows.map((row) => [row.slot_time, Number(row.booked_units)]));
+      return new Map(result.rows.map((row) => [row.slot_time, Number(row.booked_units)]));
 }
 
 export async function getAvailability(date: string): Promise<GroomingAvailabilityDto> {
-  const [activeStaffCount, bookedUnitsBySlot] = await Promise.all([
-    countActiveStaff(),
-    findBookedUnitsBySlot(date)
-  ]);
-  const capacity = activeStaffCount;
-  const slots = [];
 
-  for (let hour = slotStartHour; hour <= slotEndHour; hour += 1) {
-    for (const minute of [0, 30]) {
-      if (hour === slotEndHour && minute > slotEndMinute) continue;
+      const [activeStaffCount, bookedUnitsBySlot] = await Promise.all([
+        countActiveStaff(),
+        findBookedUnitsBySlot(date)
+      ]);
+      const capacity = activeStaffCount;
+      const slots = [];
 
-      const slotTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-      const bookedUnits = bookedUnitsBySlot.get(slotTime) ?? 0;
-      const availableUnits = Math.max(capacity - bookedUnits, 0);
+      for (let hour = slotStartHour; hour <= slotEndHour; hour += 1) {
+        for (const minute of [0, 30]) {
+          if (hour === slotEndHour && minute > slotEndMinute) continue;
 
-      slots.push({
-        time: slotTime,
-        capacity,
-        bookedUnits,
-        availableUnits,
-        available: availableUnits > 0
-      });
-    }
-  }
+          const slotTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+          const bookedUnits = bookedUnitsBySlot.get(slotTime) ?? 0;
+          const availableUnits = Math.max(capacity - bookedUnits, 0);
 
-  return {
-    date,
-    slots
-  };
+          slots.push({
+            time: slotTime,
+            capacity,
+            bookedUnits,
+            availableUnits,
+            available: availableUnits > 0
+          });
+        }
+      }
+
+      return {
+        date,
+        slots
+      };
 }
 
 async function hasOverlappingActiveGroomingForPet(
@@ -984,8 +730,9 @@ async function hasOverlappingActiveGroomingForPet(
   petId: string,
   scheduledAt: Date
 ): Promise<boolean> {
-  const result = await client.query<{ exists: boolean }>(
-    `select exists (
+
+      const result = await client.query<{ exists: boolean }>(
+        `select exists (
        select 1
        from pet_center.grooming_tickets gt
        where gt.pet_id = $1
@@ -993,112 +740,113 @@ async function hasOverlappingActiveGroomingForPet(
          and gt.scheduled_at < $2::timestamptz + interval '30 minutes'
          and gt.scheduled_at + interval '30 minutes' > $2::timestamptz
      ) as "exists"`,
-    [petId, scheduledAt]
-  );
+        [petId, scheduledAt]
+      );
 
-  return result.rows[0]?.exists ?? false;
+      return result.rows[0]?.exists ?? false;
 }
 
 export async function createGroomingBooking(input: CreateBookingInput): Promise<GroomingTicketCreatedDto> {
-  return withTransaction(async (client) => {
-    await client.query("lock table pet_center.grooming_tickets in share row exclusive mode");
 
-    const activeStaffCount = await countActiveStaff(client);
-    const capacity = activeStaffCount;
-    const bookedUnitsBySlot = await findBookedUnitsBySlot(toVietnamDateString(input.scheduledAt), client);
-    const scheduledSlot = new Intl.DateTimeFormat("en-GB", {
-      timeZone,
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false
-    }).format(input.scheduledAt);
-    const bookedUnits = bookedUnitsBySlot.get(scheduledSlot) ?? 0;
+      return withTransaction(async (client) => {
+        await client.query("lock table pet_center.grooming_tickets in share row exclusive mode");
 
-    if (capacity <= 0 || bookedUnits >= capacity) {
-      throw new Error("GROOMING_SLOT_FULL");
-    }
+        const activeStaffCount = await countActiveStaff(client);
+        const capacity = activeStaffCount;
+        const bookedUnitsBySlot = await findBookedUnitsBySlot(mapper.toVietnamDateString(input.scheduledAt), client);
+        const scheduledSlot = new Intl.DateTimeFormat("en-GB", {
+          timeZone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
+        }).format(input.scheduledAt);
+        const bookedUnits = bookedUnitsBySlot.get(scheduledSlot) ?? 0;
 
-    const petHasOverlappingBooking = await hasOverlappingActiveGroomingForPet(client, input.pet.petId, input.scheduledAt);
+        if (capacity <= 0 || bookedUnits >= capacity) {
+          throw new Error("GROOMING_SLOT_FULL");
+        }
 
-    if (petHasOverlappingBooking) {
-      throw new Error("GROOMING_PET_TIME_CONFLICT");
-    }
+        const petHasOverlappingBooking = await hasOverlappingActiveGroomingForPet(client, input.pet.petId, input.scheduledAt);
 
-    const groomingTicketId = await createId("spa", client);
-    const groomingTicketItemId = await createId("gti", client);
-    const invoiceId = await createId("inv", client);
-    const invoiceLineId = await createId("inl", client);
-    const ticketStatus: GroomingTicketStatus = input.paymentOption === "online" ? "pending_payment" : "pending";
-    const invoiceStatus: InvoiceStatus = "pending_payment";
-    const createdByUserId = input.createdByUserId ?? input.ownerUserId;
-    const sourceType = input.sourceType ?? "online";
+        if (petHasOverlappingBooking) {
+          throw new Error("GROOMING_PET_TIME_CONFLICT");
+        }
 
-    await client.query(
-      `insert into pet_center.grooming_tickets (
+        const groomingTicketId = await createId("spa", client);
+        const groomingTicketItemId = await createId("gti", client);
+        const invoiceId = await createId("inv", client);
+        const invoiceLineId = await createId("inl", client);
+        const ticketStatus: GroomingTicketStatus = input.paymentOption === "online" ? "pending_payment" : "pending";
+        const invoiceStatus: InvoiceStatus = "pending_payment";
+        const createdByUserId = input.createdByUserId ?? input.ownerUserId;
+        const sourceType = input.sourceType ?? "online";
+
+        await client.query(
+          `insert into pet_center.grooming_tickets (
          grooming_ticket_id, pet_id, owner_user_id, created_by_user_id, source_type,
          scheduled_at, special_request, estimated_total, ticket_status
        )
        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [
-        groomingTicketId,
-        input.pet.petId,
-        input.ownerUserId,
-        createdByUserId,
-        sourceType,
-        input.scheduledAt,
-        input.specialRequest ?? null,
-        input.service.appliedPrice,
-        ticketStatus
-      ]
-    );
+          [
+            groomingTicketId,
+            input.pet.petId,
+            input.ownerUserId,
+            createdByUserId,
+            sourceType,
+            input.scheduledAt,
+            input.specialRequest ?? null,
+            input.service.appliedPrice,
+            ticketStatus
+          ]
+        );
 
-    await client.query(
-      `insert into pet_center.grooming_ticket_items (
+        await client.query(
+          `insert into pet_center.grooming_ticket_items (
          grooming_ticket_item_id, grooming_ticket_id, service_id, quantity, applied_unit_price, line_amount
        )
        values ($1, $2, $3, 1, $4, $4)`,
-      [groomingTicketItemId, groomingTicketId, input.service.serviceId, input.service.appliedPrice]
-    );
+          [groomingTicketItemId, groomingTicketId, input.service.serviceId, input.service.appliedPrice]
+        );
 
-    await client.query(
-      `insert into pet_center.invoices (
+        await client.query(
+          `insert into pet_center.invoices (
          invoice_id, owner_user_id, pet_id, subtotal_amount, discount_amount, surcharge_amount,
          total_amount, payment_option, invoice_status
        )
        values ($1, $2, $3, $4, 0, 0, $4, $5, $6)`,
-      [invoiceId, input.ownerUserId, input.pet.petId, input.service.appliedPrice, input.paymentOption, invoiceStatus]
-    );
+          [invoiceId, input.ownerUserId, input.pet.petId, input.service.appliedPrice, input.paymentOption, invoiceStatus]
+        );
 
-    await client.query(
-      `insert into pet_center.invoice_lines (
+        await client.query(
+          `insert into pet_center.invoice_lines (
          invoice_line_id, invoice_id, service_id, source_type, source_id, description,
          quantity, unit_price, line_discount_amount, line_amount
        )
        values ($1, $2, $3, 'grooming', $4, $5, 1, $6, 0, $6)`,
-      [
-        invoiceLineId,
-        invoiceId,
-        input.service.serviceId,
-        groomingTicketId,
-        input.service.serviceName,
-        input.service.appliedPrice
-      ]
-    );
+          [
+            invoiceLineId,
+            invoiceId,
+            input.service.serviceId,
+            groomingTicketId,
+            input.service.serviceName,
+            input.service.appliedPrice
+          ]
+        );
 
-    return {
-      groomingTicketId,
-      bookingCode: groomingTicketId,
-      invoiceId,
-      paymentOption: input.paymentOption,
-      ticketStatus,
-      invoiceStatus,
-      totalAmount: input.service.appliedPrice,
-      paymentUrl: null,
-      petName: input.pet.petName,
-      serviceName: input.service.serviceName,
-      scheduledAt: input.scheduledAt.toISOString()
-    };
-  });
+        return {
+          groomingTicketId,
+          bookingCode: groomingTicketId,
+          invoiceId,
+          paymentOption: input.paymentOption,
+          ticketStatus,
+          invoiceStatus,
+          totalAmount: input.service.appliedPrice,
+          paymentUrl: null,
+          petName: input.pet.petName,
+          serviceName: input.service.serviceName,
+          scheduledAt: input.scheduledAt.toISOString()
+        };
+      });
 }
 
 export async function listStaffGroomingTickets(input: {
@@ -1110,53 +858,54 @@ export async function listStaffGroomingTickets(input: {
   page: number;
   limit: number;
 }): Promise<StaffGroomingTicketListDto> {
-  const conditions = [];
-  const params: Array<string | number> = [];
 
-  if (input.status === "waiting") {
-    conditions.push("gt.ticket_status in ('waiting', 'in_progress')");
-  } else if (input.status !== "all") {
-    params.push(input.status);
-    conditions.push(`gt.ticket_status = $${params.length}`);
-  }
+      const conditions = [];
+      const params: Array<string | number> = [];
 
-  if (input.serviceId !== "all") {
-    params.push(input.serviceId);
-    conditions.push(`exists (
+      if (input.status === "waiting") {
+        conditions.push("gt.ticket_status in ('waiting', 'in_progress')");
+      } else if (input.status !== "all") {
+        params.push(input.status);
+        conditions.push(`gt.ticket_status = $${params.length}`);
+      }
+
+      if (input.serviceId !== "all") {
+        params.push(input.serviceId);
+        conditions.push(`exists (
       select 1
       from pet_center.grooming_ticket_items filter_gti
       where filter_gti.grooming_ticket_id = gt.grooming_ticket_id
         and filter_gti.service_id = $${params.length}
     )`);
-  }
+      }
 
-  if (input.species !== "all") {
-    params.push(input.species);
-    conditions.push(`p.species = $${params.length}`);
-  }
+      if (input.species !== "all") {
+        params.push(input.species);
+        conditions.push(`p.species = $${params.length}`);
+      }
 
-  if (input.timeRange === "today") {
-    conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date = (now() at time zone '${timeZone}')::date`);
-  } else if (input.timeRange === "upcoming") {
-    conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date > (now() at time zone '${timeZone}')::date`);
-  } else if (input.timeRange === "past") {
-    conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date < (now() at time zone '${timeZone}')::date`);
-  }
+      if (input.timeRange === "today") {
+        conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date = (now() at time zone '${timeZone}')::date`);
+      } else if (input.timeRange === "upcoming") {
+        conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date > (now() at time zone '${timeZone}')::date`);
+      } else if (input.timeRange === "past") {
+        conditions.push(`(gt.scheduled_at at time zone '${timeZone}')::date < (now() at time zone '${timeZone}')::date`);
+      }
 
-  if (input.search) {
-    params.push(`%${input.search.toLowerCase()}%`);
-    conditions.push(`(
+      if (input.search) {
+        params.push(`%${input.search.toLowerCase()}%`);
+        conditions.push(`(
       lower(gt.grooming_ticket_id) like $${params.length}
       or lower(p.pet_name) like $${params.length}
       or lower(u.full_name) like $${params.length}
       or lower(s.service_name) like $${params.length}
     )`);
-  }
+      }
 
-  const whereClause = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
-  const orderByClause =
-    input.status === "all"
-      ? `gt.scheduled_at desc,
+      const whereClause = conditions.length > 0 ? `where ${conditions.join(" and ")}` : "";
+      const orderByClause =
+        input.status === "all"
+          ? `gt.scheduled_at desc,
          case gt.ticket_status
            when 'pending' then 1
            when 'waiting' then 2
@@ -1165,7 +914,7 @@ export async function listStaffGroomingTickets(input: {
            when 'completed' then 5
            else 6
          end asc`
-      : `case gt.ticket_status
+          : `case gt.ticket_status
            when 'pending' then 1
            when 'waiting' then 2
            when 'in_progress' then 3
@@ -1174,32 +923,32 @@ export async function listStaffGroomingTickets(input: {
            else 6
          end asc,
          gt.scheduled_at asc`;
-  const countParams = [...params];
-  const offset = (input.page - 1) * input.limit;
-  params.push(input.limit, offset);
+      const countParams = [...params];
+      const offset = (input.page - 1) * input.limit;
+      params.push(input.limit, offset);
 
-  const [summaryResult, countResult, ticketsResult] = await Promise.all([
-    query<StaffGroomingSummaryRow>(
-      `select
+      const [summaryResult, countResult, ticketsResult] = await Promise.all([
+        query<StaffGroomingSummaryRow>(
+          `select
          count(*)::text as total,
          count(*) filter (where ticket_status = 'pending')::text as waiting_accept,
          count(*) filter (where ticket_status in ('waiting', 'in_progress'))::text as accepted,
          count(*) filter (where ticket_status = 'completed')::text as completed,
          count(*) filter (where ticket_status = 'cancelled')::text as cancelled
        from pet_center.grooming_tickets`
-    ),
-    query<CountRow>(
-      `select count(distinct gt.grooming_ticket_id)::text as total
+        ),
+        query<CountRow>(
+          `select count(distinct gt.grooming_ticket_id)::text as total
        from pet_center.grooming_tickets gt
        join pet_center.pets p on p.pet_id = gt.pet_id
        join pet_center.users u on u.user_id = gt.owner_user_id
        join pet_center.grooming_ticket_items gti on gti.grooming_ticket_id = gt.grooming_ticket_id
        join pet_center.services s on s.service_id = gti.service_id
        ${whereClause}`,
-      countParams
-    ),
-    query<StaffGroomingTicketRow>(
-      `select
+          countParams
+        ),
+        query<StaffGroomingTicketRow>(
+          `select
          gt.grooming_ticket_id,
          p.pet_name,
          p.species,
@@ -1239,48 +988,50 @@ export async function listStaffGroomingTickets(input: {
        order by
          ${orderByClause}
        limit $${params.length - 1} offset $${params.length}`,
-      params
-    )
-  ]);
-  const summaryRow = summaryResult.rows[0];
-  const total = Number(countResult.rows[0]?.total ?? 0);
+          params
+        )
+      ]);
+      const summaryRow = summaryResult.rows[0];
+      const total = Number(countResult.rows[0]?.total ?? 0);
 
-  return {
-    summary: {
-      total: Number(summaryRow?.total ?? 0),
-      waitingAccept: Number(summaryRow?.waiting_accept ?? 0),
-      accepted: Number(summaryRow?.accepted ?? 0),
-      completed: Number(summaryRow?.completed ?? 0),
-      cancelled: Number(summaryRow?.cancelled ?? 0)
-    },
-    pagination: {
-      page: input.page,
-      limit: input.limit,
-      total,
-      totalPages: Math.ceil(total / input.limit)
-    },
-    tickets: ticketsResult.rows.map(mapStaffGroomingTicket)
-  };
+      return {
+        summary: {
+          total: Number(summaryRow?.total ?? 0),
+          waitingAccept: Number(summaryRow?.waiting_accept ?? 0),
+          accepted: Number(summaryRow?.accepted ?? 0),
+          completed: Number(summaryRow?.completed ?? 0),
+          cancelled: Number(summaryRow?.cancelled ?? 0)
+        },
+        pagination: {
+          page: input.page,
+          limit: input.limit,
+          total,
+          totalPages: Math.ceil(total / input.limit)
+        },
+        tickets: ticketsResult.rows.map(mapper.mapStaffGroomingTicket)
+      };
 }
 
 export async function findGroomingTicketStatus(ticketId: string): Promise<GroomingTicketStatus | null> {
-  const result = await query<{ ticket_status: GroomingTicketStatus }>(
-    `select ticket_status
+
+      const result = await query<{ ticket_status: GroomingTicketStatus }>(
+        `select ticket_status
      from pet_center.grooming_tickets
      where grooming_ticket_id = $1
      limit 1`,
-    [ticketId]
-  );
+        [ticketId]
+      );
 
-  return result.rows[0]?.ticket_status ?? null;
+      return result.rows[0]?.ticket_status ?? null;
 }
 
 export async function updateGroomingTicketStatus(
   ticketId: string,
   status: Extract<GroomingTicketStatus, "waiting" | "in_progress" | "completed" | "cancelled">
 ): Promise<StaffGroomingTicketDto | null> {
-  const result = await query<StaffGroomingTicketRow>(
-    `with updated_ticket as (
+
+      const result = await query<StaffGroomingTicketRow>(
+        `with updated_ticket as (
        update pet_center.grooming_tickets
        set
          ticket_status = $2::varchar,
@@ -1327,8 +1078,8 @@ export async function updateGroomingTicketStatus(
        gt.special_request,
        gt.estimated_total,
        gt.ticket_status`,
-    [ticketId, status]
-  );
+        [ticketId, status]
+      );
 
-  return result.rows[0] ? mapStaffGroomingTicket(result.rows[0]) : null;
+      return result.rows[0] ? mapper.mapStaffGroomingTicket(result.rows[0]) : null;
 }

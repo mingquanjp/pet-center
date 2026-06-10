@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { httpStatus } from "../../../src/shared/errors/http-status.js";
-import * as repo from "../../../src/modules/appointments/owner-appointments.repository.js";
-import { createOwnerAppointment } from "../../../src/modules/appointments/owner-appointments.service.js";
+import * as repo from "../../../src/modules/appointments/owner/owner-appointments.repository.js";
+import { createOwnerAppointment } from "../../../src/modules/appointments/owner/owner-appointments.service.js";
 import * as transactions from "../../../src/db/transactions.js";
 import * as idUtils from "../../../src/shared/utils/id.js";
 import * as notifications from "../../../src/modules/notifications/notification-events.js";
 
-vi.mock("../../../src/modules/appointments/owner-appointments.repository.js");
+vi.mock("../../../src/modules/appointments/owner/owner-appointments.repository.js");
 vi.mock("../../../src/db/transactions.js", () => ({
   withTransaction: vi.fn((cb) => cb({})),
 }));

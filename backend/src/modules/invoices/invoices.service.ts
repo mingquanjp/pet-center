@@ -2,39 +2,8 @@ import * as repo from "./invoices.repository.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import { notifyPaymentSuccess } from "../notifications/notification-events.js";
-
-function mapInvoiceStatus(
-  status: string,
-  dueDate: Date | null,
-  paymentOption?: string
-): string {
-  if (paymentOption === "online") {
-    return "PAID";
-  }
-  if (status === "pending_payment" && dueDate && new Date(dueDate).getTime() < Date.now()) {
-    return "OVERDUE";
-  }
-  return status.toUpperCase();
-}
-
-function mapOwnerInvoiceStatus(status: string, dueDate: Date | null, paidAt?: Date | null): string {
-  if (status === "paid" || paidAt) {
-    return "PAID";
-  }
-  if (status === "pending_payment" && dueDate && new Date(dueDate).getTime() < Date.now()) {
-    return "OVERDUE";
-  }
-  return status.toUpperCase();
-}
-
-function mapServiceType(source: string | null): string {
-  if (!source) return "OTHER";
-  if (source === "medical_exam") return "MEDICAL";
-  if (source === "grooming") return "GROOMING";
-  if (source === "boarding") return "BOARDING";
-  if (source === "prescription") return "PRESCRIPTION";
-  return "OTHER";
-}
+import { mapInvoiceStatus, mapOwnerInvoiceStatus, getOwnerInvoiceNote, mapPaymentOption } from "./invoice-status.mapper.js";
+import { mapServiceType } from "./invoice-service-type.mapper.js";
 
 function mapServiceName(source: string | null): string {
   if (!source) return "Khác";
@@ -43,10 +12,6 @@ function mapServiceName(source: string | null): string {
   if (source === "boarding") return "Lưu trú";
   if (source === "prescription") return "Đơn thuốc";
   return "Khác";
-}
-
-function mapPaymentOption(opt: string): string {
-  return opt === "online" ? "ONLINE" : "AT_COUNTER";
 }
 
 export async function listStaffInvoices(filters: any) {
@@ -168,15 +133,6 @@ export async function getOwnerInvoiceDetail(invoiceId: string, ownerUserId: stri
     currency: "VND",
     note: getOwnerInvoiceNote(status),
   };
-}
-
-function getOwnerInvoiceNote(status: string) {
-  if (status === "PAID") return "Hóa đơn đã được thanh toán thành công.";
-  if (status === "PENDING_PAYMENT") return "Vui lòng thanh toán tại trung tâm.";
-  if (status === "OVERDUE") return "Hóa đơn đã quá hạn thanh toán.";
-  if (status === "CANCELLED") return "Hóa đơn đã được hủy.";
-  if (status === "REFUNDED") return "Hóa đơn đã được hoàn tiền.";
-  return "Hóa đơn đang ở trạng thái nháp.";
 }
 
 export async function getStaffInvoiceDetail(invoiceId: string) {

@@ -1,5 +1,5 @@
-import { createHash, createHmac, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
-import { promisify } from "node:util";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { hashPassword, verifyPassword } from "../../shared/security/password.service.js";
 import { env } from "../../config/env.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
@@ -17,7 +17,7 @@ import type {
 } from "./auth.schema.js";
 import type { AuthResponse, AuthUserDto, AuthUserRecord } from "./auth.types.js";
 
-const scrypt = promisify(scryptCallback);
+
 const passwordResetLifetimeMinutes = 30;
 
 function toUserDto(user: AuthUserRecord): AuthUserDto {
@@ -40,25 +40,7 @@ function base64UrlDecodeJson<T>(value: string): T {
   return JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as T;
 }
 
-async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString("base64url");
-  const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
 
-  return `scrypt$${salt}$${derivedKey.toString("base64url")}`;
-}
-
-async function verifyPassword(password: string, passwordHash: string): Promise<boolean> {
-  const [algorithm, salt, storedKey] = passwordHash.split("$");
-
-  if (algorithm !== "scrypt" || !salt || !storedKey) {
-    return false;
-  }
-
-  const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
-  const storedBuffer = Buffer.from(storedKey, "base64url");
-
-  return storedBuffer.length === derivedKey.length && timingSafeEqual(storedBuffer, derivedKey);
-}
 
 function hashResetToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");

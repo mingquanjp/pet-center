@@ -839,12 +839,19 @@ function getRecentActivityStatusClassName(activity: AdminDashboardRecentActivity
 
 function normalizeStatusLabel(label: string): string {
   const labels: Record<string, string> = {
+    "Đã lên lịch": "Đã lên lịch",
     "Da len lich": "Đã lên lịch",
+    "Đang chờ": "Đang chờ",
     "Dang cho": "Đang chờ",
+    "Đã xác nhận": "Đã xác nhận",
     "Da xac nhan": "Đã xác nhận",
+    "Hoàn thành": "Hoàn thành",
     "Hoan thanh": "Hoàn thành",
+    "Đã hủy": "Đã hủy",
     "Da huy": "Đã hủy",
+    "Từ chối": "Từ chối",
     "Tu choi": "Từ chối",
+    "Thất bại": "Thất bại",
     "That bai": "Thất bại",
   }
 

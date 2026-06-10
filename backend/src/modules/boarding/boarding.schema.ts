@@ -16,8 +16,8 @@ export const boardingBookingOptionsQuerySchema = z.object({
 });
 
 export const createBoardingRecordSchema = z.object({
-  petId: z.string().trim().min(1, "ThÃº cÆ°ng lÃ  báº¯t buá»™c").max(30),
-  roomTypeId: z.string().trim().min(1, "Loáº¡i phÃ²ng lÃ  báº¯t buá»™c").max(30),
+  petId: z.string().trim().min(1, "Thú cưng là bắt buộc").max(30),
+  roomTypeId: z.string().trim().min(1, "Loại phòng là bắt buộc").max(30),
   plannedCheckInAt: z.coerce.date(),
   plannedCheckOutAt: z.coerce.date(),
   careRequest: z.string().trim().max(1000).optional().nullable(),
@@ -97,9 +97,9 @@ export const getStaffBoardingCreateOptionsQuerySchema = z.object({
 });
 
 export const createStaffBoardingAtCounterSchema = z.object({
-  ownerId: z.string().min(1, "Vui lÃ²ng chá»n chá»§ nuÃ´i"),
-  petId: z.string().min(1, "Vui lÃ²ng chá»n thÃº cÆ°ng"),
-  roomTypeId: z.string().min(1, "Vui lÃ²ng chá»n loáº¡i phÃ²ng"),
+  ownerId: z.string().min(1, "Vui lòng chọn chủ nuôi"),
+  petId: z.string().min(1, "Vui lòng chọn thú cưng"),
+  roomTypeId: z.string().min(1, "Vui lòng chọn loại phòng"),
 
   plannedCheckInAt: z.union([z.string(), z.date()]).optional(),
   plannedCheckOutAt: z.union([z.string(), z.date()]).optional(),

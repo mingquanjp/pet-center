@@ -26,7 +26,7 @@ function assertDoctor(authUser: AuthUser): void {
 
 function assertAdmin(authUser: AuthUser): void {
   if (authUser.role !== "ADMIN") {
-    throw new AppError("Ban khong co quyen xem dashboard quan tri", "FORBIDDEN", httpStatus.FORBIDDEN);
+    throw new AppError("Bạn không có quyền xem dashboard quản trị", "FORBIDDEN", httpStatus.FORBIDDEN);
   }
 }
 
