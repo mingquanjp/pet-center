@@ -23,7 +23,6 @@ export function getOwnerInvoiceNote(status: string) {
     if (status === "PENDING_PAYMENT") return "Vui lòng thanh toán tại trung tâm.";
     if (status === "OVERDUE") return "Hóa đơn đã quá hạn thanh toán.";
     if (status === "CANCELLED") return "Hóa đơn đã được hủy.";
-    if (status === "REFUNDED") return "Hóa đơn đã được hoàn tiền.";
     return "Hóa đơn đang ở trạng thái nháp.";
 }
 

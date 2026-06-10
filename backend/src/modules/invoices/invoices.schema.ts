@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const listStaffInvoicesQuerySchema = z.object({
   search: z.string().optional(),
-  status: z.enum(["PAID", "PENDING_PAYMENT", "OVERDUE", "CANCELLED", "REFUNDED", "DRAFT"]).optional(),
+  status: z.enum(["PAID", "PENDING_PAYMENT", "OVERDUE", "CANCELLED", "DRAFT"]).optional(),
   serviceType: z.enum(["MEDICAL", "GROOMING", "BOARDING", "PRESCRIPTION", "OTHER"]).optional(),
   paymentOption: z.enum(["ONLINE", "AT_COUNTER"]).optional(),
   timeRange: z.enum(["TODAY", "THIS_WEEK", "THIS_MONTH", "ALL"]).optional(),
@@ -24,5 +24,5 @@ export const invoiceParamsSchema = z.object({
 });
 
 export const confirmPaymentSchema = z.object({
-  paymentMethod: z.enum(["cash_at_counter", "card_at_counter"]),
+  paymentMethod: z.enum(["at_counter"]),
 });

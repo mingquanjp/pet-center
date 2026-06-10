@@ -118,7 +118,6 @@ export async function startDoctorExamination(doctorUserId: string, appointmentId
       await repo.createMedicalExamForAppointment(
         await createId("mex", client),
         row.appointment_id,
-        row.exam_type_id,
         doctorUserId,
         client
       );
@@ -144,7 +143,7 @@ export async function saveDraftDoctorExamination(
 
     const examId = row.exam_id || await createId("mex", client);
     if (!row.exam_id) {
-      await repo.createMedicalExamForAppointment(examId, row.appointment_id, row.exam_type_id, doctorUserId, client);
+      await repo.createMedicalExamForAppointment(examId, row.appointment_id, doctorUserId, client);
     }
 
     await repo.saveMedicalExamDraft(examId, body.diagnosis, body.conclusion, body.healthNote, client);
@@ -182,7 +181,7 @@ export async function completeDoctorExamination(
 
     const examId = row.exam_id || await createId("mex", client);
     if (!row.exam_id) {
-      await repo.createMedicalExamForAppointment(examId, row.appointment_id, row.exam_type_id, doctorUserId, client);
+      await repo.createMedicalExamForAppointment(examId, row.appointment_id, doctorUserId, client);
     }
 
     const hasFollowUp = Boolean(body.followUp);

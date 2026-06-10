@@ -3,7 +3,7 @@ import type { QueryResultRow } from "pg";
 export type BoardingRecordStatus = "pending" | "confirmed" | "staying" | "checked_out" | "cancelled" | "rejected";
 export type BoardingCreateStatus = "pending_payment" | "pending";
 export type BoardingPaymentOption = "online" | "counter";
-export type BoardingInvoiceStatus = "pending_payment" | "paid" | "cancelled" | "refunded";
+export type BoardingInvoiceStatus = "pending_payment" | "paid" | "cancelled";
 export type BoardingAlertLevel = "normal" | "attention" | "urgent";
 export type BoardingPetSpecies = "Dog" | "Cat" | "Other";
 export type BoardingCareLogType = "booking_created" | "check_in" | "daily_update" | "check_out";
@@ -115,7 +115,7 @@ export type BoardingRecordListItemDto = {
   payment: {
     paymentOption: BoardingPaymentOption | null;
     paymentMethodLabel: string;
-    paymentStatus: "paid" | "unpaid" | "refunded" | "cancelled";
+    paymentStatus: "paid" | "unpaid" | "cancelled";
     paymentStatusLabel: string;
   };
   estimatedTotal: number;
@@ -154,7 +154,7 @@ export type BoardingRecordDetailDto = {
     invoiceId: string | null;
     paymentOption: BoardingPaymentOption | null;
     paymentMethodLabel: string;
-    paymentStatus: "paid" | "unpaid" | "refunded" | "cancelled";
+    paymentStatus: "paid" | "unpaid" | "cancelled";
     paymentStatusLabel: string;
     receiptCode: string | null;
     receiptUrl: string | null;
@@ -530,8 +530,7 @@ export type AdminBoardingRecordStatus =
 
 export type AdminBoardingPaymentStatus =
   | "paid"
-  | "unpaid"
-  | "refunded";
+  | "unpaid";
 
 export interface AdminBoardingRoomUsageStatsDto {
   totalRecords: number;

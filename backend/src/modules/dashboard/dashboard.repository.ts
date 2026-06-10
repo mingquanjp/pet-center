@@ -39,9 +39,6 @@ type PetRow = QueryResultRow & {
   birth_date: string | null;
   estimated_age: string | number | null;
   profile_image_url: string | null;
-  pet_status: "active" | "inactive" | "deceased";
-  has_active_boarding: boolean;
-  needs_attention: boolean;
 };
 
 type AppointmentRow = QueryResultRow & {
@@ -241,27 +238,6 @@ function getAgeLabel(row: PetRow): string {
   return `${Math.floor(estimatedAge)} năm tuổi`;
 }
 
-function getDisplayStatus(row: PetRow): OwnerDashboardPet["displayStatus"] {
-  if (row.pet_status === "inactive") return "inactive";
-  if (row.pet_status === "deceased") return "deceased";
-  if (row.has_active_boarding) return "boarding";
-  if (row.needs_attention) return "watching";
-
-  return "healthy";
-}
-
-function getDisplayStatusLabel(displayStatus: OwnerDashboardPet["displayStatus"]): string {
-  const labels = {
-    healthy: "Khỏe mạnh",
-    watching: "Cần theo dõi",
-    boarding: "Đang lưu trú",
-    inactive: "Ngưng theo dõi",
-    deceased: "Đã mất",
-  } as const;
-
-  return labels[displayStatus];
-}
-
 function getAppointmentStatusLabel(status: OwnerDashboardAppointment["appointmentStatus"]): string {
   const labels = {
     pending_payment: "Chờ thanh toán",
@@ -275,8 +251,6 @@ function getAppointmentStatusLabel(status: OwnerDashboardAppointment["appointmen
 }
 
 function mapPet(row: PetRow): OwnerDashboardPet {
-  const displayStatus = getDisplayStatus(row);
-
   return {
     petId: row.pet_id,
     petName: row.pet_name,
@@ -284,8 +258,6 @@ function mapPet(row: PetRow): OwnerDashboardPet {
     breed: row.breed,
     ageLabel: getAgeLabel(row),
     profileImageUrl: row.profile_image_url,
-    displayStatus,
-    displayStatusLabel: getDisplayStatusLabel(displayStatus),
   };
 }
 
@@ -600,7 +572,7 @@ export async function getOwnerDashboard(ownerUserId: string): Promise<OwnerDashb
     query<CountRow>(
       `select count(*)::text as total
        from pet_center.pets
-       where owner_user_id = $1 and pet_status = 'active'`,
+       where owner_user_id = $1`,
       [ownerUserId]
     ),
     query<CountRow>(
@@ -631,23 +603,9 @@ export async function getOwnerDashboard(ownerUserId: string): Promise<OwnerDashb
          p.breed,
          p.birth_date::text as birth_date,
          p.estimated_age,
-         p.profile_image_url,
-         p.pet_status,
-         exists (
-           select 1 from pet_center.boarding_records br
-           where br.pet_id = p.pet_id and br.boarding_status = 'staying'
-         ) as has_active_boarding,
-         exists (
-           select 1 from pet_center.pet_health_profiles php
-           where php.pet_id = p.pet_id
-             and (
-               nullif(trim(coalesce(php.allergy_notes, '')), '') is not null
-               or nullif(trim(coalesce(php.chronic_condition_notes, '')), '') is not null
-               or nullif(trim(coalesce(php.special_care_notes, '')), '') is not null
-             )
-         ) as needs_attention
+         p.profile_image_url
        from pet_center.pets p
-       where p.owner_user_id = $1 and p.pet_status = 'active'
+       where p.owner_user_id = $1
        order by p.pet_name asc, p.pet_id asc
        limit 4`,
       [ownerUserId]
@@ -706,7 +664,6 @@ export async function getOwnerDashboard(ownerUserId: string): Promise<OwnerDashb
          from pet_center.vaccinations v
          inner join pet_center.pets p on p.pet_id = v.pet_id
          where p.owner_user_id = $1
-           and p.pet_status = 'active'
            and (v.vaccination_date + interval '1 year')::date <= current_date + interval '30 days'
 
          union all
@@ -726,7 +683,6 @@ export async function getOwnerDashboard(ownerUserId: string): Promise<OwnerDashb
          inner join pet_center.medical_appointments ma on ma.appointment_id = me.appointment_id
          inner join pet_center.pets p on p.pet_id = ma.pet_id
          where ma.owner_user_id = $1
-           and p.pet_status = 'active'
            and fui.follow_up_date <= current_date + interval '30 days'
        ) reminders
        order by due_date asc, id asc
@@ -1041,8 +997,7 @@ export async function getAdminStats(range: {
     ),
     query<CountRow>(
       `select count(*)::text as total
-       from pet_center.pets
-       where pet_status = 'active'`
+       from pet_center.pets`
     ),
     query<CountRow>(
       `select count(*)::text as total

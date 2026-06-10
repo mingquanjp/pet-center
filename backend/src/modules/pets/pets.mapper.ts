@@ -1,5 +1,5 @@
 import { AppError } from "../../shared/errors/app-error.js";
-import { PetSpecies, PetGender, PetStatus, PetDisplayStatus, PetHealthProfileInput, PetDto, StaffPetDto, StaffPetDetailDto, StaffOwnerCandidateDto, PetDetailDto, PetActivityCategory, PetActivityStatus, PetActivitySourceType, PetActivityLogDto, PetMedicalExamDto, PetMedicalExamFieldValueDto, PetPrescriptionItemDto, PetPrescriptionDto, PetFollowUpInstructionDto, PetMedicalExamDetailDto, PetVaccinationStatus, PetVaccinationDto, PetSpaHistoryDto, PetMedicalExamFilters, PetVaccinationFilters, PetSpaHistoryFilters, PetListFilters, StaffPetListFilters } from "./pets.types.js";
+import { PetSpecies, PetGender, PetHealthProfileInput, PetDto, StaffPetDto, StaffPetDetailDto, StaffOwnerCandidateDto, PetDetailDto, PetActivityCategory, PetActivityStatus, PetActivitySourceType, PetActivityLogDto, PetMedicalExamDto, PetMedicalExamFieldValueDto, PetPrescriptionItemDto, PetPrescriptionDto, PetFollowUpInstructionDto, PetMedicalExamDetailDto, PetVaccinationStatus, PetVaccinationDto, PetSpaHistoryDto, PetMedicalExamFilters, PetVaccinationFilters, PetSpaHistoryFilters, PetListFilters, StaffPetListFilters } from "./pets.types.js";
 import { PetRow, PetDetailRow, StaffPetRow, StaffPetDetailRow, StaffOwnerCandidateRow, PetActivityLogRow, CountRow, PetMedicalExamRow, PetMedicalExamDetailRow, PetMedicalExamFieldValueRow, PrescriptionRow, PrescriptionItemRow, PetVaccinationRow, PetSpaHistoryRow } from "./pets.repository.js";
 
 import { httpStatus } from "../../shared/errors/http-status.js";
@@ -56,30 +56,7 @@ export function getAgeLabel(row: PetRow): string {
     return `${Math.floor(estimatedAge)} năm tuổi`;
 }
 
-export function getDisplayStatus(row: PetRow): PetDisplayStatus {
-    if (row.pet_status === "inactive") return "inactive";
-    if (row.pet_status === "deceased") return "deceased";
-    if (row.has_active_boarding) return "boarding";
-    if (row.needs_attention) return "watching";
-
-    return "healthy";
-}
-
-export function getDisplayStatusLabel(displayStatus: PetDisplayStatus): string {
-    const labels = {
-    healthy: "Khỏe mạnh",
-    watching: "Cần theo dõi",
-    boarding: "Đang lưu trú",
-    inactive: "Ngưng theo dõi",
-    deceased: "Đã mất"
-    } as const;
-
-    return labels[displayStatus];
-}
-
 export function mapPet(row: PetRow): PetDto {
-    const displayStatus = getDisplayStatus(row);
-
     return {
     petId: row.pet_id,
     petName: row.pet_name,
@@ -94,10 +71,7 @@ export function mapPet(row: PetRow): PetDto {
     furColor: row.fur_color,
     weightKg: toNumber(row.weight_kg),
     profileImageUrl: row.profile_image_url,
-    identifyingMarks: row.identifying_marks,
-    petStatus: row.pet_status,
-    displayStatus,
-    displayStatusLabel: getDisplayStatusLabel(displayStatus)
+    identifyingMarks: row.identifying_marks
     };
 }
 
@@ -228,6 +202,8 @@ export function mapPrescriptionItem(row: PrescriptionItemRow): PetPrescriptionIt
     prescriptionItemId: row.prescription_item_id,
     medicineId: row.medicine_id,
     medicineName: row.medicine_name,
+    medicineUnit: row.medicine_unit,
+    quantity: row.quantity,
     dosage: row.dosage,
     frequency: row.frequency,
     duration: row.duration,

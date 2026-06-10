@@ -65,6 +65,7 @@ export async function getDoctorMedicalRecordDetail(petId: string): Promise<Docto
       acc[item.prescription_id].push({
         prescriptionItemId: item.prescription_item_id,
         medicineName: item.medicine_name,
+        medicineUnit: item.medicine_unit,
         quantity: item.quantity,
         dosage: item.dosage,
         frequency: item.frequency,

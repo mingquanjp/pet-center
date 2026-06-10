@@ -195,7 +195,6 @@ export async function listOwnerPetOptions(ownerUserId: string) {
       profile_image_url
     FROM pet_center.pets
     WHERE owner_user_id = $1
-      AND pet_status = 'active'
     ORDER BY pet_name ASC
   `;
 
@@ -221,7 +220,6 @@ export async function findOwnerPetById(ownerUserId: string, petId: string, clien
     FROM pet_center.pets
     WHERE owner_user_id = $1
       AND pet_id = $2
-      AND pet_status = 'active'
   `;
 
   const result = client

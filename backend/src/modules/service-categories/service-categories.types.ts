@@ -1,4 +1,4 @@
-export type ServiceCategoryKind = "medical" | "grooming" | "boarding" | "medicine" | "other";
+export type ServiceCategoryKind = "medical" | "grooming" | "boarding" | "medicine";
 export type ServiceCategoryStatus = "active" | "inactive";
 
 export type ServiceCategoryKindFilter = "ALL" | ServiceCategoryKind;

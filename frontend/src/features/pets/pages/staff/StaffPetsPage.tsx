@@ -14,7 +14,6 @@ type StaffPetFilters = {
   q: string;
   species: "all" | PetSpecies;
   gender: "all" | PetGender;
-  petStatus: "all" | StaffPet["petStatus"];
   sort: "petName:asc";
   page: number;
   limit: number;
@@ -24,7 +23,6 @@ const defaultFilters: StaffPetFilters = {
   q: "",
   species: "all",
   gender: "all",
-  petStatus: "all",
   sort: "petName:asc",
   page: 1,
   limit: 10,
@@ -42,13 +40,6 @@ const genderOptions: Array<{ value: StaffPetFilters["gender"]; label: string }> 
   { value: "male", label: "Đực" },
   { value: "female", label: "Cái" },
   { value: "unknown", label: "Chưa rõ" },
-];
-
-const statusOptions: Array<{ value: StaffPetFilters["petStatus"]; label: string }> = [
-  { value: "all", label: "Tất cả" },
-  { value: "active", label: "Đang hoạt động" },
-  { value: "inactive", label: "Ngừng theo dõi" },
-  { value: "deceased", label: "Đã mất" },
 ];
 
 const text = {
@@ -85,7 +76,6 @@ function parseFiltersFromParams(params: URLSearchParams): StaffPetFilters {
     q: params.get("q") || "",
     species: (params.get("species") as StaffPetFilters["species"]) || defaultFilters.species,
     gender: (params.get("gender") as StaffPetFilters["gender"]) || defaultFilters.gender,
-    petStatus: (params.get("petStatus") as StaffPetFilters["petStatus"]) || defaultFilters.petStatus,
     sort: defaultFilters.sort,
     page: Number.isFinite(page) && page > 0 ? page : defaultFilters.page,
     limit: defaultFilters.limit,
@@ -164,7 +154,6 @@ export function StaffPetsPage() {
             q: filters.q || undefined,
             species: filters.species,
             gender: filters.gender,
-            petStatus: filters.petStatus,
             sort: filters.sort,
             page: filters.page,
             limit: filters.limit,
@@ -191,7 +180,7 @@ export function StaffPetsPage() {
       });
 
     return () => controller.abort();
-  }, [filters.gender, filters.limit, filters.page, filters.petStatus, filters.q, filters.sort, filters.species, refreshKey]);
+  }, [filters.gender, filters.limit, filters.page, filters.q, filters.sort, filters.species, refreshKey]);
 
   const updateFilters = useCallback(
     (newFilters: StaffPetFilters) => {
@@ -200,7 +189,6 @@ export function StaffPetsPage() {
       if (newFilters.q) params.set("q", newFilters.q);
       if (newFilters.species !== "all") params.set("species", newFilters.species);
       if (newFilters.gender !== "all") params.set("gender", newFilters.gender);
-      if (newFilters.petStatus !== "all") params.set("petStatus", newFilters.petStatus);
       if (newFilters.page > 1) params.set("page", String(newFilters.page));
 
       const query = params.toString();
@@ -220,8 +208,7 @@ export function StaffPetsPage() {
   const hasActiveFilters =
     Boolean(filters.q) ||
     filters.species !== defaultFilters.species ||
-    filters.gender !== defaultFilters.gender ||
-    filters.petStatus !== defaultFilters.petStatus;
+    filters.gender !== defaultFilters.gender;
 
   const startItem = pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1;
   const endItem = Math.min(pagination.page * pagination.limit, pagination.total);
@@ -270,12 +257,6 @@ export function StaffPetsPage() {
             onChange={(value) => handleFilterChange({ gender: value as StaffPetFilters["gender"] })}
             options={genderOptions}
             value={filters.gender}
-          />
-          <StaffPetFilterSelect
-            label="Trạng thái"
-            onChange={(value) => handleFilterChange({ petStatus: value as StaffPetFilters["petStatus"] })}
-            options={statusOptions}
-            value={filters.petStatus}
           />
           <Button
             className="h-10 w-fit shrink-0 rounded-xl px-3 text-base font-normal leading-6 text-[#005e53] hover:bg-[#e0f2f1] hover:text-[#004c43] disabled:pointer-events-none disabled:opacity-50"

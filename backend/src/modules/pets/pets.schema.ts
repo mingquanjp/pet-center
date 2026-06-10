@@ -5,7 +5,6 @@ const optionalPositiveNumber = z.coerce.number().positive().optional().nullable(
 
 export const petSpeciesSchema = z.enum(["Dog", "Cat", "Other"]);
 export const petGenderSchema = z.enum(["male", "female", "unknown"]);
-export const petStatusSchema = z.enum(["active", "inactive", "deceased"]);
 
 export const listPetsQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
@@ -15,10 +14,6 @@ export const listPetsQuerySchema = z.object({
     .transform((value) => (value === "all" ? undefined : value)),
   gender: z
     .union([petGenderSchema, z.literal("all")])
-    .optional()
-    .transform((value) => (value === "all" ? undefined : value)),
-  petStatus: z
-    .union([petStatusSchema, z.literal("all")])
     .optional()
     .transform((value) => (value === "all" ? undefined : value)),
   sort: z.enum(["petName:asc", "petName:desc"]).optional().default("petName:asc"),
@@ -144,7 +139,6 @@ export const updatePetSchema = z
     weightKg: optionalPositiveNumber,
     profileImageUrl: optionalText(2000),
     identifyingMarks: optionalText(1000),
-    petStatus: z.enum(["active", "inactive", "deceased"]).optional(),
     healthProfile: petHealthProfileSchema
   })
   .refine((value) => Object.keys(value).length > 0, {

@@ -68,6 +68,11 @@ function todayInputValue() {
   return new Date().toISOString().slice(0, 10)
 }
 
+function formatPrescriptionQuantity(quantity?: number | string | null, unit?: string | null) {
+  if (quantity === undefined || quantity === null || quantity === "") return "-"
+  return unit ? `${quantity} ${unit}` : String(quantity)
+}
+
 function formatDateTime(value?: string) {
   if (!value) return "Chưa cập nhật"
   const date = new Date(value)
@@ -470,6 +475,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     const nextItem = {
       ...prescriptionDraft,
       medicineName: medicine?.name,
+      medicineUnit: medicine?.unit,
       note: prescriptionDraft.note?.trim() || undefined,
     }
 
@@ -795,7 +801,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                       {detail.prescription.items.map((item) => (
                         <tr key={item.id ?? item.medicineId} className="border-b border-petcenter-border">
                           <td className="px-3 py-3 font-semibold">{item.medicineName}</td>
-                          <td className="px-3 py-3">{item.quantity ?? "Chưa cập nhật"}</td>
+                          <td className="px-3 py-3">{formatPrescriptionQuantity(item.quantity, item.medicineUnit)}</td>
                           <td className="px-3 py-3">{item.dosage}</td>
                           <td className="px-3 py-3">{item.frequency}</td>
                           <td className="px-3 py-3">{item.duration}</td>
@@ -832,7 +838,12 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                             <td className="px-3 py-3 font-semibold text-petcenter-text">
                               {item.medicineName || detail.medicines.find((medicine) => medicine.id === item.medicineId)?.name}
                             </td>
-                            <td className="px-3 py-3">{item.quantity}</td>
+                            <td className="px-3 py-3">
+                              {formatPrescriptionQuantity(
+                                item.quantity,
+                                item.medicineUnit || detail.medicines.find((medicine) => medicine.id === item.medicineId)?.unit
+                              )}
+                            </td>
                             <td className="px-3 py-3">{item.dosage}</td>
                             <td className="px-3 py-3">{item.frequency}</td>
                             <td className="px-3 py-3">{item.duration}</td>

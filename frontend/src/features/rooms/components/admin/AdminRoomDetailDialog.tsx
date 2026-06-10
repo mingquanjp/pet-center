@@ -77,7 +77,6 @@ export function AdminRoomDetailDialog({ room, onClose }: { room: AdminBoardingRo
   const paymentStatusMap: Record<string, { label: string, color: string }> = {
     paid: { label: "Đã thanh toán", color: "bg-green-100 text-green-700" },
     unpaid: { label: "Chưa thanh toán", color: "bg-orange-100 text-orange-700" },
-    refunded: { label: "Đã hoàn tiền", color: "bg-stone-100 text-stone-600" },
   };
 
   return (
@@ -241,7 +240,6 @@ export function AdminRoomDetailDialog({ room, onClose }: { room: AdminBoardingRo
                   <option value="ALL">Tất cả thanh toán</option>
                   <option value="paid">Đã thanh toán</option>
                   <option value="unpaid">Chưa thanh toán</option>
-                  <option value="refunded">Đã hoàn tiền</option>
                 </select>
               </div>
 

@@ -22,6 +22,11 @@ import { cn } from "@/lib/utils"
 import { petsApi } from "../../api/pets.api"
 import type { PetMedicalExamDetail, PetMedicalExamFieldValue } from "../../types/pet.types"
 
+const formatPrescriptionQuantity = (quantity: string | null, unit?: string | null) => {
+  if (!quantity) return "-"
+  return unit ? `${quantity} ${unit}` : quantity
+}
+
 export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: string; petId: string }) {
   const [exam, setExam] = React.useState<PetMedicalExamDetail | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
@@ -225,6 +230,7 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
                     <thead className="bg-petcenter-primary/10 text-petcenter-primary-active">
                       <tr>
                         <TableHeader>Tên thuốc</TableHeader>
+                        <TableHeader>Số lượng</TableHeader>
                         <TableHeader>Liều lượng</TableHeader>
                         <TableHeader>Tần suất</TableHeader>
                         <TableHeader>Thời gian</TableHeader>
@@ -235,6 +241,7 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
                       {exam.prescription.items.map((item) => (
                         <tr className="transition hover:bg-petcenter-filter" key={item.prescriptionItemId}>
                           <TableCell className="font-semibold text-petcenter-text">{item.medicineName}</TableCell>
+                          <TableCell>{formatPrescriptionQuantity(item.quantity, item.medicineUnit)}</TableCell>
                           <TableCell>{item.dosage}</TableCell>
                           <TableCell>{item.frequency}</TableCell>
                           <TableCell>{item.duration}</TableCell>
@@ -493,6 +500,7 @@ function buildExamPrintHtml(exam: PetMedicalExamDetail) {
         (item) => `
             <tr>
               <td>${escapeHtml(item.medicineName)}</td>
+              <td>${escapeHtml(formatPrescriptionQuantity(item.quantity, item.medicineUnit))}</td>
               <td>${escapeHtml(item.dosage)}</td>
               <td>${escapeHtml(item.frequency)}</td>
               <td>${escapeHtml(item.duration)}</td>
@@ -500,7 +508,7 @@ function buildExamPrintHtml(exam: PetMedicalExamDetail) {
             </tr>`
       )
       .join("")
-    : `<tr><td colspan="5">Chưa có đơn thuốc cho phiếu khám này.</td></tr>`
+    : `<tr><td colspan="6">Chưa có đơn thuốc cho phiếu khám này.</td></tr>`
 
   return `<!doctype html>
 <html lang="vi">
@@ -570,7 +578,7 @@ function buildExamPrintHtml(exam: PetMedicalExamDetail) {
 
       <h2>Đơn thuốc</h2>
       <table>
-        <thead><tr><th>Tên thuốc</th><th>Liều lượng</th><th>Tần suất</th><th>Thời gian</th><th>Hướng dẫn</th></tr></thead>
+        <thead><tr><th>Tên thuốc</th><th>Số lượng</th><th>Liều lượng</th><th>Tần suất</th><th>Thời gian</th><th>Hướng dẫn</th></tr></thead>
         <tbody>${prescriptionRows}</tbody>
       </table>
 
@@ -623,7 +631,7 @@ function exportPrescriptionExcel({
   generatedAt: Date
   prescription: NonNullable<PetMedicalExamDetail["prescription"]>
 }) {
-  const headers = ["STT", "Tên thuốc", "Liều lượng", "Tần suất", "Thời gian", "Hướng dẫn sử dụng", "Ghi chú"]
+  const headers = ["STT", "Tên thuốc", "Số lượng", "Liều lượng", "Tần suất", "Thời gian", "Hướng dẫn sử dụng", "Ghi chú"]
   const headerHtml = headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")
   const rowHtml = prescription.items
     .map(
@@ -631,6 +639,7 @@ function exportPrescriptionExcel({
         <tr>
           <td>${index + 1}</td>
           <td>${escapeHtml(item.medicineName)}</td>
+          <td>${escapeHtml(formatPrescriptionQuantity(item.quantity, item.medicineUnit))}</td>
           <td>${escapeHtml(item.dosage)}</td>
           <td>${escapeHtml(item.frequency)}</td>
           <td>${escapeHtml(item.duration)}</td>

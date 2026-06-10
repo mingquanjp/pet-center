@@ -226,7 +226,6 @@ export async function findOwnerBookingPets(ownerUserId: string): Promise<Boardin
     `SELECT pet_id, pet_name, species, weight_kg, profile_image_url
      FROM pet_center.pets
      WHERE owner_user_id = $1
-       AND pet_status = 'active'
      ORDER BY pet_name ASC, pet_id ASC`,
     [ownerUserId]
   );
@@ -243,7 +242,6 @@ export async function findOwnerBookingPet(
      FROM pet_center.pets
      WHERE owner_user_id = $1
        AND pet_id = $2
-       AND pet_status = 'active'
      LIMIT 1`,
     [ownerUserId, petId]
   );

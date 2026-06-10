@@ -403,7 +403,7 @@ export async function createStaffBoardingOwner(params: {
 export async function findStaffBoardingCreatePets(ownerIds?: string[]) {
   if (ownerIds && ownerIds.length === 0) return [];
 
-  const clauses: string[] = ["p.pet_status = 'active'"];
+  const clauses: string[] = [];
   const values: unknown[] = [];
 
   if (ownerIds && ownerIds.length > 0) {
@@ -424,7 +424,7 @@ export async function findStaffBoardingCreatePets(ownerIds?: string[]) {
              ELSE NULL
            END AS "weightText"
     FROM pet_center.pets p
-    WHERE ${clauses.join(" AND ")}
+    ${clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : ""}
   `;
   const result = await query(sql, values);
   return result.rows;
@@ -457,10 +457,9 @@ export async function createStaffBoardingPet(params: {
       fur_color,
       weight_kg,
       profile_image_url,
-      identifying_marks,
-      pet_status
+      identifying_marks
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'active')
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     RETURNING
       pet_id as id,
       owner_user_id as "ownerId",
@@ -504,7 +503,7 @@ export async function verifyOwnerExists(ownerId: string, client?: PoolClient) {
 }
 
 export async function verifyPetBelongsToOwner(petId: string, ownerId: string, client?: PoolClient) {
-  const sql = `SELECT 1 FROM pet_center.pets WHERE pet_id = $1 AND owner_user_id = $2 AND pet_status = 'active'`;
+  const sql = `SELECT 1 FROM pet_center.pets WHERE pet_id = $1 AND owner_user_id = $2`;
   const result = client ? await client.query(sql, [petId, ownerId]) : await query(sql, [petId, ownerId]);
   return result.rowCount !== null && result.rowCount > 0;
 }

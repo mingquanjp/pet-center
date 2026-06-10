@@ -11,7 +11,6 @@ export const invoicePaymentStatusLabel: Record<InvoicePaymentStatus, string> = {
   PENDING_PAYMENT: "Chờ thanh toán",
   OVERDUE: "Quá hạn",
   CANCELLED: "Đã hủy",
-  REFUNDED: "Đã hoàn tiền",
   DRAFT: "Nháp",
 };
 

@@ -49,7 +49,6 @@ export function mapAdminBoardingRoomUsageHistoryRow(row: any) {
 
   let paymentStatus = "unpaid";
   if (row.invoice_status === "paid") paymentStatus = "paid";
-  else if (row.invoice_status === "refunded") paymentStatus = "refunded";
 
   return {
     id: row.boarding_record_id,

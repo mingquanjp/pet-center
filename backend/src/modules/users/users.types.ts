@@ -52,7 +52,6 @@ export type AdminUserPetRow = {
   birth_date: string | null;
   estimated_age: string | number | null;
   profile_image_url: string | null;
-  pet_status: "active" | "inactive" | "deceased";
 };
 
 export type AdminUserActivityRow = {
@@ -82,8 +81,6 @@ export type AdminUserPetDto = {
   estimatedAge: number | null;
   ageLabel: string;
   profileImageUrl: string | null;
-  status: AdminUserPetRow["pet_status"];
-  statusLabel: string;
 };
 
 export type AdminUserActivityDto = {

@@ -494,7 +494,6 @@
           ["weightKg", "Cân nặng gần nhất", "5.5"],
           ["profileImageUrl", "Ảnh nhận diện", "milo.png"],
           ["identifyingMarks", "Đặc điểm riêng", "Black spot on leg"],
-          ["petStatus", "Trạng thái hồ sơ", "active"]
         ],
         relationships: [
           "Một chủ nuôi `User` có thể sở hữu nhiều bản ghi `Pet`.",
@@ -563,7 +562,6 @@
         description: "Đại diện cho phiếu khám của một appointment. Thực thể này giữ các thông tin lõi dùng chung cho mọi loại khám; các field riêng theo từng loại khám được lưu bằng `MedicalExamFieldValue`.",
         attributes: [
           ["examId", "Định danh phiếu khám", "EX001"],
-          ["examTypeId", "Loại form khám áp dụng cho phiếu", "ET001"],
           ["diagnosis", "Chẩn đoán", "Mild respiratory infection"],
           ["conclusion", "Kết luận khám", "Monitor for 3 days"],
           ["healthNote", "Ghi chú thêm", "Avoid strong activity"],
@@ -573,7 +571,6 @@
         ],
         relationships: [
           "Một `MedicalAppointment` có tối đa một `MedicalExam`.",
-          "Một `ExamType` có thể được dùng bởi nhiều bản ghi `MedicalExam`.",
           "Một `MedicalExam` được thực hiện bởi một bác sĩ thú y `User`.",
           "Một `MedicalExam` có không hoặc nhiều bản ghi `MedicalExamFieldValue`.",
           "Một `MedicalExam` có thể có một `Prescription`.",
@@ -594,7 +591,6 @@
         relationships: [
           "Một `ExamType` có thể có nhiều bản ghi `ExamFieldDefinition`.",
           "Một `ExamType` có thể được chọn bởi nhiều bản ghi `MedicalAppointment`.",
-          "Một `ExamType` có thể được dùng bởi nhiều bản ghi `MedicalExam`.",
           "Một `ExamType` có thể liên kết tới một `Service` y tế."
         ]
       },
@@ -672,7 +668,7 @@
         attributes: [
           ["prescriptionItemId", "Định danh dòng thuốc", "PRI001"],
           ["medicineId", "Thuốc được chọn từ danh mục", "MED001"],
-          ["medicineName", "Tên thuốc", "Amoxicillin"],
+          ["quantity", "Số lượng thuốc cấp phát, đơn vị lấy từ Medicine.unit", "10"],
           ["dosage", "Liều lượng", "1 tablet/time"],
           ["frequency", "Số lần dùng", "2 times/day"],
           ["duration", "Thời gian dùng", "5 days"],
@@ -704,7 +700,7 @@
         attributes: [
           ["serviceId", "Định danh dịch vụ", "SV001"],
           ["serviceName", "Tên dịch vụ", "Bathing, Nail trimming"],
-          ["serviceCategory", "Nhóm dịch vụ", "medical, grooming, boarding, medicine, other"],
+          ["serviceCategory", "Nhóm dịch vụ", "medical, grooming, boarding, medicine"],
           ["description", "Mô tả dịch vụ", "Bath and dry"],
           ["estimatedDurationMinutes", "Thời lượng dự kiến", "45"],
           ["basePrice", "Giá tham khảo", "150000"],
@@ -817,7 +813,7 @@
           ["totalAmount", "Số tiền cần thanh toán", "450000"],
           ["paymentOption", "Cách khách chọn thanh toán", "online, counter"],
           ["paymentDueAt", "Hạn thanh toán", "2026-05-02 10:00"],
-          ["invoiceStatus", "Trạng thái hóa đơn", "draft, pending_payment, paid, cancelled, refunded"]
+          ["invoiceStatus", "Trạng thái hóa đơn", "draft, pending_payment, paid, cancelled"]
         ],
         relationships: [
           "Một chủ nuôi `User` có nhiều bản ghi `Invoice`.",
@@ -852,8 +848,7 @@
         description: "Đại diện cho giao dịch thanh toán của hóa đơn.",
         attributes: [
           ["paymentId", "Định danh thanh toán", "PAY001"],
-          ["paymentMethod", "Phương thức thanh toán thực tế", "e_wallet, online_bank_card, cash_at_counter, card_at_counter"],
-          ["paymentProvider", "Cổng thanh toán", "MockBank"],
+          ["paymentMethod", "Phương thức thanh toán thực tế", "online, at_counter"],
           ["transactionCode", "Mã giao dịch trả về", "GD99882211"],
           ["paidAmount", "Số tiền thanh toán", "450000"],
           ["paidAt", "Thời điểm thanh toán", "2026-05-01 10:30"],
@@ -873,9 +868,9 @@
           ["notificationId", "Định danh thông báo", "NTF001"],
           ["title", "Tiêu đề thông báo", "Grooming completed"],
           ["message", "Nội dung thông báo", "Milo has completed grooming service"],
-          ["deliveryChannel", "Kênh thông báo", "app, email, sms"],
+          ["deliveryChannel", "Kênh thông báo", "app, email"],
           ["createdAt", "Thời điểm tạo", "2026-05-01 11:00"],
-          ["notificationStatus", "Trạng thái đọc/gửi", "unread, read, failed"],
+          ["notificationStatus", "Trạng thái đọc", "unread, read"],
           ["relatedObjectType", "Nghiệp vụ liên quan", "GroomingTicket, Invoice, FollowUpInstruction"],
           ["relatedObjectId", "Mã đối tượng liên quan", "GR001"]
         ],
@@ -899,7 +894,6 @@
       ["User(Veterinarian) - MedicalAppointment", "1 - N", "Một bác sĩ thú y có thể được phân công cho nhiều lịch hẹn."],
       ["User(Veterinarian) - MedicalExam", "1 - N", "Một bác sĩ thú y có thể thực hiện nhiều phiếu khám."],
       ["MedicalAppointment - MedicalExam", "1 - 0..1", "Một lịch hẹn có thể tạo ra một phiếu khám."],
-      ["ExamType - MedicalExam", "1 - N", "Một loại khám có thể được dùng bởi nhiều phiếu khám."],
       ["ExamType - ExamFieldDefinition", "1 - N", "Một loại khám định nghĩa nhiều field trong form."],
       ["MedicalExam - MedicalExamFieldValue", "1 - 0..N", "Một phiếu khám có thể lưu các giá trị field động."],
       ["ExamFieldDefinition - MedicalExamFieldValue", "1 - N", "Một định nghĩa field có thể được điền trong nhiều phiếu khám."],

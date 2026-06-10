@@ -44,7 +44,6 @@ export function getPaymentStatus(
   hasSuccessPayment: boolean
 ): BoardingRecordListItemDto["payment"]["paymentStatus"] {
   if (invoiceStatus === "paid" || hasSuccessPayment) return "paid";
-  if (invoiceStatus === "refunded") return "refunded";
   if (invoiceStatus === "cancelled") return "cancelled";
 
   return "unpaid";
@@ -54,7 +53,6 @@ export function getPaymentStatusLabel(paymentStatus: BoardingRecordListItemDto["
   const labels: Record<BoardingRecordListItemDto["payment"]["paymentStatus"], string> = {
     paid: "Đã thanh toán",
     unpaid: "Chưa thanh toán",
-    refunded: "Đã hoàn tiền",
     cancelled: "Đã hủy"
   };
 

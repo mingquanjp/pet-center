@@ -126,9 +126,6 @@ export const petsRouter = Router();
  *           type: string
  *           nullable: true
  *           example: Có vùng lông trắng ở ngực
- *         petStatus:
- *           type: string
- *           enum: [active, inactive, deceased]
  *           example: active
  *     PetDetail:
  *       allOf:
@@ -194,9 +191,6 @@ export const petsRouter = Router();
  *         - $ref: '#/components/schemas/CreatePetRequest'
  *         - type: object
  *           properties:
- *             petStatus:
- *               type: string
- *               enum: [active, inactive, deceased]
  *               example: active
  *     PetListResponse:
  *       type: object

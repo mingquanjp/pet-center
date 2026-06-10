@@ -72,7 +72,7 @@ export type GroomingAvailabilityDto = {
 };
 
 export type GroomingTicketStatus = "pending_payment" | "pending" | "waiting" | "in_progress" | "completed" | "cancelled";
-export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled" | "refunded";
+export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled";
 export type GroomingPaymentOption = "counter" | "online";
 export type StaffGroomingTicketStatusFilter = GroomingTicketStatus | "all";
 export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" | "inProgress" | "completed" | "cancelled";
@@ -144,7 +144,6 @@ export type GroomingTicketDetailDto = GroomingTicketListItemDto & {
   payment: {
     paymentId: string;
     paymentMethod: string;
-    paymentProvider: string | null;
     transactionCode: string | null;
     paidAmount: number;
     paidAt: string | null;

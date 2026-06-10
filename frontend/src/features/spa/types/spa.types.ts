@@ -112,7 +112,7 @@ export type StaffGroomingTicketStatusTone = "payment" | "pending" | "accepted" |
 export type StaffGroomingTicketSpeciesFilter = "all" | "Dog" | "Cat" | "Other"
 export type StaffGroomingTicketTimeRangeFilter = "all" | "today" | "upcoming" | "past"
 
-export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled" | "refunded"
+export type InvoiceStatus = "draft" | "pending_payment" | "paid" | "cancelled"
 
 export interface GroomingTicketCreated {
   groomingTicketId: string

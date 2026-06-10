@@ -367,7 +367,6 @@ export async function findDoctorExaminationForUpdate(
 export async function createMedicalExamForAppointment(
   examId: string,
   appointmentId: string,
-  examTypeId: string,
   doctorUserId: string,
   client: PoolClient
 ) {
@@ -375,13 +374,12 @@ export async function createMedicalExamForAppointment(
     INSERT INTO pet_center.medical_exams (
       exam_id,
       appointment_id,
-      exam_type_id,
       examined_by_veterinarian_id
     )
-    VALUES ($1, $2, $3, $4)
+    VALUES ($1, $2, $3)
   `;
 
-  await client.query(sql, [examId, appointmentId, examTypeId, doctorUserId]);
+  await client.query(sql, [examId, appointmentId, doctorUserId]);
 }
 
 export async function ensureStandardExamFieldDefinitions(examTypeId: string, typeCode: string) {
@@ -565,7 +563,7 @@ export async function getDoctorExaminationHistory(petId: string, currentAppointm
         me.diagnosis
       FROM pet_center.medical_exams me
       JOIN pet_center.medical_appointments ma ON ma.appointment_id = me.appointment_id
-      JOIN pet_center.exam_types et ON et.exam_type_id = me.exam_type_id
+      JOIN pet_center.exam_types et ON et.exam_type_id = ma.exam_type_id
       WHERE ma.pet_id = $1
         AND ma.appointment_id <> $2
         AND NULLIF(BTRIM(COALESCE(me.diagnosis, '')), '') IS NOT NULL
@@ -607,20 +605,21 @@ export async function getPrescriptionByExamId(examId: string | null) {
   const prescription = prescriptionResult.rows[0];
   if (!prescription) return null;
 
-  const hasQuantity = await prescriptionItemHasQuantityColumn();
   const itemsResult = await query<DoctorPrescriptionItemRow>(
     `
       SELECT
         pi.prescription_item_id,
         pi.medicine_id,
-        pi.medicine_name,
-        ${hasQuantity ? "pi.quantity::text" : "NULL::text"} AS quantity,
+        m.medicine_name,
+        m.unit AS medicine_unit,
+        pi.quantity::text AS quantity,
         pi.dosage,
         pi.frequency,
         pi.duration,
         pi.usage_instruction,
         pi.note
       FROM pet_center.prescription_items pi
+      JOIN pet_center.medicines m ON m.medicine_id = pi.medicine_id
       WHERE pi.prescription_id = $1
       ORDER BY pi.prescription_item_id ASC
     `,
@@ -689,33 +688,12 @@ export async function getRecheckContext(petId: string, currentAppointmentId: str
   return result.rows[0] ?? null;
 }
 
-let cachedPrescriptionItemHasQuantity: boolean | null = null;
+async function getActiveMedicineIds(medicineIds: string[], client: PoolClient) {
+  if (medicineIds.length === 0) return new Set<string>();
 
-async function prescriptionItemHasQuantityColumn() {
-  if (cachedPrescriptionItemHasQuantity !== null) return cachedPrescriptionItemHasQuantity;
-
-  const result = await query<{ exists: boolean }>(
+  const result = await client.query<{ medicine_id: string }>(
     `
-      SELECT EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_schema = 'pet_center'
-          AND table_name = 'prescription_items'
-          AND column_name = 'quantity'
-      ) AS exists
-    `
-  );
-
-  cachedPrescriptionItemHasQuantity = Boolean(result.rows[0]?.exists);
-  return cachedPrescriptionItemHasQuantity;
-}
-
-async function getMedicineNamesByIds(medicineIds: string[], client: PoolClient) {
-  if (medicineIds.length === 0) return new Map<string, string>();
-
-  const result = await client.query<{ medicine_id: string; medicine_name: string }>(
-    `
-      SELECT medicine_id, medicine_name
+      SELECT medicine_id
       FROM pet_center.medicines
       WHERE medicine_id = ANY($1::varchar[])
         AND medicine_status = 'active'
@@ -723,7 +701,7 @@ async function getMedicineNamesByIds(medicineIds: string[], client: PoolClient) 
     [medicineIds]
   );
 
-  return new Map(result.rows.map((row) => [row.medicine_id, row.medicine_name]));
+  return new Set(result.rows.map((row) => row.medicine_id));
 }
 
 export async function replacePrescription(
@@ -736,7 +714,7 @@ export async function replacePrescription(
   const validItems = (items ?? []).filter((item) => item.medicineId);
   if (validItems.length === 0) return false;
 
-  const medicineNames = await getMedicineNamesByIds(validItems.map((item) => item.medicineId), client);
+  const activeMedicineIds = await getActiveMedicineIds(validItems.map((item) => item.medicineId), client);
   const prescriptionId = await createId("rx", client);
 
   await client.query(
@@ -747,71 +725,36 @@ export async function replacePrescription(
     [prescriptionId, examId]
   );
 
-  const hasQuantity = await prescriptionItemHasQuantityColumn();
-
   for (const item of validItems) {
-    const medicineName = medicineNames.get(item.medicineId);
-    if (!medicineName) continue;
+    if (!activeMedicineIds.has(item.medicineId)) continue;
 
-    if (hasQuantity) {
-      await client.query(
-        `
-          INSERT INTO pet_center.prescription_items (
-            prescription_item_id,
-            prescription_id,
-            medicine_id,
-            medicine_name,
-            quantity,
-            dosage,
-            frequency,
-            duration,
-            usage_instruction,
-            note
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        `,
-        [
-          await createId("rxi", client),
-          prescriptionId,
-          item.medicineId,
-          medicineName,
-          item.quantity ?? 1,
-          item.dosage,
-          item.frequency,
-          item.duration,
-          item.usageInstruction,
-          item.note ?? null,
-        ]
-      );
-    } else {
-      await client.query(
-        `
-          INSERT INTO pet_center.prescription_items (
-            prescription_item_id,
-            prescription_id,
-            medicine_id,
-            medicine_name,
-            dosage,
-            frequency,
-            duration,
-            usage_instruction,
-            note
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        `,
-        [
-          await createId("rxi", client),
-          prescriptionId,
-          item.medicineId,
-          medicineName,
-          item.dosage,
-          item.frequency,
-          item.duration,
-          item.usageInstruction,
-          item.note ?? null,
-        ]
-      );
-    }
+    await client.query(
+      `
+        INSERT INTO pet_center.prescription_items (
+          prescription_item_id,
+          prescription_id,
+          medicine_id,
+          quantity,
+          dosage,
+          frequency,
+          duration,
+          usage_instruction,
+          note
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `,
+      [
+        await createId("rxi", client),
+        prescriptionId,
+        item.medicineId,
+        item.quantity ?? 1,
+        item.dosage,
+        item.frequency,
+        item.duration,
+        item.usageInstruction,
+        item.note ?? null,
+      ]
+    );
   }
 
   return true;

@@ -70,16 +70,6 @@ function getAgeLabel(row: AdminUserPetRow): string {
   return `${Math.floor(estimatedAge)} năm tuổi`;
 }
 
-function getPetStatusLabel(status: AdminUserPetRow["pet_status"]): string {
-  const labels = {
-    active: "Đang theo dõi",
-    inactive: "Ngưng theo dõi",
-    deceased: "Đã mất",
-  } as const;
-
-  return labels[status];
-}
-
 function mapAdminUserPet(row: AdminUserPetRow): AdminUserPetDto {
   return {
     id: row.pet_id,
@@ -93,8 +83,6 @@ function mapAdminUserPet(row: AdminUserPetRow): AdminUserPetDto {
     estimatedAge: toNumber(row.estimated_age),
     ageLabel: getAgeLabel(row),
     profileImageUrl: row.profile_image_url,
-    status: row.pet_status,
-    statusLabel: getPetStatusLabel(row.pet_status),
   };
 }
 

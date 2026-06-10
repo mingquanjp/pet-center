@@ -96,7 +96,6 @@ export type GroomingTicketItemRow = QueryResultRow & {
 export type PaymentRow = QueryResultRow & {
   payment_id: string;
   payment_method: string;
-  payment_provider: string | null;
   transaction_code: string | null;
   paid_amount: string | number;
   paid_at: string | null;
@@ -325,7 +324,6 @@ export async function findOwnerBookingPets(ownerUserId: string): Promise<Groomin
         `select p.pet_id, p.pet_name, p.species, p.weight_kg, p.profile_image_url
      from pet_center.pets p
      where p.owner_user_id = $1
-       and p.pet_status = 'active'
      order by p.pet_name asc, p.pet_id asc`,
         [ownerUserId]
       );
@@ -340,7 +338,6 @@ export async function findOwnerBookingPet(ownerUserId: string, petId: string): P
      from pet_center.pets p
      where p.owner_user_id = $1
        and p.pet_id = $2
-       and p.pet_status = 'active'
      limit 1`,
         [ownerUserId, petId]
       );
@@ -354,7 +351,7 @@ export async function findStaffCounterPets(input: {
 }): Promise<StaffCounterGroomingPetDto[]> {
 
       const params: Array<string | number> = [];
-      const conditions = ["p.pet_status = 'active'", "u.account_status = 'active'"];
+      const conditions = ["u.account_status = 'active'"];
 
       if (input.search) {
         params.push(`%${input.search.toLowerCase()}%`);
@@ -407,7 +404,6 @@ export async function findStaffCounterPet(petId: string): Promise<StaffCounterGr
      from pet_center.pets p
      join pet_center.users u on u.user_id = p.owner_user_id
      where p.pet_id = $1
-       and p.pet_status = 'active'
        and u.account_status = 'active'
      limit 1`,
         [petId]
@@ -563,7 +559,6 @@ export async function findBookedGroomingTicketById(
               `select
              p.payment_id,
              p.payment_method,
-             p.payment_provider,
              p.transaction_code,
              p.paid_amount,
              p.paid_at::text as paid_at,
