@@ -3,6 +3,7 @@ import type { QueryResultRow } from "pg";
 import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
 import { createId } from "../../shared/utils/id.js";
+import { createPendingVnpayAttempt } from "../payments/payments.repository.js";
 import type {
   GroomingAvailabilityDto,
   GroomingBookingPetDto,
@@ -113,6 +114,7 @@ export type CreateBookingInput = {
   ownerUserId: string;
   createdByUserId?: string;
   sourceType?: "online" | "counter";
+  clientIp: string;
   pet: GroomingBookingPetDto;
   service: GroomingBookingServiceDto;
   scheduledAt: Date;
@@ -677,7 +679,7 @@ export async function findBookedUnitsBySlot(date: string, client?: PoolClient): 
    from pet_center.grooming_tickets gt
    join pet_center.grooming_ticket_items gti on gti.grooming_ticket_id = gt.grooming_ticket_id
    where (gt.scheduled_at at time zone $2)::date = $1::date
-     and gt.ticket_status in ('pending', 'waiting', 'in_progress', 'completed')
+     and gt.ticket_status in ('pending_payment', 'pending', 'waiting', 'in_progress', 'completed')
    group by to_char(gt.scheduled_at at time zone $2, 'HH24:MI')`;
       const params = [date, timeZone];
       const result = client
@@ -731,7 +733,7 @@ async function hasOverlappingActiveGroomingForPet(
        select 1
        from pet_center.grooming_tickets gt
        where gt.pet_id = $1
-         and gt.ticket_status in ('pending', 'waiting', 'in_progress')
+         and gt.ticket_status in ('pending_payment', 'pending', 'waiting', 'in_progress')
          and gt.scheduled_at < $2::timestamptz + interval '30 minutes'
          and gt.scheduled_at + interval '30 minutes' > $2::timestamptz
      ) as "exists"`,
@@ -828,6 +830,15 @@ export async function createGroomingBooking(input: CreateBookingInput): Promise<
           ]
         );
 
+        const paymentAttempt = input.paymentOption === "online"
+          ? await createPendingVnpayAttempt(client, {
+              invoiceId,
+              amount: input.service.appliedPrice,
+              orderInfo: `Thanh toan dich vu spa ${groomingTicketId}`,
+              clientIp: input.clientIp
+            })
+          : null;
+
         return {
           groomingTicketId,
           bookingCode: groomingTicketId,
@@ -836,7 +847,7 @@ export async function createGroomingBooking(input: CreateBookingInput): Promise<
           ticketStatus,
           invoiceStatus,
           totalAmount: input.service.appliedPrice,
-          paymentUrl: null,
+          paymentUrl: paymentAttempt?.paymentUrl ?? null,
           petName: input.pet.petName,
           serviceName: input.service.serviceName,
           scheduledAt: input.scheduledAt.toISOString()

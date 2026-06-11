@@ -187,7 +187,7 @@ export async function cancelBookedTicket(authUser: AuthUser, ticketId: string) {
   }
 }
 
-export async function createTicket(authUser: AuthUser, payload: CreateGroomingTicketPayload) {
+export async function createTicket(authUser: AuthUser, payload: CreateGroomingTicketPayload, clientIp: string) {
 
       assertOwner(authUser);
       groomingAvailabilityPolicy.assertSchedulableTime(payload.scheduledAt);
@@ -213,6 +213,7 @@ export async function createTicket(authUser: AuthUser, payload: CreateGroomingTi
       try {
         const ticket = await groomingRepository.createGroomingBooking({
           ownerUserId: authUser.userId,
+          clientIp,
           pet,
           service,
           scheduledAt: payload.scheduledAt,
@@ -232,6 +233,10 @@ export async function createTicket(authUser: AuthUser, payload: CreateGroomingTi
             "GROOMING_PET_TIME_CONFLICT",
             httpStatus.CONFLICT
           );
+        }
+
+        if (error instanceof Error && error.message === "VNPAY_CONFIGURATION_MISSING") {
+          throw new AppError("VNPay configuration is missing", "VNPAY_CONFIGURATION_MISSING", httpStatus.INTERNAL_SERVER_ERROR);
         }
 
         throw error;

@@ -183,6 +183,7 @@ export function OwnerSpaBookingPage() {
 
       if (ticket.paymentOption === "online") {
         if (ticket.paymentUrl) {
+          window.sessionStorage.setItem("pet_center_payment_result_context", "spa")
           window.location.assign(ticket.paymentUrl)
           return
         }

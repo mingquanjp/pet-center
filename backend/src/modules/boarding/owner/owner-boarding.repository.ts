@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { query } from '../../../db/query.js';
 import { withTransaction } from '../../../db/transactions.js';
 import { createId } from '../../../shared/utils/id.js';
+import { createPendingVnpayAttempt } from '../../payments/payments.repository.js';
 import type {
   BoardingBookingPetRow,
   BoardingRecordCreatedDto,
@@ -351,6 +352,15 @@ export async function createBoardingRecord(input: CreateBoardingRecordInput): Pr
       ]
     );
 
+    const paymentAttempt = input.paymentOption === "online"
+      ? await createPendingVnpayAttempt(client, {
+          invoiceId,
+          amount: totalAmount,
+          orderInfo: `Thanh toan luu tru ${boardingRecordId}`,
+          clientIp: input.clientIp
+        })
+      : null;
+
     return {
       boardingRecordId,
       boardingCode: boardingRecordId,
@@ -359,7 +369,7 @@ export async function createBoardingRecord(input: CreateBoardingRecordInput): Pr
       boardingStatus,
       invoiceStatus,
       totalAmount,
-      paymentUrl: null,
+      paymentUrl: paymentAttempt?.paymentUrl ?? null,
       petName: input.pet.petName,
       roomTypeName: input.roomType.roomTypeName,
       plannedCheckInAt: input.plannedCheckInAt.toISOString(),
