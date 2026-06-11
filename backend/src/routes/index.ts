@@ -16,6 +16,7 @@ import { reportsRouter } from "../modules/reports/reports.routes.js";
 import { serviceCategoriesRouter } from "../modules/service-categories/service-categories.routes.js";
 import { notificationsRouter } from "../modules/notifications/notifications.routes.js";
 import { medicalRecordsRouter } from "../modules/medical-records/medical-records.routes.js";
+import { paymentsRouter } from "../modules/payments/payments.routes.js";
 
 export const apiRouter = Router();
 
@@ -36,4 +37,4 @@ apiRouter.use(reportsRouter);
 apiRouter.use(serviceCategoriesRouter);
 apiRouter.use(notificationsRouter);
 apiRouter.use(medicalRecordsRouter);
-
+apiRouter.use(paymentsRouter);

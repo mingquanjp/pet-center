@@ -130,6 +130,7 @@ export async function createStaffCounterTicket(
           ownerUserId: pet.ownerUserId,
           createdByUserId: authUser.userId,
           sourceType: "counter",
+          clientIp: "127.0.0.1",
           pet,
           service,
           scheduledAt: payload.scheduledAt,

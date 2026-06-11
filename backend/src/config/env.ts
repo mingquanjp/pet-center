@@ -17,7 +17,19 @@ const envSchema = z.object({
   SMTP_USER: z.string().default(""),
   SMTP_PASS: z.string().default(""),
   MAIL_FROM: z.string().default("PetCenter"),
-  FRONTEND_URL: z.string().url().default("http://localhost:3000")
+  FRONTEND_URL: z.string().url().default("http://localhost:3000"),
+  FRONTEND_BASE_URL: z.string().default(""),
+  VNPAY_PAYMENT_URL: z.string().default(""),
+  VNPAY_TMN_CODE: z.string().default(""),
+  VNPAY_HASH_SECRET: z.string().default(""),
+  VNPAY_RETURN_URL: z.string().default(""),
+  VNPAY_IPN_URL: z.string().default(""),
+  VNPAY_PAYMENT_EXPIRE_MINUTES: z.coerce.number().int().positive().default(15),
+  VNPAY_DEBUG_LOG: z
+    .enum(["true", "false", "TRUE", "FALSE", "1", "0"])
+    .optional()
+    .default("false")
+    .transform((value) => value === "true" || value === "TRUE" || value === "1")
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

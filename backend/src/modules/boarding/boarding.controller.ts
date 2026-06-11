@@ -48,7 +48,8 @@ export async function cancelOwnerBoardingRecord(req: Request, res: Response): Pr
 export async function createBoardingRecord(req: Request, res: Response): Promise<void> {
   const result = await boardingService.createBoardingRecord(
     req.user!,
-    req.body as CreateBoardingRecordPayload
+    req.body as CreateBoardingRecordPayload,
+    req.ip ?? "127.0.0.1"
   );
 
   sendSuccess(res, result, "Đặt phòng lưu trú thành công", httpStatus.CREATED);

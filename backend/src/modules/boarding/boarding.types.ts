@@ -83,6 +83,7 @@ export type BoardingRoomTypeAvailabilityRow = QueryResultRow & {
 
 export type CreateBoardingRecordInput = {
   ownerUserId: string;
+  clientIp: string;
   pet: BoardingBookingPetDto;
   roomType: BoardingRoomTypeBookingDto;
   plannedCheckInAt: Date;
