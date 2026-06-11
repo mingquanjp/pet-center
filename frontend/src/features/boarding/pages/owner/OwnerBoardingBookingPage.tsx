@@ -172,6 +172,7 @@ export function OwnerBoardingBookingPage() {
 
       if (record.paymentOption === "online") {
         if (record.paymentUrl) {
+          window.sessionStorage.setItem("pet_center_payment_result_context", "boarding")
           window.location.assign(record.paymentUrl)
           return
         }

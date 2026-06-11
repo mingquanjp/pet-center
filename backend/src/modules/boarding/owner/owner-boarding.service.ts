@@ -78,7 +78,8 @@ export async function getBookingOptions(
 
 export async function createBoardingRecord(
   authUser: AuthUser,
-  payload: CreateBoardingRecordPayload
+  payload: CreateBoardingRecordPayload,
+  clientIp: string
 ): Promise<BoardingRecordCreatedDto> {
   assertOwner(authUser);
   assertValidBoardingTime(payload.plannedCheckInAt, payload.plannedCheckOutAt);
@@ -112,7 +113,8 @@ export async function createBoardingRecord(
       plannedCheckOutAt: payload.plannedCheckOutAt,
       stayDays: selectedRoomType.nights,
       careRequest: payload.careRequest,
-      paymentOption: payload.paymentOption
+      paymentOption: payload.paymentOption,
+      clientIp
     });
     boardingNotificationPublisher.boardingCreated(record.boardingRecordId).catch(console.error);
     return record;
@@ -123,6 +125,10 @@ export async function createBoardingRecord(
 
     if (error instanceof Error && error.message === "BOARDING_ROOM_FULL") {
       throw new AppError("Loại phòng này đã hết chỗ trong khoảng thời gian đã chọn", "BOARDING_ROOM_FULL", httpStatus.CONFLICT);
+    }
+
+    if (error instanceof Error && error.message === "VNPAY_CONFIGURATION_MISSING") {
+      throw new AppError("VNPay configuration is missing", "VNPAY_CONFIGURATION_MISSING", httpStatus.INTERNAL_SERVER_ERROR);
     }
 
     throw error;
