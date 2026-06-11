@@ -64,12 +64,16 @@ export function StaffOwnerCreatePage() {
 
   const validateForm = (): boolean => {
     if (!form.fullName.trim()) {
-      setErrorMessage("Vui lòng nhập họ tên Chủ nuôi.");
+      const message = "Vui lòng nhập họ tên Chủ nuôi.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
     if (!form.phoneNumber.trim()) {
-      setErrorMessage("Vui lòng nhập số điện thoại Chủ nuôi.");
+      const message = "Vui lòng nhập số điện thoại Chủ nuôi.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
@@ -90,7 +94,9 @@ export function StaffOwnerCreatePage() {
       const nextQuery = owner.phoneNumber ?? owner.email ?? form.phoneNumber.trim();
       router.push(`/staff/pets/create?ownerQuery=${encodeURIComponent(nextQuery)}`);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể tạo tài khoản Chủ nuôi.");
+      const message = error instanceof Error ? error.message : "Không thể tạo tài khoản Chủ nuôi.";
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

@@ -55,7 +55,7 @@ export function OwnerHeader() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/owner/profile#security" className="cursor-pointer w-full">
+              <Link href="/owner/change-password" className="cursor-pointer w-full">
                 Đổi mật khẩu
               </Link>
             </DropdownMenuItem>

@@ -169,7 +169,9 @@ export function StaffPetCreatePage() {
   const handleOwnerSearch = React.useCallback(async () => {
     const query = ownerQuery.trim();
     if (!query) {
-      setErrorMessage("Vui lòng nhập SĐT hoặc email chủ nuôi.");
+      const message = "Vui lòng nhập SĐT hoặc email chủ nuôi.";
+      setErrorMessage(message);
+      toast.error(message);
       return;
     }
 
@@ -184,7 +186,9 @@ export function StaffPetCreatePage() {
         setSelectedOwner(null);
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể tìm chủ nuôi.");
+      const message = error instanceof Error ? error.message : "Không thể tìm chủ nuôi.";
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setIsSearchingOwner(false);
     }
@@ -203,13 +207,17 @@ export function StaffPetCreatePage() {
     if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setErrorMessage("Vui lòng chọn ảnh JPG, PNG hoặc WEBP.");
+      const message = "Vui lòng chọn ảnh JPG, PNG hoặc WEBP.";
+      setErrorMessage(message);
+      toast.error(message);
       event.target.value = "";
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage("Ảnh thú cưng không được vượt quá 5MB.");
+      const message = "Ảnh thú cưng không được vượt quá 5MB.";
+      setErrorMessage(message);
+      toast.error(message);
       event.target.value = "";
       return;
     }
@@ -241,27 +249,37 @@ export function StaffPetCreatePage() {
 
   const validateForm = (): boolean => {
     if (!selectedOwner) {
-      setErrorMessage("Vui lòng chọn chủ nuôi trước khi lưu hồ sơ.");
+      const message = "Vui lòng chọn chủ nuôi trước khi lưu hồ sơ.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
     if (!form.petName.trim() || !form.species || !form.gender) {
-      setErrorMessage("Vui lòng nhập đầy đủ tên thú cưng, loài và giới tính.");
+      const message = "Vui lòng nhập đầy đủ tên thú cưng, loài và giới tính.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
     if (!form.birthDate && !form.estimatedAge.trim()) {
-      setErrorMessage("Vui lòng nhập ngày sinh hoặc tuổi ước tính.");
+      const message = "Vui lòng nhập ngày sinh hoặc tuổi ước tính.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
     if (form.estimatedAge.trim() && optionalNumber(form.estimatedAge) === null) {
-      setErrorMessage("Tuổi ước tính phải là số hợp lệ.");
+      const message = "Tuổi ước tính phải là số hợp lệ.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
     if (form.weightKg.trim() && optionalNumber(form.weightKg) === null) {
-      setErrorMessage("Cân nặng phải là số hợp lệ.");
+      const message = "Cân nặng phải là số hợp lệ.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
@@ -283,7 +301,9 @@ export function StaffPetCreatePage() {
       router.push(`/staff/pets/${encodeURIComponent(pet.petId)}`);
       router.refresh();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể tạo hồ sơ thú cưng.");
+      const message = error instanceof Error ? error.message : "Không thể tạo hồ sơ thú cưng.";
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

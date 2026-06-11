@@ -16,6 +16,7 @@ import {
   WalletCards,
   Search
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -60,7 +61,9 @@ export function OwnerBoardingBookingPage() {
 
     async function loadBookingOptions() {
       if (!isValidDateTimeInput(checkInAt) || !isValidDateTimeInput(checkOutAt)) {
-        setErrorMessage("Vui lòng chọn đầy đủ thời gian nhận phòng và trả phòng")
+        const message = "Vui lòng chọn đầy đủ thời gian nhận phòng và trả phòng"
+        setErrorMessage(message)
+        toast.error(message)
         setIsLoadingOptions(false)
         return
       }
@@ -96,7 +99,9 @@ export function OwnerBoardingBookingPage() {
         if (!abortController.signal.aborted) {
           setPets([])
           setRoomOptions([])
-          setErrorMessage(error instanceof Error ? error.message : "Không thể tải thông tin đặt phòng lưu trú")
+          const message = error instanceof Error ? error.message : "Không thể tải thông tin đặt phòng lưu trú"
+          setErrorMessage(message)
+          toast.error(message)
         }
       } finally {
         if (!abortController.signal.aborted) {
@@ -132,17 +137,23 @@ export function OwnerBoardingBookingPage() {
 
   async function handleSubmit() {
     if (!selectedPet || !selectedRoom) {
-      setErrorMessage("Vui lòng chọn thú cưng và loại phòng lưu trú")
+      const message = "Vui lòng chọn thú cưng và loại phòng lưu trú"
+      setErrorMessage(message)
+      toast.error(message)
       return
     }
 
     if (!isValidDateTimeInput(checkInAt) || !isValidDateTimeInput(checkOutAt)) {
-      setErrorMessage("Vui lòng chọn đầy đủ thời gian nhận phòng và trả phòng")
+      const message = "Vui lòng chọn đầy đủ thời gian nhận phòng và trả phòng"
+      setErrorMessage(message)
+      toast.error(message)
       return
     }
 
     if (!selectedRoom.available) {
-      setErrorMessage("Loại phòng này đã hết chỗ trong khoảng thời gian đã chọn")
+      const message = "Loại phòng này đã hết chỗ trong khoảng thời gian đã chọn"
+      setErrorMessage(message)
+      toast.error(message)
       return
     }
 
@@ -165,13 +176,18 @@ export function OwnerBoardingBookingPage() {
           return
         }
 
-        setErrorMessage("Cổng thanh toán online chưa sẵn sàng. Vui lòng chọn thanh toán tại trung tâm.")
+        const message = "Cổng thanh toán online chưa sẵn sàng. Vui lòng chọn thanh toán tại trung tâm."
+        setErrorMessage(message)
+        toast.error(message)
         return
       }
 
       setSuccessRecord(record)
+      toast.success("Tạo yêu cầu đặt phòng lưu trú thành công")
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể tạo yêu cầu đặt phòng lưu trú")
+      const message = error instanceof Error ? error.message : "Không thể tạo yêu cầu đặt phòng lưu trú"
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }

@@ -30,6 +30,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { LoadingState } from "@/components/ui/loading-state"
+import { getMedicineUnitLabel } from "@/features/medicines/utils/medicine-format"
+import type { MedicineUnit } from "@/features/medicines/types/medicine.types"
 
 import { doctorExaminationsApi } from "../../api/doctor-examinations.api"
 import {
@@ -70,7 +72,13 @@ function todayInputValue() {
 
 function formatPrescriptionQuantity(quantity?: number | string | null, unit?: string | null) {
   if (quantity === undefined || quantity === null || quantity === "") return "-"
-  return unit ? `${quantity} ${unit}` : String(quantity)
+  return unit ? `${quantity} ${formatMedicineUnit(unit)}` : String(quantity)
+}
+
+function formatMedicineUnit(unit?: string | null) {
+  if (!unit) return ""
+
+  return getMedicineUnitLabel(unit as MedicineUnit)
 }
 
 function formatDateTime(value?: string) {
@@ -375,7 +383,15 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     }
 
     setValidationErrors(nextErrors)
-    return Object.keys(nextErrors).length === 0
+
+    const firstError = Object.values(nextErrors)[0]
+    if (firstError) {
+      toast.error(firstError)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      return false
+    }
+
+    return true
   }
 
   const buildPayload = (includeCompletionData: boolean): CompleteDoctorExaminationPayload => {
@@ -435,6 +451,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
         fieldValues: payload.fieldValues,
       })
       applyDetailState(result)
+      toast.success("Lưu nháp thành công")
+    } catch (saveError) {
+      toast.error(saveError instanceof Error ? saveError.message : "Không thể lưu nháp")
     } finally {
       setIsSubmitting(false)
     }
@@ -465,11 +484,23 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     if (!prescriptionDraft.usageInstruction.trim()) nextErrors.usageInstruction = "Nhập hướng dẫn sử dụng"
 
     setPrescriptionDraftErrors(nextErrors)
-    return Object.keys(nextErrors).length === 0
+
+    const firstError = Object.values(nextErrors)[0]
+    if (firstError) {
+      toast.error(firstError)
+      return false
+    }
+
+    return true
   }
 
   const handleAddPrescriptionItem = () => {
-    if (!detail || !validatePrescriptionDraft()) return
+    if (!detail) {
+      toast.error("Không thể thêm thuốc vì phiếu khám chưa tải xong")
+      return
+    }
+
+    if (!validatePrescriptionDraft()) return
 
     const medicine = detail.medicines.find((option) => option.id === prescriptionDraft.medicineId)
     const nextItem = {
@@ -502,13 +533,23 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!detail || !validateForm()) return
+    if (!detail) {
+      toast.error("Không thể hoàn tất khám vì phiếu khám chưa tải xong")
+      return
+    }
+
+    if (!validateForm()) return
 
     try {
       setIsSubmitting(true)
+      const hasPrescription = prescriptionItems.some((item) => item.medicineId)
       const result = await doctorExaminationsApi.completeDoctorExamination(appointmentId, buildPayload(true))
       applyDetailState(result)
       router.refresh()
+      toast.success(hasPrescription ? "Hoàn tất khám và kê đơn thành công" : "Hoàn tất khám thành công")
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    } catch (submitError) {
+      toast.error(submitError instanceof Error ? submitError.message : "Không thể hoàn tất khám")
     } finally {
       setIsSubmitting(false)
     }
@@ -932,7 +973,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                     <option value="">Chọn thuốc...</option>
                     {detail.medicines.map((medicine) => (
                       <option key={medicine.id} value={medicine.id}>
-                        {medicine.name} ({medicine.unit})
+                        {medicine.name} ({formatMedicineUnit(medicine.unit)})
                       </option>
                     ))}
                   </select>

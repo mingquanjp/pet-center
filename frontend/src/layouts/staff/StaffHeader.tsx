@@ -55,7 +55,7 @@ export function StaffHeader() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/staff/profile#security" className="cursor-pointer w-full">
+              <Link href="/staff/change-password" className="cursor-pointer w-full">
                 Đổi mật khẩu
               </Link>
             </DropdownMenuItem>

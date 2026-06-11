@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ApiError } from "@/lib/api";
 import { AlertCircle, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
   appointmentId: string;
@@ -78,6 +79,16 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
     : appointment.suggestedDoctor ?? appointment.assignedDoctor;
 
   const handleSubmit = () => {
+    if (!action) {
+      toast.error("Vui lòng chọn thao tác xác nhận hoặc từ chối lịch hẹn.");
+      return;
+    }
+
+    if (action === "CONFIRM" && !doctorToConfirm) {
+      toast.error("Không có bác sĩ khả dụng trong khung giờ này.");
+      return;
+    }
+
     if (action === "CONFIRM") {
       confirmMutation.mutate({
         appointmentId,
@@ -85,8 +96,12 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
         internalNote: "", // Not implemented in UI yet
       }, {
         onSuccess: () => {
+          toast.success("Đã xác nhận lịch hẹn thành công.");
           refetch();
-        }
+        },
+        onError: (error) => {
+          toast.error(getErrorMessage(error, "Không thể xác nhận lịch hẹn."));
+        },
       });
     } else if (action === "REJECT") {
       rejectMutation.mutate({
@@ -95,8 +110,12 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
         internalNote: "", // Not implemented in UI yet
       }, {
         onSuccess: () => {
+          toast.success("Đã từ chối lịch hẹn.");
           refetch();
-        }
+        },
+        onError: (error) => {
+          toast.error(getErrorMessage(error, "Không thể từ chối lịch hẹn."));
+        },
       });
     }
   };

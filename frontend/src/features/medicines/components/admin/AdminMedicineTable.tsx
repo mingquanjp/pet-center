@@ -30,13 +30,13 @@ export function AdminMedicineTable({
   onToggleStatus,
   onDelete,
 }: AdminMedicineTableProps) {
-  const startIndex = (page - 1) * limit + 1
+  const startIndex = total === 0 ? 0 : (page - 1) * limit + 1
   const endIndex = Math.min(page * limit, total)
 
   return (
     <div className="w-full bg-white rounded-2xl shadow-card border border-petcenter-border overflow-hidden flex flex-col">
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
+        <table className="w-full min-w-[900px] table-fixed border-collapse text-left">
           <colgroup>
             <col className="w-[140px]" />
             <col className="w-auto" />
@@ -45,21 +45,21 @@ export function AdminMedicineTable({
             <col className="w-[160px]" />
             <col className="w-[210px]" />
           </colgroup>
-          <thead>
-            <tr className="bg-petcenter-filter border-b border-petcenter-border">
-              <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-[0.08em]">Mã thuốc</th>
-              <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-[0.08em]">Tên thuốc</th>
-              <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-[0.08em]">Đơn vị</th>
-              <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-[0.08em]">Đơn giá</th>
-              <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-[0.08em]">Trạng thái</th>
-              <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-[0.08em] text-right">Thao tác</th>
+          <thead className="border-b border-petcenter-border bg-petcenter-background">
+            <tr>
+              <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Mã thuốc</th>
+              <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Tên thuốc</th>
+              <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Đơn vị</th>
+              <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Đơn giá</th>
+              <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Trạng thái</th>
+              <th className="px-6 py-4 text-center text-sm font-medium text-petcenter-text-secondary">Thao tác</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-petcenter-border bg-white">
             {medicines.map((med) => (
-              <tr key={med.id} className="border-b border-petcenter-border hover:bg-petcenter-filter/50 h-[72px] transition-colors align-middle">
-                <td className="px-5 py-4 text-sm font-medium text-petcenter-text-muted whitespace-nowrap">{med.code}</td>
-                <td className="px-5 py-4 text-sm text-petcenter-text">
+              <tr key={med.id} className="align-middle transition-colors hover:bg-petcenter-background/60">
+                <td className="px-6 py-4 text-sm font-medium text-petcenter-text-muted whitespace-nowrap">{med.code}</td>
+                <td className="px-6 py-4 text-sm text-petcenter-text">
                   <div>
                     <p className="font-semibold text-petcenter-text truncate">{med.medicineName}</p>
                     {(med.description || med.usageNote) && (
@@ -69,16 +69,16 @@ export function AdminMedicineTable({
                     )}
                   </div>
                 </td>
-                <td className="px-5 py-4 text-sm text-petcenter-text">
+                <td className="px-6 py-4 text-sm text-petcenter-text">
                   <AdminMedicineUnitBadge unit={med.unit} />
                 </td>
-                <td className="px-5 py-4 text-sm font-semibold text-petcenter-primary whitespace-nowrap">
+                <td className="px-6 py-4 text-sm font-semibold text-petcenter-primary whitespace-nowrap">
                   {formatVnd(med.unitPrice).replace("₫", "đ")}
                 </td>
-                <td className="px-5 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap">
                   <AdminMedicineStatusBadge status={med.medicineStatus} />
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => onView(med)} title="Xem chi tiết" aria-label="Xem chi tiết" className="w-[36px] h-[36px] shrink-0 rounded-lg border border-petcenter-border flex items-center justify-center text-petcenter-text-secondary hover:bg-petcenter-background hover:text-petcenter-primary transition-colors">
                       <Eye className="w-4 h-4" />
@@ -100,9 +100,13 @@ export function AdminMedicineTable({
         </table>
       </div>
 
-      <div className="p-4 flex items-center justify-between text-sm text-petcenter-text-muted bg-white border-t border-petcenter-border">
-        <div>
-          Hiển thị {startIndex}-{endIndex} của {total} kết quả
+      <div className="flex w-full flex-col items-center justify-between gap-4 border-t border-petcenter-border px-6 py-4 sm:flex-row">
+        <div className="text-sm text-petcenter-text-secondary">
+          Hiển thị{" "}
+          <span className="font-medium text-petcenter-text">{startIndex}</span>
+          -
+          <span className="font-medium text-petcenter-text">{endIndex}</span>{" "}
+          của <span className="font-medium text-petcenter-text">{total}</span> thuốc
         </div>
         <AppPagination
           currentPage={page}

@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -85,20 +86,13 @@ function StepHeading({ index, title, active = false }: { index: number; title: s
 }
 
 function PetAvatar({ pet }: { pet: StaffCounterGroomingPet }) {
-  if (pet.profileImageUrl) {
-    return (
-      <div
-        aria-hidden="true"
-        className="size-12 rounded-full bg-cover bg-center"
-        style={{ backgroundImage: `url(${pet.profileImageUrl})` }}
-      />
-    )
-  }
-
   return (
-    <div className="flex size-12 items-center justify-center rounded-full bg-[#e4e3d7] text-[#3e4946]">
-      <PawPrint className="size-5" />
-    </div>
+    <Avatar className="size-10 shrink-0">
+      {pet.profileImageUrl ? <AvatarImage src={pet.profileImageUrl} alt={pet.petName} /> : null}
+      <AvatarFallback className="bg-petcenter-background text-petcenter-primary">
+        <PawPrint className="size-5" aria-hidden="true" />
+      </AvatarFallback>
+    </Avatar>
   )
 }
 
@@ -135,6 +129,140 @@ function PetOption({
       </div>
       {selected ? <Check className="ml-4 size-5 shrink-0 text-[#00796b]" /> : null}
     </button>
+  )
+}
+
+function buildPetSubtitle(pet: StaffCounterGroomingPet) {
+  return [pet.speciesLabel, pet.breed ?? "Chưa cập nhật giống", pet.ownerName, pet.ownerPhoneNumber]
+    .filter(Boolean)
+    .join(" • ")
+}
+
+function StaffPetDropdownSelection({
+  isLoading,
+  onSearchChange,
+  onSelect,
+  pets,
+  searchQuery,
+  selectedPet,
+}: {
+  isLoading: boolean
+  onSearchChange: (value: string) => void
+  onSelect: (petId: string) => void
+  pets: StaffCounterGroomingPet[]
+  searchQuery: string
+  selectedPet: StaffCounterGroomingPet | null
+}) {
+  const [open, setOpen] = React.useState(false)
+
+  return (
+    <fieldset aria-label="Chọn thú cưng">
+      {selectedPet ? (
+        <div className="relative w-full max-w-[560px]">
+          <p className="mb-2 label-md text-petcenter-text-secondary">Thú cưng</p>
+          <button
+            type="button"
+            onClick={() => setOpen((current) => !current)}
+            className="flex h-[52px] w-full items-center gap-3 rounded-xl border border-petcenter-border bg-petcenter-filter px-[17px] text-left transition-colors hover:bg-petcenter-background"
+          >
+            <PetAvatar pet={selectedPet} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate body-md font-medium text-petcenter-text">{selectedPet.petName}</span>
+              <span className="block truncate body-sm text-petcenter-text-secondary">
+                {buildPetSubtitle(selectedPet)}
+              </span>
+            </span>
+            <ChevronDown className="size-4 shrink-0 text-petcenter-text-secondary" aria-hidden="true" />
+          </button>
+
+          {open ? (
+            <div className="absolute left-0 top-[78px] z-20 w-full overflow-hidden rounded-2xl border border-petcenter-border-strong bg-petcenter-card shadow-modal">
+              <div className="border-b border-petcenter-border bg-petcenter-card p-3">
+                <div className="relative">
+                  <Search
+                    className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-petcenter-text-secondary"
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => onSearchChange(event.target.value)}
+                    placeholder="Tìm thú cưng..."
+                    className="h-10 w-full rounded-lg border border-petcenter-border bg-petcenter-filter pl-9 pr-3 body-sm text-petcenter-text outline-none placeholder:text-petcenter-text-muted focus:border-petcenter-primary"
+                  />
+                </div>
+              </div>
+              <div className="max-h-[300px] overflow-y-auto">
+                {isLoading && pets.length === 0 ? (
+                  <p className="px-3 py-4 body-sm text-petcenter-text-secondary">Đang tải thú cưng...</p>
+                ) : null}
+                {pets.map((pet) => {
+                  const selected = pet.petId === selectedPet.petId
+
+                  return (
+                    <button
+                      key={pet.petId}
+                      type="button"
+                      onClick={() => {
+                        onSelect(pet.petId)
+                        setOpen(false)
+                        onSearchChange("")
+                      }}
+                      className="flex w-full items-center gap-3 border-b border-petcenter-border px-3 py-3 text-left transition-colors hover:bg-petcenter-filter"
+                    >
+                      <PetAvatar pet={pet} />
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={cn(
+                            "block truncate body-md text-petcenter-text",
+                            selected ? "font-bold" : "font-normal"
+                          )}
+                        >
+                          {pet.petName}
+                        </span>
+                        <span className="block truncate body-sm text-petcenter-text-secondary">
+                          {buildPetSubtitle(pet)}
+                        </span>
+                      </span>
+                      {selected ? <Check className="size-4 shrink-0 text-petcenter-primary" aria-hidden="true" /> : null}
+                    </button>
+                  )
+                })}
+                {!isLoading && pets.length === 0 ? (
+                  <p className="px-3 py-4 body-sm text-petcenter-text-secondary">
+                    Không tìm thấy thú cưng phù hợp.
+                  </p>
+                ) : null}
+              </div>
+              <Button
+                asChild
+                type="button"
+                variant="ghost"
+                className="h-[42px] w-full justify-start rounded-none border-t border-petcenter-border px-3 body-sm font-normal text-petcenter-text-secondary hover:bg-petcenter-filter"
+              >
+                <Link href="/staff/pets/create">+ Thêm hồ sơ thú cưng</Link>
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="body-md text-petcenter-text-secondary">
+            Chưa có hồ sơ thú cưng phù hợp để tạo yêu cầu spa.
+          </p>
+          <Button
+            asChild
+            variant="outline"
+            className="h-11 rounded-xl border-dashed border-petcenter-primary text-petcenter-primary hover:bg-petcenter-filter"
+          >
+            <Link href="/staff/pets/create">
+              <Plus className="size-4" />
+              Thêm hồ sơ thú cưng
+            </Link>
+          </Button>
+        </div>
+      )}
+    </fieldset>
   )
 }
 
@@ -307,7 +435,9 @@ export function StaffSpaCreatePage() {
 
   async function handleCreateRequest() {
     if (!selectedPet || !selectedService || !selectedTime) {
-      setErrorMessage("Vui lòng chọn đủ thú cưng, dịch vụ và khung giờ.")
+      const message = "Vui lòng chọn đủ thú cưng, dịch vụ và khung giờ."
+      setErrorMessage(message)
+      toast.error(message)
       return
     }
 
@@ -324,7 +454,9 @@ export function StaffSpaCreatePage() {
       toast.success("Tạo yêu cầu spa tại quầy thành công")
       router.push("/staff/spa")
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể tạo yêu cầu spa")
+      const message = error instanceof Error ? error.message : "Không thể tạo yêu cầu spa"
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -366,6 +498,15 @@ export function StaffSpaCreatePage() {
           <section className="rounded-[16px] border border-[#e4e3d7] bg-white p-[25px] shadow-[0px_4px_8px_rgba(31,38,31,0.05)]">
             <div className="flex flex-col gap-4">
               <StepHeading index={1} title="Chọn thú cưng" active />
+              <StaffPetDropdownSelection
+                isLoading={isOptionsLoading}
+                pets={petDropdownOptions}
+                searchQuery={query}
+                selectedPet={selectedPet}
+                onSearchChange={setQuery}
+                onSelect={setSelectedPetId}
+              />
+              <div className="hidden">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-[#3e4946]" />
                 <Input
@@ -422,6 +563,7 @@ export function StaffSpaCreatePage() {
                   <Plus className="size-4" />
                   Tạo hồ sơ thú cưng
                 </button>
+              </div>
               </div>
             </div>
           </section>

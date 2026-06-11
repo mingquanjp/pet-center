@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle, ChevronLeft, ChevronRight, PawPrint, Plus, RotateCcw, Search } from "lucide-react";
@@ -231,13 +232,13 @@ export function StaffPetsPage() {
         </Button>
       </div>
 
-      <div className="mb-6 rounded-[16px] border border-[#e6e8dd] bg-white p-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
-        <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center">
-        <label className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e7774]" />
+      <div className="relative flex flex-col overflow-hidden rounded-2xl border border-petcenter-border bg-petcenter-card shadow-card">
+        <div className="flex flex-wrap items-center gap-3 border-b border-petcenter-border p-4">
+        <label className="relative min-w-50 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary" />
           <span className="sr-only">{text.searchPlaceholder}</span>
           <input
-            className="h-11 w-full rounded-full border border-[#cfd8d5] bg-white pl-14 pr-4 text-base leading-6 text-[#1b1c15] outline-none transition placeholder:text-[#8a918e] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+            className="body-md w-full rounded-[0.75rem] border border-petcenter-border bg-petcenter-background py-2 pl-9 pr-3 text-petcenter-text outline-none transition placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
             placeholder={text.searchPlaceholder}
             type="search"
             value={filters.q}
@@ -245,7 +246,7 @@ export function StaffPetsPage() {
           />
         </label>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center 2xl:flex-nowrap">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <StaffPetFilterSelect
             label="Loài"
             onChange={(value) => handleFilterChange({ species: value as StaffPetFilters["species"] })}
@@ -259,20 +260,17 @@ export function StaffPetsPage() {
             value={filters.gender}
           />
           <Button
-            className="h-10 w-fit shrink-0 rounded-xl px-3 text-base font-normal leading-6 text-[#005e53] hover:bg-[#e0f2f1] hover:text-[#004c43] disabled:pointer-events-none disabled:opacity-50"
+            className="body-md h-10 w-fit shrink-0 rounded-[0.75rem] border border-petcenter-border px-4 font-medium text-petcenter-text-secondary transition-colors hover:bg-petcenter-background hover:text-petcenter-text disabled:pointer-events-none disabled:opacity-50"
             disabled={!hasActiveFilters}
             onClick={() => updateFilters(defaultFilters)}
             type="button"
             variant="ghost"
           >
             <RotateCcw className="mr-1 h-4 w-4" />
-            Đặt lại bộ lọc
+            <span className="hidden sm:inline">{text.reset}</span>
           </Button>
         </div>
         </div>
-      </div>
-
-      <div className="overflow-hidden rounded-[16px] border border-petcenter-border bg-white shadow-card">
         <div className="relative min-h-[360px]">
           {isFetching && !isLoading && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 backdrop-blur-[2px]">
@@ -305,55 +303,56 @@ export function StaffPetsPage() {
               </div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[960px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-petcenter-border bg-[#E0F2F1]">
-                    <th className="whitespace-nowrap px-6 py-4 text-[13px] font-semibold uppercase tracking-wider text-[#003D36]">{text.petCode}</th>
-                    <th className="whitespace-nowrap px-6 py-4 text-[13px] font-semibold uppercase tracking-wider text-[#003D36]">{text.pet}</th>
-                    <th className="whitespace-nowrap px-6 py-4 text-[13px] font-semibold uppercase tracking-wider text-[#003D36]">{text.owner}</th>
-                    <th className="whitespace-nowrap px-6 py-4 text-[13px] font-semibold uppercase tracking-wider text-[#003D36]">{text.phone}</th>
-                    <th className="whitespace-nowrap px-6 py-4 text-[13px] font-semibold uppercase tracking-wider text-[#003D36]">{text.speciesBreed}</th>
-                    <th className="whitespace-nowrap px-6 py-4 text-right text-[13px] font-semibold uppercase tracking-wider text-[#003D36]">{text.action}</th>
+            <div className="w-full overflow-x-auto overflow-y-hidden">
+              <table className="w-full min-w-200 table-fixed border-collapse text-left">
+                <thead className="border-b border-petcenter-border bg-petcenter-background">
+                  <tr>
+                    <th className="w-[14%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">{text.petCode}</th>
+                    <th className="w-[25%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">{text.pet}</th>
+                    <th className="w-[18%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">{text.owner}</th>
+                    <th className="w-[14%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">{text.phone}</th>
+                    <th className="w-[19%] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">{text.speciesBreed}</th>
+                    <th className="w-[10%] px-6 py-4 text-center text-sm font-medium text-petcenter-text-secondary">{text.action}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-petcenter-border">
                   {pets.map((pet) => (
-                    <tr key={pet.petId} className="h-[72px] transition-colors hover:bg-petcenter-filter">
-                      <td className="whitespace-nowrap px-6 py-4 text-[14px] font-medium text-petcenter-text">{formatPetCode(pet.petId)}</td>
+                    <tr key={pet.petId} className="transition-colors hover:bg-petcenter-background/50">
+                      <td className="px-6 py-4 font-medium text-petcenter-text">{formatPetCode(pet.petId)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-petcenter-sidebar text-petcenter-text-muted">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-petcenter-border text-petcenter-text-muted">
                             {pet.profileImageUrl ? (
-                              <div
-                                aria-label={pet.petName}
-                                className="h-full w-full bg-cover bg-center"
-                                role="img"
-                                style={{ backgroundImage: `url(${pet.profileImageUrl})` }}
+                              <Image
+                                alt={pet.petName}
+                                className="h-full w-full object-cover"
+                                height={40}
+                                src={pet.profileImageUrl}
+                                width={40}
                               />
                             ) : (
-                              <PawPrint className="h-5 w-5" aria-hidden="true" />
+                              <div className="text-xs font-bold uppercase">{pet.petName.substring(0, 2)}</div>
                             )}
                           </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-[14px] font-semibold text-petcenter-text">{pet.petName}</p>
-                            <p className="truncate text-[13px] text-petcenter-text-secondary">
+                          <div>
+                            <p className="font-medium text-petcenter-text">{pet.petName}</p>
+                            <p className="mt-0.5 text-xs text-petcenter-text-secondary">
                               {pet.ageLabel}, {pet.genderLabel}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-[14px] text-petcenter-text-secondary">{pet.owner.fullName}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-[14px] text-petcenter-text-secondary">{pet.owner.phoneNumber || text.noPhone}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-[14px] text-petcenter-text-secondary">
+                      <td className="px-6 py-4 text-petcenter-text">{pet.owner.fullName}</td>
+                      <td className="px-6 py-4 text-petcenter-text">{pet.owner.phoneNumber || text.noPhone}</td>
+                      <td className="px-6 py-4 text-petcenter-text">
                         {pet.speciesLabel} / {pet.breed || text.noBreed}
                       </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-center">
                         <Link
                           href={`/staff/pets/${encodeURIComponent(pet.petId)}`}
-                          className="inline-flex items-center justify-center rounded-xl border border-petcenter-primary bg-transparent px-4 py-2 text-[13px] font-medium text-petcenter-primary transition-colors hover:bg-[#D8F3EE]"
+                          className="inline-flex h-9 items-center justify-center rounded-[0.75rem] bg-petcenter-cta px-4 font-semibold text-white shadow-sm transition-all hover:bg-petcenter-cta-hover active:scale-95 active:bg-petcenter-cta-active"
                         >
-                          {text.viewProfile}
+                          Xem
                         </Link>
                       </td>
                     </tr>
@@ -365,24 +364,28 @@ export function StaffPetsPage() {
         </div>
 
         {!isLoading && !isError && pets.length > 0 && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-petcenter-border bg-white px-6 py-4">
-            <span className="text-[13px] text-petcenter-text-secondary">
-              Hiển thị {startItem}-{endItem} {text.paginationOf} {pagination.total} {text.records}
+          <div className="flex w-full flex-col items-center justify-between gap-4 border-t border-petcenter-border px-6 py-4 sm:flex-row">
+            <span className="text-sm text-petcenter-text-secondary">
+              Hiển thị{" "}
+              <span className="font-medium text-petcenter-text">{startItem}</span>
+              -
+              <span className="font-medium text-petcenter-text">{endItem}</span>{" "}
+              của <span className="font-medium text-petcenter-text">{pagination.total}</span> {text.records}
             </span>
             <nav className="flex items-center gap-2" aria-label="Phân trang">
               <button
                 aria-label={text.previousPage}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-petcenter-border-strong text-petcenter-text-muted transition hover:bg-petcenter-sidebar disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-9 w-9 items-center justify-center rounded-[0.75rem] border border-petcenter-border bg-white text-petcenter-text-secondary transition hover:bg-petcenter-background disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={pagination.page === 1}
                 onClick={() => handlePageChange(pagination.page - 1)}
                 type="button"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-4 w-4" />
               </button>
 
               {getPaginationItems(pagination.page, pagination.totalPages).map((item, index) =>
                 item === "ellipsis" ? (
-                  <span key={`ellipsis-${index}`} className="flex h-8 min-w-8 items-center justify-center text-[#7A837F]">
+                  <span key={`ellipsis-${index}`} className="flex h-9 min-w-9 items-center justify-center text-sm font-medium text-petcenter-text-secondary">
                     ...
                   </span>
                 ) : (
@@ -390,10 +393,10 @@ export function StaffPetsPage() {
                     key={item}
                     aria-current={item === pagination.page ? "page" : undefined}
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-medium transition",
+                      "inline-flex h-9 min-w-9 items-center justify-center rounded-[0.75rem] px-3 text-sm font-medium transition disabled:cursor-not-allowed",
                       item === pagination.page
-                        ? "bg-petcenter-primary text-white"
-                        : "border border-petcenter-border-strong text-petcenter-text-secondary hover:bg-petcenter-sidebar"
+                        ? "bg-petcenter-primary text-white shadow-sm"
+                        : "border border-petcenter-border bg-white text-petcenter-text hover:bg-petcenter-background"
                     )}
                     onClick={() => handlePageChange(item)}
                     type="button"
@@ -405,12 +408,12 @@ export function StaffPetsPage() {
 
               <button
                 aria-label={text.nextPage}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-petcenter-border-strong text-petcenter-text-secondary transition hover:bg-petcenter-sidebar disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-9 w-9 items-center justify-center rounded-[0.75rem] border border-petcenter-border bg-white text-petcenter-text-secondary transition hover:bg-petcenter-background disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={pagination.page === pagination.totalPages}
                 onClick={() => handlePageChange(pagination.page + 1)}
                 type="button"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-4 w-4" />
               </button>
             </nav>
           </div>
@@ -433,9 +436,9 @@ function StaffPetFilterSelect({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="whitespace-nowrap text-base font-normal leading-6 text-[#3e4946]">{label}:</span>
+      <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">{label}:</span>
       <select
-        className="h-11 min-w-[132px] rounded-[16px] border border-[#cfd8d5] bg-white px-4 pr-9 text-base leading-6 text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+        className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background px-3 py-2 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >

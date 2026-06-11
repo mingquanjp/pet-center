@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
@@ -196,7 +195,9 @@ function OwnerCreateAppointmentContent() {
     const validation = validateCreateOwnerAppointmentForm(formValues);
 
     if (!validation.isValid) {
-      setValidationMessage(Object.values(validation.errors)[0] ?? "Vui lòng kiểm tra lại thông tin.");
+      const message = Object.values(validation.errors)[0] ?? "Vui lòng kiểm tra lại thông tin.";
+      setValidationMessage(message);
+      toast.error(message);
       return;
     }
 
@@ -211,6 +212,7 @@ function OwnerCreateAppointmentContent() {
 
       setCreatedAppointment(result);
       setIsSuccessModalOpen(true);
+      toast.success("Tạo lịch hẹn khám thành công");
     } catch (error) {
       const message = error instanceof ApiError || error instanceof Error
         ? error.message

@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { LoadingState } from "@/components/ui/loading-state"
 import { cn } from "@/lib/utils"
+import { getMedicineUnitLabel } from "../../utils/medicine-format"
+import type { MedicineUnit } from "../../types/medicine.types"
 
 import { doctorPrescriptionsApi } from "../../api/doctor-prescriptions.api"
 import { useDoctorPrescriptions } from "../../hooks/useDoctorPrescriptions"
@@ -42,7 +44,13 @@ const defaultFilters: DoctorPrescriptionFilters = {
 
 const formatPrescriptionQuantity = (quantity?: string | null, unit?: string | null) => {
   if (!quantity) return "-"
-  return unit ? `${quantity} ${unit}` : quantity
+  return unit ? `${quantity} ${formatMedicineUnit(unit)}` : quantity
+}
+
+function formatMedicineUnit(unit?: string | null) {
+  if (!unit) return ""
+
+  return getMedicineUnitLabel(unit as MedicineUnit)
 }
 
 const statusLabels: Record<DoctorPrescriptionStatus, string> = {
@@ -205,9 +213,9 @@ export function DoctorPrescriptionsPage() {
         ) : (
           <div className={cn("transition-opacity duration-200", isLoading ? "pointer-events-none opacity-50" : "opacity-100")}>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1050px] border-collapse">
-                <thead>
-                  <tr className="border-b border-[#e4e3d7] bg-[#d8f3ee]">
+              <table className="w-full min-w-[1050px] table-fixed border-collapse text-left">
+                <thead className="border-b border-petcenter-border bg-petcenter-background">
+                  <tr>
                     <TableHeaderCell className="w-[160px]">Mã đơn</TableHeaderCell>
                     <TableHeaderCell className="w-[150px]">Phiếu khám</TableHeaderCell>
                     <TableHeaderCell className="w-[220px]">Thú cưng</TableHeaderCell>
@@ -217,9 +225,9 @@ export function DoctorPrescriptionsPage() {
                     <TableHeaderCell className="w-[120px] text-right">Thao tác</TableHeaderCell>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-petcenter-border bg-white">
                   {data.map((prescription) => (
-                    <tr className="border-b border-[#e4e3d7] last:border-b-0" key={prescription.prescriptionId}>
+                    <tr className="transition-colors hover:bg-petcenter-background/60" key={prescription.prescriptionId}>
                       <TableBodyCell>
                         <span className="font-medium text-[#005e53]">{prescription.prescriptionCode}</span>
                       </TableBodyCell>
@@ -271,9 +279,13 @@ export function DoctorPrescriptionsPage() {
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-4 border-t border-[#e4e3d7] bg-[#fbfaee] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs leading-4 text-[#3e4946]">
-                Hiển thị {startItem} đến {endItem} của {pagination.total || 0} kết quả
+            <div className="flex w-full flex-col items-center justify-between gap-4 border-t border-petcenter-border px-6 py-4 sm:flex-row">
+              <p className="text-sm text-petcenter-text-secondary">
+                Hiển thị{" "}
+                <span className="font-medium text-petcenter-text">{startItem}</span>
+                -
+                <span className="font-medium text-petcenter-text">{endItem}</span>{" "}
+                của <span className="font-medium text-petcenter-text">{pagination.total || 0}</span> đơn thuốc
               </p>
               <AppPagination
                 ariaLabel="Phân trang danh sách đơn thuốc"
@@ -584,7 +596,7 @@ function MedicineBodyCell({ className, ...props }: React.ComponentProps<"td">) {
 function TableHeaderCell({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
-      className={cn("px-6 py-4 text-left text-base font-bold leading-5 text-[#003d36]", className)}
+      className={cn("px-6 py-4 text-left text-sm font-medium text-petcenter-text-secondary", className)}
       scope="col"
       {...props}
     />
@@ -592,5 +604,5 @@ function TableHeaderCell({ className, ...props }: React.ComponentProps<"th">) {
 }
 
 function TableBodyCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("px-6 py-5 text-base leading-6 text-[#3e4946]", className)} {...props} />
+  return <td className={cn("px-6 py-4 text-petcenter-text", className)} {...props} />
 }

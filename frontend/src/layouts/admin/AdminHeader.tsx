@@ -55,7 +55,7 @@ export function AdminHeader() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link className="w-full cursor-pointer" href="/admin/profile#security">{"\u0110\u1ed5i m\u1eadt kh\u1ea9u"}</Link>
+              <Link className="w-full cursor-pointer" href="/admin/change-password">{"\u0110\u1ed5i m\u1eadt kh\u1ea9u"}</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

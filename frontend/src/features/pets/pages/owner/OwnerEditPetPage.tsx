@@ -18,6 +18,7 @@ import {
   Venus,
   Weight,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { uploadsApi } from "@/features/uploads/api/uploads.api"
 import { cn } from "@/lib/utils"
@@ -120,13 +121,17 @@ export function OwnerEditPetPage({ petId }: { petId: string }) {
     if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      setErrorMessage("Vui lòng chọn file ảnh định dạng JPG hoặc PNG.")
+      const message = "Vui lòng chọn file ảnh định dạng JPG hoặc PNG."
+      setErrorMessage(message)
+      toast.error(message)
       event.target.value = ""
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage("Ảnh đại diện không được vượt quá 5MB.")
+      const message = "Ảnh đại diện không được vượt quá 5MB."
+      setErrorMessage(message)
+      toast.error(message)
       event.target.value = ""
       return
     }
@@ -159,15 +164,22 @@ export function OwnerEditPetPage({ petId }: { petId: string }) {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!form || !pet) return
+    if (!form || !pet) {
+      toast.error("Không thể cập nhật vì hồ sơ thú cưng chưa tải xong.")
+      return
+    }
 
     if (!form.petName.trim() || !form.species || !form.breed.trim()) {
-      setErrorMessage("Vui lòng nhập đầy đủ tên, loài và giống thú cưng.")
+      const message = "Vui lòng nhập đầy đủ tên, loài và giống thú cưng."
+      setErrorMessage(message)
+      toast.error(message)
       return
     }
 
     if (!form.birthDate && !form.estimatedAge) {
-      setErrorMessage("Vui lòng nhập ngày sinh dự kiến hoặc tuổi ước tính theo năm.")
+      const message = "Vui lòng nhập ngày sinh dự kiến hoặc tuổi ước tính theo năm."
+      setErrorMessage(message)
+      toast.error(message)
       return
     }
 
@@ -187,9 +199,12 @@ export function OwnerEditPetPage({ petId }: { petId: string }) {
       setPet(updatedPet)
       setForm(toFormState(updatedPet))
       setIsSaved(true)
+      toast.success("Cập nhật hồ sơ thú cưng thành công")
       router.refresh()
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể cập nhật hồ sơ thú cưng.")
+      const message = error instanceof Error ? error.message : "Không thể cập nhật hồ sơ thú cưng."
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }

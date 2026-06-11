@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Bed, PawPrint, Home, ShieldCheck, PauseCircle, Eye, Pencil, Trash2, Plus, Search, BarChart3, AlertCircle, SearchX, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { useAdminBoardingRooms } from "../../hooks/useAdminBoardingRooms";
 import { formatVnd, getStatusBadgeClass } from "../../utils/room-format";
 import { AdminBoardingRoom, AdminBoardingRoomFilters } from "../../types/room.types";
@@ -48,10 +49,19 @@ export function AdminBoardingRoomsPage() {
 
   const handleDelete = async (room: AdminBoardingRoom) => {
     if (room.currentOccupancy > 0) {
-      alert("Không thể xóa loại phòng đang có thú cưng lưu trú.");
+      toast.error("Không thể xóa loại phòng đang có thú cưng lưu trú.");
       return;
     }
     setRoomToDelete(room);
+  };
+
+  const handleToggleStatus = async (room: AdminBoardingRoom) => {
+    try {
+      await toggleStatus(room.id);
+      toast.success(room.status === "active" ? "Đã tạm ngưng phòng lưu trú." : "Đã kích hoạt phòng lưu trú.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể đổi trạng thái phòng lưu trú.");
+    }
   };
 
   return (
@@ -197,41 +207,42 @@ export function AdminBoardingRoomsPage() {
                 room={room}
                 onDetail={() => handleOpenDetail(room)}
                 onEdit={() => handleOpenEdit(room)}
-                onToggle={() => toggleStatus(room.id)}
+                onToggle={() => handleToggleStatus(room)}
                 onDelete={() => handleDelete(room)}
               />
             ))}
           </div>
         ) : (
-          <div className="w-full bg-white rounded-2xl shadow-card border border-petcenter-border overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-petcenter-filter border-b border-petcenter-border">
-                  <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-wider">Mã</th>
-                  <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-wider">Loại phòng</th>
-                  <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-wider">Sức chứa</th>
-                  <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-wider">Đang sử dụng</th>
-                  <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-wider text-right">Giá/ngày</th>
-                  <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-wider">Trạng thái</th>
-                  <th className="px-5 py-4 text-xs font-semibold text-petcenter-text-secondary uppercase tracking-wider text-right">Thao tác</th>
+          <div className="w-full overflow-hidden rounded-2xl border border-petcenter-border bg-white shadow-card">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[920px] table-fixed border-collapse text-left">
+              <thead className="border-b border-petcenter-border bg-petcenter-background">
+                <tr>
+                  <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Mã</th>
+                  <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Loại phòng</th>
+                  <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Sức chứa</th>
+                  <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Đang sử dụng</th>
+                  <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Giá/ngày</th>
+                  <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Trạng thái</th>
+                  <th className="px-6 py-4 text-center text-sm font-medium text-petcenter-text-secondary">Thao tác</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-petcenter-border bg-white">
                 {filteredRooms.map(room => {
                   const isActive = room.status === "active";
                   return (
-                    <tr key={room.id} className="border-b border-petcenter-border hover:bg-petcenter-filter/50 h-[72px] transition-colors">
-                      <td className="px-5 py-3 text-sm font-semibold text-petcenter-text-muted">{room.code}</td>
-                      <td className="px-5 py-3 text-sm text-petcenter-text font-semibold max-w-[200px] truncate">{room.name}</td>
-                      <td className="px-5 py-3 text-sm text-petcenter-text font-medium">{room.capacity}</td>
-                      <td className="px-5 py-3 text-sm font-semibold text-petcenter-primary">{room.currentOccupancy}/{room.capacity}</td>
-                      <td className="px-5 py-3 text-sm font-bold text-petcenter-primary text-right">{formatVnd(room.boardingUnitPrice).replace("₫", "đ")}</td>
-                      <td className="px-5 py-3">
+                    <tr key={room.id} className="transition-colors hover:bg-petcenter-background/60">
+                      <td className="px-6 py-4 text-sm font-semibold text-petcenter-text-muted">{room.code}</td>
+                      <td className="max-w-[200px] truncate px-6 py-4 text-sm font-semibold text-petcenter-text">{room.name}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-petcenter-text">{room.capacity}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-petcenter-primary">{room.currentOccupancy}/{room.capacity}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-petcenter-primary">{formatVnd(room.boardingUnitPrice).replace("₫", "đ")}</td>
+                      <td className="px-6 py-4">
                         <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${getStatusBadgeClass(room.status)}`}>
                           {isActive ? "Đang hoạt động" : "Tạm ngưng"}
                         </span>
                       </td>
-                      <td className="px-5 py-3 flex items-center justify-end gap-1.5 h-[72px]">
+                      <td className="flex items-center justify-end gap-1.5 px-6 py-4">
                         <button onClick={() => handleOpenDetail(room)} title="Xem chi tiết" className="w-9 h-9 rounded-lg border border-petcenter-border flex items-center justify-center text-petcenter-text-secondary hover:bg-petcenter-background hover:text-petcenter-primary transition-colors">
                           <Eye className="w-4 h-4" />
                         </button>
@@ -247,6 +258,7 @@ export function AdminBoardingRoomsPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>
@@ -255,8 +267,13 @@ export function AdminBoardingRoomsPage() {
           room={selectedRoom}
           onClose={() => setIsFormOpen(false)}
           onSave={async (data) => {
-            if (selectedRoom) await updateRoom({ ...data, id: selectedRoom.id } as Parameters<typeof updateRoom>[0]);
-            else await createRoom(data as Parameters<typeof createRoom>[0]);
+            if (selectedRoom) {
+              await updateRoom({ ...data, id: selectedRoom.id } as Parameters<typeof updateRoom>[0]);
+              toast.success("Đã cập nhật phòng lưu trú.");
+            } else {
+              await createRoom(data as Parameters<typeof createRoom>[0]);
+              toast.success("Đã tạo phòng lưu trú.");
+            }
             setIsFormOpen(false);
           }}
         />
@@ -267,8 +284,13 @@ export function AdminBoardingRoomsPage() {
           room={roomToDelete}
           onClose={() => setRoomToDelete(null)}
           onConfirm={async () => {
-            await deleteRoom(roomToDelete.id);
-            setRoomToDelete(null);
+            try {
+              await deleteRoom(roomToDelete.id);
+              toast.success("Đã xóa phòng lưu trú.");
+              setRoomToDelete(null);
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Không thể xóa phòng lưu trú.");
+            }
           }}
         />
       )}

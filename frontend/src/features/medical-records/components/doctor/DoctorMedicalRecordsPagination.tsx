@@ -60,7 +60,11 @@ export function DoctorMedicalRecordsPagination({
   return (
     <div className="flex w-full flex-col items-center justify-between gap-4 border-t border-petcenter-border px-6 py-4 sm:flex-row bg-white">
       <p className="text-sm text-petcenter-text-secondary">
-        Hiển thị <span className="font-medium text-petcenter-text">{start}</span> - <span className="font-medium text-petcenter-text">{end}</span> trên <span className="font-medium text-petcenter-text">{total}</span> hồ sơ
+        Hiển thị{" "}
+        <span className="font-medium text-petcenter-text">{start}</span>
+        -
+        <span className="font-medium text-petcenter-text">{end}</span>{" "}
+        của <span className="font-medium text-petcenter-text">{total}</span> hồ sơ
       </p>
       <nav className="flex items-center gap-2" aria-label="Phân trang">
         <button

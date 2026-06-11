@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { StaffInvoice } from "../../types/invoice.types"
 import { formatInvoiceMoney } from "../../utils/invoice-format"
 import { useConfirmStaffInvoicePayment } from "../../hooks/useConfirmStaffInvoicePayment"
+import { toast } from "sonner"
 
 interface ConfirmPaymentModalProps {
   invoice: StaffInvoice | null
@@ -26,10 +27,11 @@ export function ConfirmPaymentModal({ invoice, isOpen, onClose, onSuccess }: Con
   const handleConfirm = async () => {
     try {
       await mutateAsync({ invoiceId: invoice.id, paymentMethod: "at_counter" })
+      toast.success("Đã xác nhận thanh toán hóa đơn")
       if (onSuccess) onSuccess()
       onClose()
     } catch (err) {
-      console.error(err)
+      toast.error(err instanceof Error ? err.message : "Không thể xác nhận thanh toán hóa đơn")
     }
   }
 

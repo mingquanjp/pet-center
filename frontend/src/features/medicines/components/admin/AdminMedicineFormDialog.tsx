@@ -27,13 +27,15 @@ import {
   CreateAdminMedicinePayload,
   MedicineStatus,
   MedicineUnit,
+  UpdateAdminMedicinePayload,
 } from "../../types/medicine.types"
+import { toast } from "sonner"
 
 interface AdminMedicineFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   medicine: AdminMedicine | null
-  onSubmit: (payload: any) => Promise<void>
+  onSubmit: (payload: CreateAdminMedicinePayload | UpdateAdminMedicinePayload) => Promise<void>
 }
 
 export function AdminMedicineFormDialog({
@@ -80,7 +82,15 @@ export function AdminMedicineFormDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.medicineName.trim()) return
+    if (!formData.medicineName.trim()) {
+      toast.error("Vui lòng nhập tên thuốc")
+      return
+    }
+
+    if (formData.unitPrice < 0) {
+      toast.error("Đơn giá thuốc không hợp lệ")
+      return
+    }
 
     setIsSubmitting(true)
     try {

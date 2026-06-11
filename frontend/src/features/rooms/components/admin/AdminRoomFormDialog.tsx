@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { AdminBoardingRoom } from "../../types/room.types";
 import { X, Home } from "lucide-react";
+import { toast } from "sonner";
 
 export function AdminRoomFormDialog({ room, onClose, onSave }: { room: AdminBoardingRoom | null, onClose: () => void, onSave: (data: Partial<AdminBoardingRoom>) => Promise<void> }) {
   const [formData, setFormData] = useState({
@@ -14,17 +15,39 @@ export function AdminRoomFormDialog({ room, onClose, onSave }: { room: AdminBoar
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) {
+      toast.error("Vui lòng nhập tên loại phòng.");
+      return;
+    }
+
+    if (!formData.capacity || Number(formData.capacity) <= 0) {
+      toast.error("Vui lòng nhập sức chứa hợp lệ.");
+      return;
+    }
+
+    if (formData.boardingUnitPrice === "" || Number(formData.boardingUnitPrice) < 0) {
+      toast.error("Vui lòng nhập giá/ngày hợp lệ.");
+      return;
+    }
+
     if (room && Number(formData.capacity) < room.currentOccupancy) {
-      alert("Sức chứa không được nhỏ hơn số thú cưng đang lưu trú.");
+      toast.error("Sức chứa không được nhỏ hơn số thú cưng đang lưu trú.");
       return;
     }
     setLoading(true);
-    await onSave({
-      ...formData,
-      capacity: Number(formData.capacity) || 1,
-      boardingUnitPrice: Number(formData.boardingUnitPrice) || 0,
-    });
-    setLoading(false);
+    try {
+      await onSave({
+        ...formData,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        capacity: Number(formData.capacity) || 1,
+        boardingUnitPrice: Number(formData.boardingUnitPrice) || 0,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể lưu phòng lưu trú.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
