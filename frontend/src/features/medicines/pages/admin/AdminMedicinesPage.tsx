@@ -113,7 +113,12 @@ export function AdminMedicinesPage() {
           if (!open) closeDialogs()
         }}
         medicine={isEditOpen ? selectedMedicine : null}
-        onSubmit={isCreateOpen ? createMedicine : updateMedicine}
+        onSubmit={(payload) => {
+          if (isEditOpen) {
+            return updateMedicine(payload as import("../../types/medicine.types").UpdateAdminMedicinePayload)
+          }
+          return createMedicine(payload as import("../../types/medicine.types").CreateAdminMedicinePayload)
+        }}
       />
 
       <AdminMedicineDetailDialog

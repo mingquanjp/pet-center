@@ -8,7 +8,7 @@ export function useConfirmStaffAppointment() {
 
   const mutate = async (
     { appointmentId, doctorUserId, internalNote }: { appointmentId: string; doctorUserId?: string; internalNote?: string },
-    options?: { onSuccess?: () => void }
+    options?: { onSuccess?: () => void; onError?: (error: unknown) => void }
   ) => {
     try {
       setIsPending(true);
@@ -20,6 +20,7 @@ export function useConfirmStaffAppointment() {
       console.error("Lỗi xác nhận lịch hẹn:", err);
       setIsError(true);
       setError(err);
+      options?.onError?.(err);
     } finally {
       setIsPending(false);
     }
