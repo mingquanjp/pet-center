@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { asyncHandler } from "../../middlewares/async-handler.js";
+import { validateRequest } from "../../middlewares/validate.middleware.js";
 import * as paymentsController from "./payments.controller.js";
+import { vnpayCallbackQuerySchema } from "./payments.schema.js";
 
 export const paymentsRouter = Router();
 
@@ -16,7 +18,11 @@ export const paymentsRouter = Router();
  *       302:
  *         description: Redirects to frontend payment result page.
  */
-paymentsRouter.get("/payments/vnpay/return", asyncHandler(paymentsController.handleVnpayReturn));
+paymentsRouter.get(
+  "/payments/vnpay/return",
+  validateRequest({ query: vnpayCallbackQuerySchema }),
+  asyncHandler(paymentsController.handleVnpayReturn)
+);
 
 /**
  * @openapi
@@ -30,4 +36,8 @@ paymentsRouter.get("/payments/vnpay/return", asyncHandler(paymentsController.han
  *       200:
  *         description: VNPay-compatible IPN response.
  */
-paymentsRouter.get("/payments/vnpay/ipn", asyncHandler(paymentsController.handleVnpayIpn));
+paymentsRouter.get(
+  "/payments/vnpay/ipn",
+  validateRequest({ query: vnpayCallbackQuerySchema }),
+  asyncHandler(paymentsController.handleVnpayIpn)
+);

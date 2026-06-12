@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 import { randomInt, randomUUID } from "node:crypto";
+import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
 import { createId } from "../../shared/utils/id.js";
 import { buildVnpayPaymentUrl } from "./vnpay.service.js";
@@ -49,13 +50,16 @@ function createPaymentAttemptId(): string {
 
 function createVnpayTxnRef(): string {
   const now = new Date();
-  const timePart = [
+  const dateTimePart = [
+    now.getFullYear().toString(),
+    (now.getMonth() + 1).toString().padStart(2, "0"),
+    now.getDate().toString().padStart(2, "0"),
     now.getHours().toString().padStart(2, "0"),
     now.getMinutes().toString().padStart(2, "0"),
     now.getSeconds().toString().padStart(2, "0")
   ].join("");
 
-  return `${timePart}${randomInt(100000, 1_000_000)}`;
+  return `${dateTimePart}${randomInt(100000, 1_000_000)}`;
 }
 
 export type VnpayAttemptSourceType = "grooming" | "boarding" | "medical_exam" | "prescription";
@@ -89,13 +93,43 @@ export type VnpayIpnUpdateResult =
   | { outcome: "already_final"; attempt: VnpayAttemptRow }
   | { outcome: "updated"; attempt: VnpayAttemptRow; status: "success" | "failed" };
 
-export async function findVnpayAttemptByTxnRef(providerTxnRef: string): Promise<VnpayAttemptRow | null> {
-  const result = await withTransaction(async (client) => {
-    const attempt = await findVnpayAttemptByTxnRefForUpdate(client, providerTxnRef);
-    return attempt;
-  });
+const findVnpayAttemptSql = `
+  SELECT
+    opa.payment_attempt_id,
+    opa.invoice_id,
+    opa.amount::text AS amount,
+    opa.attempt_status,
+    inv.invoice_status,
+    inv.total_amount::text AS invoice_total_amount,
+    src.source_type,
+    src.source_id,
+    CASE src.source_type
+      WHEN 'grooming' THEN (
+        SELECT gt.ticket_status
+        FROM pet_center.grooming_tickets gt
+        WHERE gt.grooming_ticket_id = src.source_id
+      )
+      WHEN 'boarding' THEN (
+        SELECT br.boarding_status
+        FROM pet_center.boarding_records br
+        WHERE br.boarding_record_id = src.source_id
+      )
+      ELSE NULL
+    END AS source_status
+  FROM pet_center.online_payment_attempts opa
+  JOIN pet_center.invoices inv ON inv.invoice_id = opa.invoice_id
+  LEFT JOIN LATERAL (
+    SELECT il.source_type, il.source_id
+    FROM pet_center.invoice_lines il
+    WHERE il.invoice_id = opa.invoice_id
+    ORDER BY il.invoice_line_id ASC
+    LIMIT 1
+  ) src ON true
+  WHERE opa.provider_txn_ref = $1
+`;
 
-  return result;
+export async function findVnpayAttemptByTxnRef(providerTxnRef: string): Promise<VnpayAttemptRow | null> {
+  return findVnpayAttemptByTxnRefReadonly(providerTxnRef);
 }
 
 export async function applyVnpayIpnUpdate(input: VnpayIpnUpdateInput): Promise<VnpayIpnUpdateResult> {
@@ -146,41 +180,15 @@ async function findVnpayAttemptByTxnRefForUpdate(
   providerTxnRef: string
 ): Promise<VnpayAttemptRow | null> {
   const result = await client.query<VnpayAttemptRow>(
-    `SELECT
-       opa.payment_attempt_id,
-       opa.invoice_id,
-       opa.amount::text AS amount,
-       opa.attempt_status,
-       inv.invoice_status,
-       inv.total_amount::text AS invoice_total_amount,
-       src.source_type,
-       src.source_id,
-       CASE src.source_type
-         WHEN 'grooming' THEN (
-           SELECT gt.ticket_status
-           FROM pet_center.grooming_tickets gt
-           WHERE gt.grooming_ticket_id = src.source_id
-         )
-         WHEN 'boarding' THEN (
-           SELECT br.boarding_status
-           FROM pet_center.boarding_records br
-           WHERE br.boarding_record_id = src.source_id
-         )
-         ELSE NULL
-       END AS source_status
-     FROM pet_center.online_payment_attempts opa
-     JOIN pet_center.invoices inv ON inv.invoice_id = opa.invoice_id
-     LEFT JOIN LATERAL (
-       SELECT il.source_type, il.source_id
-       FROM pet_center.invoice_lines il
-       WHERE il.invoice_id = opa.invoice_id
-       ORDER BY il.invoice_line_id ASC
-       LIMIT 1
-     ) src ON true
-     WHERE opa.provider_txn_ref = $1
-     FOR UPDATE OF opa, inv`,
+    `${findVnpayAttemptSql} FOR UPDATE OF opa, inv`,
     [providerTxnRef]
   );
+
+  return result.rows[0] ?? null;
+}
+
+async function findVnpayAttemptByTxnRefReadonly(providerTxnRef: string): Promise<VnpayAttemptRow | null> {
+  const result = await query<VnpayAttemptRow>(findVnpayAttemptSql, [providerTxnRef]);
 
   return result.rows[0] ?? null;
 }

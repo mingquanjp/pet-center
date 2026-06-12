@@ -15,30 +15,12 @@ const RouteLoadingContext = React.createContext<RouteLoadingContextValue | null>
 export function RouteLoadingProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [pendingHref, setPendingHref] = React.useState<string | null>(null)
-  const timeoutRef = React.useRef<number | null>(null)
-
-  React.useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current)
-      }
-    }
-  }, [])
 
   const startRouteLoading = React.useCallback(
     (href: string) => {
       if (href === pathname || pathname.startsWith(`${href}/`)) return
 
       setPendingHref(href)
-
-      if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current)
-      }
-
-      timeoutRef.current = window.setTimeout(() => {
-        setPendingHref(null)
-        timeoutRef.current = null
-      }, 8000)
     },
     [pathname]
   )

@@ -15,7 +15,7 @@ export type VnpayIpnResponse = {
 };
 
 function isVnpaySuccess(params: VnpayCallbackParams): boolean {
-  return params.vnp_ResponseCode === "00" && (params.vnp_TransactionStatus ?? "00") === "00";
+  return params.vnp_ResponseCode === "00" && params.vnp_TransactionStatus === "00";
 }
 
 export async function buildVnpayReturnRedirect(params: VnpayCallbackParams): Promise<string> {

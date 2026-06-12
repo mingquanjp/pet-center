@@ -81,8 +81,8 @@ function normalizeOrderInfo(value: string): string {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
+    .replace(/\u0111/g, "d")
+    .replace(/\u0110/g, "D")
     .replace(/[^a-zA-Z0-9 ]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -119,18 +119,10 @@ function buildSignedQuery(params: Record<string, string>, hashSecret: string): s
 
 function sortObject(params: Record<string, string>): Record<string, string> {
   const sortedParams: Record<string, string> = {};
-  const encodedKeys: string[] = [];
+  const keys = Object.keys(params).filter((key) => params[key] !== "").sort();
 
-  Object.keys(params).forEach((key) => {
-    if (params[key] !== "") {
-      encodedKeys.push(encodeURIComponent(key));
-    }
-  });
-
-  encodedKeys.sort();
-
-  encodedKeys.forEach((encodedKey) => {
-    sortedParams[encodedKey] = encodeVnpayValue(params[encodedKey]);
+  keys.forEach((key) => {
+    sortedParams[encodeURIComponent(key)] = encodeVnpayValue(params[key]);
   });
 
   return sortedParams;
