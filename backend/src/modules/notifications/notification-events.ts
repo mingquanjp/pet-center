@@ -27,7 +27,7 @@ export async function notifyAppointmentCreated(appointmentId: string) {
       relatedObjectType: "medical_appointment",
       relatedObjectId: appointment.appointment_id,
       dedupeKey: `APPOINTMENT_CREATED:OWNER:${appointment.appointment_id}`,
-      metadata: { petName: appointment.pet_name, actionUrl: `/owner/appointments/${appointment.appointment_id}` }
+      metadata: { petName: appointment.pet_name }
     });
 
     // Email: Owner
@@ -48,7 +48,7 @@ export async function notifyAppointmentCreated(appointmentId: string) {
       relatedObjectType: "medical_appointment",
       relatedObjectId: appointment.appointment_id,
       dedupeKey: `APPOINTMENT_CREATED:STAFF:${appointment.appointment_id}`,
-      metadata: { petName: appointment.pet_name, actionUrl: `/staff/appointments/${appointment.appointment_id}` }
+      metadata: { petName: appointment.pet_name }
     });
   } catch (err) {
     console.error("notifyAppointmentCreated error:", err);
@@ -77,7 +77,7 @@ export async function notifyAppointmentConfirmed(appointmentId: string) {
       relatedObjectType: "medical_appointment",
       relatedObjectId: appointment.appointment_id,
       dedupeKey: `APPOINTMENT_CONFIRMED:OWNER:${appointment.appointment_id}`,
-      metadata: { petName: appointment.pet_name, actionUrl: `/owner/appointments/${appointment.appointment_id}` }
+      metadata: { petName: appointment.pet_name }
     });
 
     // Email: Owner
@@ -99,7 +99,7 @@ export async function notifyAppointmentConfirmed(appointmentId: string) {
         relatedObjectType: "medical_appointment",
         relatedObjectId: appointment.appointment_id,
         dedupeKey: `APPOINTMENT_CONFIRMED:DOCTOR:${appointment.veterinarian_user_id}:${appointment.appointment_id}`,
-        metadata: { petName: appointment.pet_name, actionUrl: `/doctor/appointments` }
+        metadata: { petName: appointment.pet_name }
       });
     }
   } catch (err) {
@@ -129,7 +129,7 @@ export async function notifyAppointmentRejected(appointmentId: string) {
       relatedObjectType: "medical_appointment",
       relatedObjectId: appointment.appointment_id,
       dedupeKey: `APPOINTMENT_REJECTED:OWNER:${appointment.appointment_id}`,
-      metadata: { petName: appointment.pet_name, actionUrl: `/owner/appointments/${appointment.appointment_id}` }
+      metadata: { petName: appointment.pet_name }
     });
 
     // Email: Owner
@@ -168,7 +168,7 @@ export async function notifyAppointmentReminder1Day(appointmentId: string) {
       relatedObjectType: "medical_appointment",
       relatedObjectId: appointment.appointment_id,
       dedupeKey: `APPOINTMENT_REMINDER_1_DAY:OWNER:${appointment.appointment_id}`,
-      metadata: { petName: appointment.pet_name, actionUrl: `/owner/appointments/${appointment.appointment_id}` }
+      metadata: { petName: appointment.pet_name }
     });
 
     // Email: Owner
@@ -209,7 +209,7 @@ export async function notifyGroomingCreated(groomingTicketId: string) {
       relatedObjectType: "grooming_ticket",
       relatedObjectId: ticket.grooming_ticket_id,
       dedupeKey: `GROOMING_CREATED:OWNER:${ticket.grooming_ticket_id}`,
-      metadata: { petName: ticket.pet_name, actionUrl: `/owner/grooming` } // Adjust if details page exists
+      metadata: { petName: ticket.pet_name }
     });
 
     // Email: Owner
@@ -230,7 +230,7 @@ export async function notifyGroomingCreated(groomingTicketId: string) {
       relatedObjectType: "grooming_ticket",
       relatedObjectId: ticket.grooming_ticket_id,
       dedupeKey: `GROOMING_CREATED:STAFF:${ticket.grooming_ticket_id}`,
-      metadata: { petName: ticket.pet_name, actionUrl: `/staff/grooming` }
+      metadata: { petName: ticket.pet_name }
     });
   } catch (err) {
     console.error("notifyGroomingCreated error:", err);
@@ -259,7 +259,7 @@ export async function notifyGroomingAccepted(groomingTicketId: string) {
       relatedObjectType: "grooming_ticket",
       relatedObjectId: ticket.grooming_ticket_id,
       dedupeKey: `GROOMING_ACCEPTED:OWNER:${ticket.grooming_ticket_id}`,
-      metadata: { petName: ticket.pet_name, actionUrl: `/owner/grooming` }
+      metadata: { petName: ticket.pet_name }
     });
   } catch (err) {
     console.error("notifyGroomingAccepted error:", err);
@@ -288,7 +288,7 @@ export async function notifyGroomingCompleted(groomingTicketId: string) {
       relatedObjectType: "grooming_ticket",
       relatedObjectId: ticket.grooming_ticket_id,
       dedupeKey: `GROOMING_COMPLETED:OWNER:${ticket.grooming_ticket_id}`,
-      metadata: { petName: ticket.pet_name, actionUrl: `/owner/grooming` }
+      metadata: { petName: ticket.pet_name }
     });
 
     // Email: Owner
@@ -328,7 +328,7 @@ export async function notifyBoardingCreated(boardingRecordId: string) {
       relatedObjectType: "boarding_record",
       relatedObjectId: record.boarding_record_id,
       dedupeKey: `BOARDING_CREATED:OWNER:${record.boarding_record_id}`,
-      metadata: { petName: record.pet_name, actionUrl: `/owner/boarding` }
+      metadata: { petName: record.pet_name }
     });
 
     await sendOwnerEmail({
@@ -347,7 +347,7 @@ export async function notifyBoardingCreated(boardingRecordId: string) {
       relatedObjectType: "boarding_record",
       relatedObjectId: record.boarding_record_id,
       dedupeKey: `BOARDING_CREATED:STAFF:${record.boarding_record_id}`,
-      metadata: { petName: record.pet_name, actionUrl: `/staff/boarding/${record.boarding_record_id}` }
+      metadata: { petName: record.pet_name }
     });
   } catch (err) {
     console.error("notifyBoardingCreated error:", err);
@@ -375,7 +375,7 @@ export async function notifyBoardingConfirmed(boardingRecordId: string) {
       relatedObjectType: "boarding_record",
       relatedObjectId: record.boarding_record_id,
       dedupeKey: `BOARDING_CONFIRMED:OWNER:${record.boarding_record_id}`,
-      metadata: { petName: record.pet_name, actionUrl: `/owner/boarding` }
+      metadata: { petName: record.pet_name }
     });
 
     await sendOwnerEmail({
@@ -412,7 +412,7 @@ export async function notifyBoardingRejected(boardingRecordId: string) {
       relatedObjectType: "boarding_record",
       relatedObjectId: record.boarding_record_id,
       dedupeKey: `BOARDING_REJECTED:OWNER:${record.boarding_record_id}`,
-      metadata: { petName: record.pet_name, actionUrl: `/owner/boarding` }
+      metadata: { petName: record.pet_name }
     });
 
     await sendOwnerEmail({
@@ -449,7 +449,7 @@ export async function notifyBoardingCancelled(boardingRecordId: string) {
       relatedObjectType: "boarding_record",
       relatedObjectId: record.boarding_record_id,
       dedupeKey: `BOARDING_CANCELLED:OWNER:${record.boarding_record_id}`,
-      metadata: { petName: record.pet_name, actionUrl: `/owner/boarding` }
+      metadata: { petName: record.pet_name }
     });
 
     await sendOwnerEmail({
@@ -486,7 +486,7 @@ export async function notifyBoardingCheckinReminder1Day(boardingRecordId: string
       relatedObjectType: "boarding_record",
       relatedObjectId: record.boarding_record_id,
       dedupeKey: `BOARDING_CHECKIN_REMINDER_1_DAY:OWNER:${record.boarding_record_id}`,
-      metadata: { petName: record.pet_name, actionUrl: `/owner/boarding` }
+      metadata: { petName: record.pet_name }
     });
 
     await sendOwnerEmail({
@@ -521,7 +521,7 @@ export async function notifyBoardingCheckedIn(boardingRecordId: string) {
       relatedObjectType: "boarding_record",
       relatedObjectId: record.boarding_record_id,
       dedupeKey: `BOARDING_CHECKED_IN:OWNER:${record.boarding_record_id}`,
-      metadata: { petName: record.pet_name, actionUrl: `/owner/boarding` }
+      metadata: { petName: record.pet_name }
     });
   } catch (err) {
     console.error("notifyBoardingCheckedIn error:", err);
@@ -548,7 +548,7 @@ export async function notifyBoardingUpdateCreated(updateId: string) {
       relatedObjectType: "boarding_update",
       relatedObjectId: update.boarding_update_id,
       dedupeKey: `BOARDING_UPDATE_CREATED:OWNER:${update.boarding_update_id}`,
-      metadata: { petName: update.pet_name, actionUrl: `/owner/boarding` } // Adjust if details page
+      metadata: { petName: update.pet_name }
     });
 
     if (update.alert_level === 'urgent') {
@@ -587,7 +587,7 @@ export async function notifyPaymentSuccess(paymentId: string) {
       relatedObjectType: "payment",
       relatedObjectId: payment.payment_id,
       dedupeKey: `PAYMENT_SUCCESS:OWNER:${payment.payment_id}`,
-      metadata: { invoiceCode: payment.invoice_id, actionUrl: `/owner` } // To invoices later
+      metadata: { invoiceId: payment.invoice_id, invoiceCode: payment.invoice_id }
     });
 
     await sendOwnerEmail({
@@ -619,7 +619,7 @@ export async function notifyPaymentFailed(paymentOrAttemptId: string, invoiceId:
       relatedObjectType: isAttempt ? "online_payment_attempt" : "payment",
       relatedObjectId: paymentOrAttemptId,
       dedupeKey: `PAYMENT_FAILED:OWNER:${paymentOrAttemptId}`,
-      metadata: { invoiceCode: invoiceId, actionUrl: `/owner` }
+      metadata: { invoiceId, invoiceCode: invoiceId }
     });
 
     await sendOwnerEmail({
@@ -642,7 +642,7 @@ export async function notifyPaymentFailed(paymentOrAttemptId: string, invoiceId:
 export async function notifyMedicalExamCompleted(examId: string) {
   try {
     const result = await query(
-      `SELECT e.*, p.pet_name as pet_name, a.owner_user_id
+      `SELECT e.*, p.pet_name as pet_name, a.owner_user_id, a.pet_id
        FROM pet_center.medical_exams e
        JOIN pet_center.medical_appointments a ON e.appointment_id = a.appointment_id
        JOIN pet_center.pets p ON a.pet_id = p.pet_id
@@ -661,7 +661,7 @@ export async function notifyMedicalExamCompleted(examId: string) {
       relatedObjectType: "medical_exam",
       relatedObjectId: exam.exam_id,
       dedupeKey: `MEDICAL_EXAM_COMPLETED:OWNER:${exam.exam_id}`,
-      metadata: { petName: exam.pet_name, actionUrl: `/owner/pets/${exam.pet_id}` }
+      metadata: { petName: exam.pet_name, petId: exam.pet_id }
     });
 
     await sendOwnerEmail({

@@ -1,6 +1,5 @@
 import React from "react";
 import { Bell } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -15,7 +14,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AppNotification } from "../types/notification.types";
 
 export function NotificationBell() {
-  const router = useRouter();
   const {
     notifications,
     unreadCount,
@@ -31,9 +29,6 @@ export function NotificationBell() {
       await markAsRead(notification.id);
     }
     setDropdownOpen(false);
-    if (notification.metadata?.actionUrl) {
-      router.push(notification.metadata.actionUrl);
-    }
   };
 
   return (
