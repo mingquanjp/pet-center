@@ -19,12 +19,14 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { getMedicineUnitLabel } from "@/features/medicines/utils/medicine-format"
+import type { MedicineUnit } from "@/features/medicines/types/medicine.types"
 import { petsApi } from "../../api/pets.api"
 import type { PetMedicalExamDetail, PetMedicalExamFieldValue } from "../../types/pet.types"
 
 const formatPrescriptionQuantity = (quantity: string | null, unit?: string | null) => {
   if (!quantity) return "-"
-  return unit ? `${quantity} ${unit}` : quantity
+  return unit ? `${quantity} ${getMedicineUnitLabel(unit as MedicineUnit)}` : quantity
 }
 
 export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: string; petId: string }) {

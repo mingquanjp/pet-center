@@ -221,25 +221,25 @@ export function StaffDashboardPage() {
         </div>
 
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[860px] border-collapse text-left">
-            <thead>
-              <tr className="border-b border-[rgba(189,201,197,0.3)] bg-[#f0fdf4]">
-                <th className="w-[109px] px-6 py-3 text-xs font-semibold leading-4 text-[#3e4946]">Mã lịch</th>
-                <th className="w-[185px] px-6 py-3 text-xs font-semibold leading-4 text-[#3e4946]">Thú cưng</th>
-                <th className="w-[142px] px-6 py-3 text-xs font-semibold leading-4 text-[#3e4946]">Chủ nuôi</th>
-                <th className="w-[130px] px-6 py-3 text-xs font-semibold leading-4 text-[#3e4946]">Ngày giờ</th>
-                <th className="w-[131px] px-6 py-3 text-xs font-semibold leading-4 text-[#3e4946]">Loại lịch</th>
-                <th className="w-[166px] px-6 py-3 text-xs font-semibold leading-4 text-[#3e4946]">Trạng thái</th>
-                <th className="w-[111px] px-6 py-3 text-right text-xs font-semibold leading-4 text-[#3e4946]">Thao tác</th>
+          <table className="w-full min-w-[860px] table-fixed border-collapse text-left">
+            <thead className="border-b border-petcenter-border bg-petcenter-background">
+              <tr>
+                <th className="w-[109px] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Mã lịch</th>
+                <th className="w-[185px] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Thú cưng</th>
+                <th className="w-[142px] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Chủ nuôi</th>
+                <th className="w-[130px] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Ngày giờ</th>
+                <th className="w-[131px] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Loại lịch</th>
+                <th className="w-[166px] px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Trạng thái</th>
+                <th className="w-[111px] px-6 py-4 text-center text-sm font-medium text-petcenter-text-secondary">Thao tác</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-petcenter-border bg-white">
               {showLoadingRows ? (
                 <>
                   {[0, 1].map((rowIndex) => (
                     <tr
                       key={rowIndex}
-                      className="h-[81px] border-b border-[rgba(189,201,197,0.2)] bg-white"
+                      className="h-[81px] bg-white"
                     >
                       <td className="px-6 py-[29.5px]">
                         <div className="h-4 w-16 animate-pulse rounded-full bg-[#e4e3d7]" />
@@ -280,7 +280,7 @@ export function StaffDashboardPage() {
                 return (
                   <tr
                     key={appointment.taskId}
-                    className="h-[81px] border-b border-[rgba(189,201,197,0.2)] bg-white"
+                    className="h-[81px] bg-white transition-colors hover:bg-petcenter-background/60"
                   >
                     <td className="px-6 py-[29.5px] text-sm font-medium leading-5 text-[#1b1c15]">
                       {appointment.code}
@@ -331,7 +331,7 @@ export function StaffDashboardPage() {
                 )
               })}
               {!isLoading && !errorMessage && appointmentTasks.length === 0 ? (
-                <tr className="h-[81px] border-b border-[rgba(189,201,197,0.2)] bg-white">
+                <tr className="h-[81px] bg-white">
                   <td className="px-6 py-6 text-sm leading-5 text-[#3e4946]" colSpan={7}>
                     Chưa có lịch hẹn cần xử lý.
                   </td>

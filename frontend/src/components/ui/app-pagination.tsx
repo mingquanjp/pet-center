@@ -28,8 +28,8 @@ export function AppPagination({
   const pages = getPaginationItems(currentPage, totalPages)
 
   const isSm = size === "sm"
-  const buttonBase = isSm ? "h-9 w-9 rounded-lg" : "h-11 w-11 rounded-[14px]"
-  const pageButtonBase = isSm ? "h-9 min-w-9 rounded-lg px-2 text-sm" : "h-11 min-w-11 rounded-[14px] px-3 text-lg"
+  const buttonBase = isSm ? "h-9 w-9 rounded-[0.75rem]" : "h-11 w-11 rounded-[0.875rem]"
+  const pageButtonBase = isSm ? "h-9 min-w-9 rounded-[0.75rem] px-3 text-sm" : "h-11 min-w-11 rounded-[0.875rem] px-3 text-lg"
   const ellipsisBase = isSm ? "h-9 min-w-9 text-sm" : "h-11 min-w-11 text-base"
   const iconSize = isSm ? "size-4" : "size-5"
   const gapSize = isSm ? "gap-1.5" : "gap-3"
@@ -40,7 +40,7 @@ export function AppPagination({
       <button
         aria-label="Trang trước"
         className={cn(
-          "flex items-center justify-center border border-[#CFD8D5] bg-white text-[#52615D] shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition hover:bg-[#F1EFE2] disabled:cursor-not-allowed disabled:opacity-50",
+          "flex items-center justify-center border border-petcenter-border bg-white text-petcenter-text-secondary transition hover:bg-petcenter-background disabled:cursor-not-allowed disabled:opacity-50",
           buttonBase
         )}
         disabled={currentPage === 1 || isLoading}
@@ -54,7 +54,7 @@ export function AppPagination({
         {pages.map((item, index) =>
           item === "ellipsis" ? (
             <span
-              className={cn("flex items-center justify-center font-semibold leading-none text-[#6E7A76]", ellipsisBase)}
+              className={cn("flex items-center justify-center font-medium leading-none text-petcenter-text-secondary", ellipsisBase)}
               key={`ellipsis-${index}`}
             >
               ...
@@ -63,11 +63,11 @@ export function AppPagination({
             <button
               aria-current={item === currentPage ? "page" : undefined}
               className={cn(
-                "flex items-center justify-center font-semibold leading-none shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition disabled:cursor-not-allowed",
+                "flex items-center justify-center font-medium leading-none transition disabled:cursor-not-allowed",
                 pageButtonBase,
                 item === currentPage
-                  ? "bg-[#008577] text-white"
-                  : "border border-[#CFD8D5] bg-white text-[#52615D] hover:bg-[#F1EFE2]"
+                  ? "bg-petcenter-primary text-white shadow-sm"
+                  : "border border-petcenter-border bg-white text-petcenter-text hover:bg-petcenter-background"
               )}
               disabled={isLoading}
               key={item}
@@ -83,7 +83,7 @@ export function AppPagination({
       <button
         aria-label="Trang sau"
         className={cn(
-          "flex items-center justify-center border border-[#CFD8D5] bg-white text-[#52615D] shadow-[0_1px_1px_rgba(0,0,0,0.05)] transition hover:bg-[#F1EFE2] disabled:cursor-not-allowed disabled:opacity-50",
+          "flex items-center justify-center border border-petcenter-border bg-white text-petcenter-text-secondary transition hover:bg-petcenter-background disabled:cursor-not-allowed disabled:opacity-50",
           buttonBase
         )}
         disabled={currentPage === totalPages || isLoading}

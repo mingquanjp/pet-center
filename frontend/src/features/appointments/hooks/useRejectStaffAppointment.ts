@@ -8,7 +8,7 @@ export function useRejectStaffAppointment() {
 
   const mutate = async (
     { appointmentId, rejectionReason, internalNote }: { appointmentId: string; rejectionReason: string; internalNote?: string },
-    options?: { onSuccess?: () => void }
+    options?: { onSuccess?: () => void; onError?: (error: unknown) => void }
   ) => {
     try {
       setIsPending(true);
@@ -20,6 +20,7 @@ export function useRejectStaffAppointment() {
       console.error("Lỗi từ chối lịch hẹn:", err);
       setIsError(true);
       setError(err);
+      options?.onError?.(err);
     } finally {
       setIsPending(false);
     }

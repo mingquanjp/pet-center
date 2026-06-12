@@ -55,7 +55,7 @@ export function DoctorHeader() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/doctor/profile#security" className="cursor-pointer w-full">{"\u0110\u1ed5i m\u1eadt kh\u1ea9u"}</Link>
+              <Link href="/doctor/change-password" className="cursor-pointer w-full">{"\u0110\u1ed5i m\u1eadt kh\u1ea9u"}</Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

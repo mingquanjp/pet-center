@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import {
   AlertCircle,
   AlertTriangle,
@@ -307,9 +308,9 @@ export function DoctorFollowUpsPage() {
         ) : (
           <div className={cn("transition-opacity duration-200", isLoading ? "pointer-events-none opacity-50" : "opacity-100")}>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1050px] border-collapse">
-                <thead>
-                  <tr className="border-b border-[#e4e3d7] bg-[#d8f3ee]">
+              <table className="w-full min-w-[1050px] table-fixed border-collapse text-left">
+                <thead className="border-b border-petcenter-border bg-petcenter-background">
+                  <tr>
                     <TableHeaderCell className="w-[210px]">Thú cưng</TableHeaderCell>
                     <TableHeaderCell className="w-[160px]">Chủ nuôi</TableHeaderCell>
                     <TableHeaderCell className="w-[180px]">Phiếu khám</TableHeaderCell>
@@ -319,7 +320,7 @@ export function DoctorFollowUpsPage() {
                     <TableHeaderCell className="w-[130px] text-right">Thao tác</TableHeaderCell>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-petcenter-border bg-white">
                   {data.map((followUp) => (
                     <FollowUpTableRow
                       followUp={followUp}
@@ -338,9 +339,13 @@ export function DoctorFollowUpsPage() {
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-4 border-t border-[#e4e3d7] bg-[#fbfaee] px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs leading-4 text-[#3e4946]">
-                Hiển thị {startItem} đến {endItem} của {pagination.total || 0} kết quả
+            <div className="flex w-full flex-col items-center justify-between gap-4 border-t border-petcenter-border px-6 py-4 sm:flex-row">
+              <p className="text-sm text-petcenter-text-secondary">
+                Hiển thị{" "}
+                <span className="font-medium text-petcenter-text">{startItem}</span>
+                -
+                <span className="font-medium text-petcenter-text">{endItem}</span>{" "}
+                của <span className="font-medium text-petcenter-text">{pagination.total || 0}</span> lịch tái khám
               </p>
               <AppPagination
                 ariaLabel="Phân trang danh sách tái khám"
@@ -371,7 +376,7 @@ function FollowUpTableRow({ followUp, onView }: { followUp: DoctorFollowUpListIt
   const DateIcon = status.icon
 
   return (
-    <tr className="border-b border-[#e4e3d7] last:border-b-0">
+    <tr className="transition-colors hover:bg-petcenter-background/60">
       <TableBodyCell>
         <div className="flex items-center gap-3">
           <div
@@ -568,12 +573,12 @@ function FollowUpDetailDialog({
                         Ngày khám: {formatDate(followUp.exam.examDate)}
                       </p>
                     </div>
-                    <button
-                      type="button"
+                    <Link
+                      href={`/doctor/examinations/${followUp.appointmentId}?returnTo=${encodeURIComponent("/doctor/follow-ups")}`}
                       className="self-start rounded-full border border-[#005e53] px-4 py-2 text-sm font-medium text-[#005e53] transition hover:bg-[#005e53] hover:text-white"
                     >
                       Xem phiếu khám
-                    </button>
+                    </Link>
                   </div>
                   <div className="mt-4 grid gap-3 border-t border-[#bdc9c5] pt-4 text-sm leading-5 text-[#3e4946] md:grid-cols-2">
                     <InfoRow label="Chẩn đoán" value={followUp.exam.diagnosis ?? "Chưa cập nhật"} />
@@ -799,7 +804,7 @@ function formatCount(value: number) {
 function TableHeaderCell({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
-      className={cn("px-6 py-4 text-left text-base font-bold leading-5 text-[#003d36]", className)}
+      className={cn("px-6 py-4 text-left text-sm font-medium text-petcenter-text-secondary", className)}
       scope="col"
       {...props}
     />
@@ -807,5 +812,5 @@ function TableHeaderCell({ className, ...props }: React.ComponentProps<"th">) {
 }
 
 function TableBodyCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("px-6 py-5 text-base leading-6 text-[#3e4946]", className)} {...props} />
+  return <td className={cn("px-6 py-4 text-petcenter-text", className)} {...props} />
 }

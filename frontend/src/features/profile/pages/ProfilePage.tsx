@@ -48,11 +48,11 @@ const emptyPassword: ChangePasswordPayload = {
   confirmPassword: "",
 }
 
-export function ProfilePage() {
+export function ProfilePage({ initialSection = "personal" }: { initialSection?: ProfileSection }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [profileForm, setProfileForm] = useState<UpdateProfilePayload>(emptyProfile)
   const [passwordForm, setPasswordForm] = useState<ChangePasswordPayload>(emptyPassword)
-  const [activeSection, setActiveSection] = useState<ProfileSection>("personal")
+  const [activeSection, setActiveSection] = useState<ProfileSection>(initialSection)
   const [isLoading, setIsLoading] = useState(true)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isChangingPassword, setIsChangingPassword] = useState(false)
@@ -79,15 +79,22 @@ export function ProfilePage() {
   }
 
   useEffect(() => {
+    const syncSectionFromHash = () => {
+      setActiveSection(window.location.hash === "#security" ? "security" : initialSection)
+    }
+
     const timer = window.setTimeout(() => {
-      if (window.location.hash === "#security") {
-        setActiveSection("security")
-      }
+      syncSectionFromHash()
       void loadProfile()
     }, 0)
 
-    return () => window.clearTimeout(timer)
-  }, [])
+    window.addEventListener("hashchange", syncSectionFromHash)
+
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener("hashchange", syncSectionFromHash)
+    }
+  }, [initialSection])
 
   const saveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()

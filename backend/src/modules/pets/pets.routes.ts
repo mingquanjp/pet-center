@@ -126,7 +126,6 @@ export const petsRouter = Router();
  *           type: string
  *           nullable: true
  *           example: Có vùng lông trắng ở ngực
- *           example: active
  *     PetDetail:
  *       allOf:
  *         - $ref: '#/components/schemas/Pet'
@@ -190,8 +189,7 @@ export const petsRouter = Router();
  *       allOf:
  *         - $ref: '#/components/schemas/CreatePetRequest'
  *         - type: object
- *           properties:
- *               example: active
+ *           description: All fields are optional when updating a pet profile.
  *     PetListResponse:
  *       type: object
  *       properties:

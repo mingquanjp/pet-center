@@ -15,12 +15,24 @@ const roleHomePath: Record<string, string> = {
 };
 
 const authRoutes = ["/login", "/register"];
+const roleAliases: Record<string, keyof typeof roleHomePath> = {
+  owner: "OWNER",
+  staff: "STAFF",
+  doctor: "DOCTOR",
+  admin: "ADMIN",
+};
+
+function normalizeRole(role?: string): keyof typeof roleHomePath | undefined {
+  if (!role) return undefined;
+
+  return roleAliases[role.trim().toLowerCase()];
+}
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const token = req.cookies.get("accessToken")?.value;
-  const role = req.cookies.get("userRole")?.value;
+  const role = normalizeRole(req.cookies.get("userRole")?.value);
 
   const dashboardPath = role ? roleHomePath[role] : undefined;
 
@@ -40,7 +52,7 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  if (matchedEntry && !matchedEntry[1].includes(role as never)) {
+  if (matchedEntry && (!role || !matchedEntry[1].includes(role as never))) {
     return NextResponse.redirect(new URL(dashboardPath ?? "/", req.url));
   }
 

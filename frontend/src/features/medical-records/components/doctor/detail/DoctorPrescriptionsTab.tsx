@@ -2,6 +2,8 @@ import React from "react";
 import { Info, Pill } from "lucide-react";
 import { DoctorPrescriptionRecord } from "../../../types/medical-record.types";
 import { formatDate } from "../../../utils/medical-record-format";
+import { getMedicineUnitLabel } from "@/features/medicines/utils/medicine-format";
+import type { MedicineUnit } from "@/features/medicines/types/medicine.types";
 
 interface Props {
   prescriptions: DoctorPrescriptionRecord[];
@@ -9,7 +11,7 @@ interface Props {
 
 const formatPrescriptionQuantity = (quantity: string | null, unit?: string | null) => {
   if (!quantity) return "-";
-  return unit ? `${quantity} ${unit}` : quantity;
+  return unit ? `${quantity} ${getMedicineUnitLabel(unit as MedicineUnit)}` : quantity;
 };
 
 export function DoctorPrescriptionsTab({ prescriptions }: Props) {

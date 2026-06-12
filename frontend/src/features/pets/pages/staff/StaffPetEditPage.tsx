@@ -18,6 +18,7 @@ import {
   Venus,
   Weight,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -232,13 +233,17 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setErrorMessage("Vui lòng chọn file ảnh định dạng JPG hoặc PNG.");
+      const message = "Vui lòng chọn file ảnh định dạng JPG hoặc PNG.";
+      setErrorMessage(message);
+      toast.error(message);
       event.target.value = "";
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage("Ảnh đại diện không được vượt quá 5MB.");
+      const message = "Ảnh đại diện không được vượt quá 5MB.";
+      setErrorMessage(message);
+      toast.error(message);
       event.target.value = "";
       return;
     }
@@ -269,30 +274,43 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
   };
 
   const validateForm = (): boolean => {
-    if (!form) return false;
+    if (!form) {
+      toast.error("Không thể cập nhật vì hồ sơ thú cưng chưa tải xong.");
+      return false;
+    }
 
     if (!form.petName.trim()) {
-      setErrorMessage("Vui lòng nhập tên thú cưng.");
+      const message = "Vui lòng nhập tên thú cưng.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
     if (!form.breed.trim()) {
-      setErrorMessage("Vui lòng nhập giống thú cưng.");
+      const message = "Vui lòng nhập giống thú cưng.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
     if (!form.birthDate && !form.estimatedAge.trim()) {
-      setErrorMessage("Vui lòng nhập ngày sinh dự kiến hoặc tuổi ước tính theo năm.");
+      const message = "Vui lòng nhập ngày sinh dự kiến hoặc tuổi ước tính theo năm.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
     if (form.estimatedAge.trim() && optionalNumber(form.estimatedAge) === null) {
-      setErrorMessage("Tuổi ước tính phải là số hợp lệ.");
+      const message = "Tuổi ước tính phải là số hợp lệ.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
     if (form.weightKg.trim() && optionalNumber(form.weightKg) === null) {
-      setErrorMessage("Cân nặng phải là số hợp lệ.");
+      const message = "Cân nặng phải là số hợp lệ.";
+      setErrorMessage(message);
+      toast.error(message);
       return false;
     }
 
@@ -316,9 +334,12 @@ export function StaffPetEditPage({ petId }: StaffPetEditPageProps) {
       setAvatarFile(null);
       setAvatarPreviewUrl(null);
       setIsSaved(true);
+      toast.success("Cập nhật hồ sơ thú cưng thành công");
       router.refresh();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể cập nhật hồ sơ thú cưng.");
+      const message = error instanceof Error ? error.message : "Không thể cập nhật hồ sơ thú cưng.";
+      setErrorMessage(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }

@@ -21,6 +21,7 @@ import {
   Venus,
   Weight,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { uploadsApi } from "@/features/uploads/api/uploads.api"
@@ -103,13 +104,17 @@ export function OwnerAddPetPage() {
     if (!file) return
 
     if (!file.type.startsWith("image/")) {
-      setErrorMessage("Vui lòng chọn file ảnh định dạng JPG hoặc PNG.")
+      const message = "Vui lòng chọn file ảnh định dạng JPG hoặc PNG."
+      setErrorMessage(message)
+      toast.error(message)
       event.target.value = ""
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage("Ảnh đại diện không được vượt quá 5MB.")
+      const message = "Ảnh đại diện không được vượt quá 5MB."
+      setErrorMessage(message)
+      toast.error(message)
       event.target.value = ""
       return
     }
@@ -144,12 +149,16 @@ export function OwnerAddPetPage() {
     setErrorMessage(null)
 
     if (!form.petName.trim() || !form.species || !form.breed.trim()) {
-      setErrorMessage("Vui lòng nhập đầy đủ tên, loài và giống thú cưng.")
+      const message = "Vui lòng nhập đầy đủ tên, loài và giống thú cưng."
+      setErrorMessage(message)
+      toast.error(message)
       return
     }
 
     if (!form.birthDate && !form.estimatedAge) {
-      setErrorMessage("Vui lòng nhập ngày sinh dự kiến hoặc tuổi ước tính theo năm.")
+      const message = "Vui lòng nhập ngày sinh dự kiến hoặc tuổi ước tính theo năm."
+      setErrorMessage(message)
+      toast.error(message)
       return
     }
 
@@ -162,9 +171,12 @@ export function OwnerAddPetPage() {
       }))
 
       setCreatedPet(pet)
+      toast.success("Tạo hồ sơ thú cưng thành công")
       router.refresh()
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể tạo hồ sơ thú cưng.")
+      const message = error instanceof Error ? error.message : "Không thể tạo hồ sơ thú cưng."
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }

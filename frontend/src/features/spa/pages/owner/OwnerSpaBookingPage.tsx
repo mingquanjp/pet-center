@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { AlertCircle, CalendarDays, Check, ChevronDown, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -86,7 +87,9 @@ export function OwnerSpaBookingPage() {
         if (!abortController.signal.aborted) {
           setPets([])
           setServices([])
-          setErrorMessage(error instanceof Error ? error.message : "Không thể tải thông tin đặt dịch vụ spa")
+          const message = error instanceof Error ? error.message : "Không thể tải thông tin đặt dịch vụ spa"
+          setErrorMessage(message)
+          toast.error(message)
         }
       } finally {
         if (!abortController.signal.aborted) {
@@ -129,7 +132,9 @@ export function OwnerSpaBookingPage() {
       } catch (error) {
         if (!abortController.signal.aborted) {
           setSlots([])
-          setErrorMessage(error instanceof Error ? error.message : "Không thể tải khung giờ đặt dịch vụ")
+          const message = error instanceof Error ? error.message : "Không thể tải khung giờ đặt dịch vụ"
+          setErrorMessage(message)
+          toast.error(message)
         }
       } finally {
         if (!abortController.signal.aborted) {
@@ -165,7 +170,9 @@ export function OwnerSpaBookingPage() {
 
   async function handleSubmit() {
     if (!selectedPet || !selectedService || !selectedSlot?.available) {
-      setErrorMessage("Vui lòng chọn đầy đủ thú cưng, dịch vụ và khung giờ còn trống")
+      const message = "Vui lòng chọn đầy đủ thú cưng, dịch vụ và khung giờ còn trống"
+      setErrorMessage(message)
+      toast.error(message)
       return
     }
 
@@ -188,14 +195,19 @@ export function OwnerSpaBookingPage() {
           return
         }
 
-        setErrorMessage("Cổng thanh toán online chưa sẵn sàng. Vui lòng chọn thanh toán tại trung tâm.")
+        const message = "Cổng thanh toán online chưa sẵn sàng. Vui lòng chọn thanh toán tại trung tâm."
+        setErrorMessage(message)
+        toast.error(message)
         return
       }
 
       setSuccessTicket(ticket)
       setSuccessDialogOpen(true)
+      toast.success("Tạo yêu cầu dịch vụ spa thành công")
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể tạo yêu cầu dịch vụ spa")
+      const message = error instanceof Error ? error.message : "Không thể tạo yêu cầu dịch vụ spa"
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
