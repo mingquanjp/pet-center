@@ -34,7 +34,6 @@ export interface AppNotification {
   relatedObjectType: string | null;
   relatedObjectId: string | null;
   metadata: {
-    actionUrl?: string;
     petName?: string;
     appointmentCode?: string;
     groomingCode?: string;
