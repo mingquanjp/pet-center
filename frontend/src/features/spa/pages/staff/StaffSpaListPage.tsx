@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { LoadingState } from "@/components/ui/loading-state"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import { spaApi } from "../../api/spa.api"
 import { StaffSpaStatusBadge } from "../../components/staff/StaffSpaStatusBadge"
 import type {
@@ -90,27 +91,12 @@ const timeRangeOptions: Array<{ value: StaffGroomingTicketTimeRangeFilter; label
 
 function formatSchedule(value: string): string {
   const date = new Date(value)
-  const dateKey = new Intl.DateTimeFormat("en-CA", {
+  const dateLabel = new Intl.DateTimeFormat("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
     day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   }).format(date)
-  const today = new Date()
-  const todayKey = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(today)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(today.getDate() + 1)
-  const tomorrowKey = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(tomorrow)
   const timeLabel = new Intl.DateTimeFormat("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
     hour: "2-digit",
@@ -118,16 +104,7 @@ function formatSchedule(value: string): string {
     hour12: false,
   }).format(date)
 
-  if (dateKey === todayKey) return `Hôm nay, ${timeLabel}`
-  if (dateKey === tomorrowKey) return `Ngày mai, ${timeLabel}`
-
-  const dateLabel = new Intl.DateTimeFormat("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    day: "2-digit",
-    month: "2-digit",
-  }).format(date)
-
-  return `${dateLabel}, ${timeLabel}`
+  return `${dateLabel} - ${timeLabel}`
 }
 
 function getActionLabel(ticket: StaffGroomingTicket): string | null {
@@ -135,6 +112,16 @@ function getActionLabel(ticket: StaffGroomingTicket): string | null {
   if (ticket.canStart) return "Bắt đầu thực hiện"
   if (ticket.canComplete) return "Hoàn thành dịch vụ"
   return null
+}
+
+function getActionSuccessMessage(ticket: StaffGroomingTicket): string {
+  if (ticket.canAccept) return "Đã tiếp nhận yêu cầu spa."
+  if (ticket.canStart) return "Đã bắt đầu thực hiện dịch vụ spa."
+  return "Đã hoàn thành dịch vụ spa."
+}
+
+function getActionErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
 }
 
 function getServiceVisual(serviceName: string) {
@@ -218,7 +205,9 @@ export function StaffSpaListPage() {
       })
       setErrorMessage(null)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể tải danh sách dịch vụ spa")
+      const message = getActionErrorMessage(error, "Không thể tải danh sách dịch vụ spa")
+      setErrorMessage(message)
+      toast.error(message, { id: "staff-spa-load-error" })
     } finally {
       setIsLoading(false)
     }
@@ -237,6 +226,7 @@ export function StaffSpaListPage() {
 
     try {
       let updatedTicket: StaffGroomingTicket | null = null
+      const successMessage = getActionSuccessMessage(ticket)
 
       if (ticket.canAccept) {
         updatedTicket = await spaApi.acceptStaffTicket(ticket.groomingTicketId)
@@ -249,9 +239,12 @@ export function StaffSpaListPage() {
       if (updatedTicket) {
         replaceTicket(updatedTicket)
         setErrorMessage(null)
+        toast.success(successMessage)
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể cập nhật yêu cầu spa")
+      const message = getActionErrorMessage(error, "Không thể cập nhật yêu cầu spa")
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setPendingTicketId(null)
     }
@@ -268,8 +261,11 @@ export function StaffSpaListPage() {
       replaceTicket(updatedTicket)
       setCancelTicket(null)
       setErrorMessage(null)
+      toast.success("Đã hủy yêu cầu spa.")
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể hủy yêu cầu spa")
+      const message = getActionErrorMessage(error, "Không thể hủy yêu cầu spa")
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setPendingTicketId(null)
     }

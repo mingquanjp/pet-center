@@ -8,31 +8,42 @@ export function useOwnerAppointmentDetail(appointmentId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
-  const fetchDetail = useCallback(async () => {
-    await Promise.resolve();
-
+  const fetchDetail = useCallback(async (signal?: AbortSignal) => {
     try {
       setIsLoading(true);
       setIsError(false);
-      const detail = await ownerAppointmentsApi.getDetail(appointmentId);
+      const detail = await ownerAppointmentsApi.getDetail(appointmentId, { signal });
+
+      if (signal?.aborted) return;
+
       setData(detail);
     } catch (error) {
+      if (signal?.aborted) return;
+
       console.error("Failed to fetch owner appointment detail:", error);
       setData(null);
       setIsError(true);
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
     }
   }, [appointmentId]);
 
   useEffect(() => {
-    void Promise.resolve().then(fetchDetail);
+    const abortController = new AbortController();
+
+    void Promise.resolve().then(() => fetchDetail(abortController.signal));
+
+    return () => {
+      abortController.abort();
+    };
   }, [fetchDetail]);
 
   return {
     data,
     isLoading,
     isError,
-    refetch: fetchDetail,
+    refetch: () => fetchDetail(),
   };
 }

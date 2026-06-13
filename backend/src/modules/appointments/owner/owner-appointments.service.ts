@@ -94,8 +94,7 @@ function mapGender(gender: string | null): string | undefined {
 }
 
 function formatAppointmentCode(appointmentId: string): string {
-  const suffix = appointmentId.replace(/^appt_?/i, "").slice(-6).toUpperCase();
-  return `LH-${suffix}`;
+  return appointmentId;
 }
 
 function formatAgeText(birthDate: Date | null, estimatedAge: string | null): string | undefined {
@@ -204,7 +203,6 @@ function buildTimeline(row: OwnerAppointmentDetailRow) {
 
   if (status === "REJECTED") {
     return [
-      { key: "created", label: "Đã tạo lịch", occurredAt: createdAt, status: "DONE" as const },
       {
         key: "rejected",
         label: "Từ chối",

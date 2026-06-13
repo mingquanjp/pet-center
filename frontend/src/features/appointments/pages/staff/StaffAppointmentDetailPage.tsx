@@ -1,17 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useStaffAppointmentDetail } from "../../hooks/useStaffAppointmentDetail";
 import { useConfirmStaffAppointment } from "../../hooks/useConfirmStaffAppointment";
-import { useRejectStaffAppointment } from "../../hooks/useRejectStaffAppointment";
-import { StaffAppointmentDetailMode, AppointmentProcessAction } from "../../types/appointment.types";
+import { StaffAppointmentDetailMode } from "../../types/appointment.types";
 import { StaffAppointmentHeader } from "../../components/staff/detail/StaffAppointmentHeader";
 import { AppointmentInfoCard } from "../../components/staff/detail/AppointmentInfoCard";
 import { PetInfoCard } from "../../components/staff/detail/PetInfoCard";
 import { OwnerInfoCard } from "../../components/staff/detail/OwnerInfoCard";
 import { OwnerNoteCard } from "../../components/staff/detail/OwnerNoteCard";
-import { AppointmentActionPanel } from "../../components/staff/detail/AppointmentActionPanel";
 import { AppointmentSummaryCard } from "../../components/staff/detail/AppointmentSummaryCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,9 +32,6 @@ function getErrorMessage(error: unknown, fallback: string) {
 export function StaffAppointmentDetailPage({ appointmentId }: Props) {
   const { data: appointment, isLoading, isError, refetch } = useStaffAppointmentDetail(appointmentId);
   const confirmMutation = useConfirmStaffAppointment();
-  const rejectMutation = useRejectStaffAppointment();
-
-  const [action, setAction] = useState<AppointmentProcessAction | null>(null);
 
   if (isLoading) {
     return (
@@ -79,52 +73,27 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
     : appointment.suggestedDoctor ?? appointment.assignedDoctor;
 
   const handleSubmit = () => {
-    if (!action) {
-      toast.error("Vui lòng chọn thao tác xác nhận hoặc từ chối lịch hẹn.");
-      return;
-    }
-
-    if (action === "CONFIRM" && !doctorToConfirm) {
+    if (!doctorToConfirm) {
       toast.error("Không có bác sĩ khả dụng trong khung giờ này.");
       return;
     }
 
-    if (action === "CONFIRM") {
-      confirmMutation.mutate({
-        appointmentId,
-        doctorUserId: doctorToConfirm?.id,
-        internalNote: "", // Not implemented in UI yet
-      }, {
-        onSuccess: () => {
-          toast.success("Đã xác nhận lịch hẹn thành công.");
-          refetch();
-        },
-        onError: (error) => {
-          toast.error(getErrorMessage(error, "Không thể xác nhận lịch hẹn."));
-        },
-      });
-    } else if (action === "REJECT") {
-      rejectMutation.mutate({
-        appointmentId,
-        rejectionReason: "Từ chối bởi nhân viên (Tính năng điền lý do đang tạm ẩn)",
-        internalNote: "", // Not implemented in UI yet
-      }, {
-        onSuccess: () => {
-          toast.success("Đã từ chối lịch hẹn.");
-          refetch();
-        },
-        onError: (error) => {
-          toast.error(getErrorMessage(error, "Không thể từ chối lịch hẹn."));
-        },
-      });
-    }
+    confirmMutation.mutate({
+      appointmentId,
+      doctorUserId: doctorToConfirm.id,
+      internalNote: "", // Not implemented in UI yet
+    }, {
+      onSuccess: () => {
+        toast.success("Đã xác nhận lịch hẹn thành công.");
+        refetch();
+      },
+      onError: (error) => {
+        toast.error(getErrorMessage(error, "Không thể xác nhận lịch hẹn."));
+      },
+    });
   };
 
-  const isSubmitDisabled = 
-    !action || 
-    (action === "CONFIRM" && !doctorToConfirm) ||
-    confirmMutation.isPending || 
-    rejectMutation.isPending;
+  const isSubmitDisabled = !doctorToConfirm || confirmMutation.isPending;
 
   return (
     <div className="flex-1 pb-10">
@@ -146,15 +115,6 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
               <OwnerInfoCard owner={appointment.owner} />
             </div>
 
-            {isProcess && (
-              <div className="space-y-4">
-                <AppointmentActionPanel 
-                  selectedAction={action} 
-                  onActionChange={setAction} 
-                  assignmentStatus={appointment.assignmentStatus}
-                />
-              </div>
-            )}
           </div>
         </div>
 
@@ -188,15 +148,11 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
                   <Link href="/staff/appointments">Hủy</Link>
                 </Button>
                 <Button 
-                  className={`w-40 h-12 rounded-xl text-white font-bold transition-all shadow-sm ${
-                    action === "REJECT" 
-                      ? "bg-petcenter-danger-text hover:bg-petcenter-danger-text/90" 
-                      : "bg-petcenter-primary hover:bg-petcenter-primary-hover"
-                  }`}
+                  className="w-40 h-12 rounded-xl bg-petcenter-primary text-white font-bold transition-all shadow-sm hover:bg-petcenter-primary-hover"
                   disabled={isSubmitDisabled}
                   onClick={handleSubmit}
                 >
-                  {action === "REJECT" ? (rejectMutation.isPending ? "Đang từ chối..." : "Từ chối lịch") : (confirmMutation.isPending ? "Đang xác nhận..." : "Xác nhận lịch")}
+                  {confirmMutation.isPending ? "Đang xác nhận..." : "Xác nhận lịch"}
                 </Button>
               </div>
             )}
@@ -209,11 +165,6 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
             {confirmMutation.isError && (
                <div className="text-petcenter-danger-text text-sm text-center font-medium mt-2">
                  {getErrorMessage(confirmMutation.error, "Trạng thái lịch hẹn không còn hợp lệ. Vui lòng tải lại.")}
-               </div>
-            )}
-            {rejectMutation.isError && (
-               <div className="text-petcenter-danger-text text-sm text-center font-medium mt-2">
-                 {getErrorMessage(rejectMutation.error, "Trạng thái lịch hẹn không còn hợp lệ. Vui lòng tải lại.")}
                </div>
             )}
           </div>

@@ -5,6 +5,7 @@ import { app } from "./app.js";
 import { initSocket } from "./realtime/socket.js";
 import { initReminderCron } from "./modules/notifications/notification-reminders.service.js";
 import { initBoardingCron } from "./modules/boarding/boarding.cron.js";
+import { initGroomingCron } from "./modules/grooming/grooming.cron.js";
 
 const server = app.listen(env.PORT, () => {
   console.log(`API server running at http://localhost:${env.PORT}`);
@@ -21,6 +22,10 @@ const server = app.listen(env.PORT, () => {
   // Initialize boarding cron jobs
   initBoardingCron();
   console.log("Boarding cron jobs initialized");
+
+  // Initialize grooming cron jobs
+  initGroomingCron();
+  console.log("Grooming cron jobs initialized");
 });
 
 async function shutdown(signal: NodeJS.Signals): Promise<void> {

@@ -1031,6 +1031,50 @@ export async function findGroomingTicketStatus(ticketId: string): Promise<Groomi
       return result.rows[0]?.ticket_status ?? null;
 }
 
+export async function findGroomingTicketScheduledAt(ticketId: string): Promise<Date | null> {
+      const result = await query<{ scheduled_at: Date }>(
+        `select scheduled_at
+     from pet_center.grooming_tickets
+     where grooming_ticket_id = $1
+     limit 1`,
+        [ticketId]
+      );
+
+      return result.rows[0]?.scheduled_at ?? null;
+}
+
+export async function autoCancelOverdueGroomingTickets(): Promise<number> {
+      return withTransaction(async (client) => {
+        const cancelledResult = await client.query<{ grooming_ticket_id: string }>(
+          `update pet_center.grooming_tickets
+       set ticket_status = 'cancelled'
+       where ticket_status = 'pending'
+         and now() >= scheduled_at + interval '30 minutes'
+       returning grooming_ticket_id`
+        );
+
+        const cancelledTicketIds = cancelledResult.rows.map((row) => row.grooming_ticket_id);
+
+        if (cancelledTicketIds.length > 0) {
+          await client.query(
+            `update pet_center.invoices i
+         set invoice_status = 'cancelled'
+         where i.invoice_status <> 'paid'
+           and exists (
+             select 1
+             from pet_center.invoice_lines il
+             where il.invoice_id = i.invoice_id
+               and il.source_type = 'grooming'
+               and il.source_id = any($1::varchar[])
+           )`,
+            [cancelledTicketIds]
+          );
+        }
+
+        return cancelledResult.rowCount ?? 0;
+      });
+}
+
 export async function updateGroomingTicketStatus(
   ticketId: string,
   status: Extract<GroomingTicketStatus, "waiting" | "in_progress" | "completed" | "cancelled">
@@ -1042,7 +1086,7 @@ export async function updateGroomingTicketStatus(
        set
          ticket_status = $2::varchar,
          received_at = case
-           when $2::varchar = 'waiting' and received_at is null then now()
+           when $2::varchar = 'in_progress' and received_at is null then now()
            else received_at
          end
        where grooming_ticket_id = $1

@@ -8,6 +8,7 @@ import {
   LoaderCircle,
   Mars,
   PawPrint,
+  Plus,
   PlusCircle,
   Search,
   SlidersHorizontal,
@@ -15,6 +16,14 @@ import {
   Venus,
 } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { AppPagination } from "@/components/ui/app-pagination"
 import { cn } from "@/lib/utils"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
@@ -129,61 +138,75 @@ export function OwnerPetsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-section">
-      <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <h1 className="heading-lg text-petcenter-text">Thú cưng của tôi</h1>
-          <p className="body-lg mt-2 text-petcenter-text-secondary">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <h1 className="heading-lg text-petcenter-text tracking-tight">Thú cưng của tôi</h1>
+          <p className="body-md mt-1 text-petcenter-text-secondary">
             Quản lý hồ sơ và theo dõi thông tin tất cả thú cưng của bạn.
           </p>
         </div>
 
-        <Link
-          className="label-md inline-flex h-12 w-full items-center justify-center gap-2 rounded-control bg-petcenter-cta px-5 font-semibold text-white shadow-card transition-all hover:bg-petcenter-cta-hover active:bg-petcenter-cta-active sm:w-auto"
-          href="/owner/pets/add"
+        <Button
+          asChild
+          className="h-10 shrink-0 rounded-[0.75rem] bg-petcenter-cta px-4 body-md font-semibold text-white shadow-card transition-all hover:bg-petcenter-cta-hover active:scale-95"
         >
-          <PlusCircle className="h-5 w-5" />
-          Thêm hồ sơ thú cưng
-        </Link>
-      </section>
+          <Link href="/owner/pets/add">
+            <Plus className="size-5" aria-hidden="true" />
+            Thêm hồ sơ thú cưng
+          </Link>
+        </Button>
+      </div>
 
-      <section className="rounded-card border border-petcenter-border bg-petcenter-filter p-4 shadow-card">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-          <div className="relative min-w-0 flex-1">
+      <section className="rounded-[16px] border border-[#E6E8DD] bg-white p-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+          <label className="relative min-w-0 flex-1">
             {isRefreshingResults ? (
-              <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-petcenter-primary" />
+              <LoaderCircle className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 animate-spin text-[#005E53]" aria-hidden="true" />
             ) : (
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+              <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6E7774]" aria-hidden="true" />
             )}
+            <span className="sr-only">Tìm theo tên thú cưng</span>
             <input
-              className="body-md h-11 w-full rounded-pill border border-petcenter-border-strong bg-white pl-11 pr-4 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Tìm theo tên thú cưng..."
               type="search"
+              placeholder="Tìm theo tên thú cưng..."
               value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              className="h-11 w-full rounded-full border border-[#CFD8D5] bg-white pl-14 pr-4 text-base leading-6 text-[#1B1C15] outline-none transition placeholder:text-[#8A918E] focus:border-[#005E53] focus:ring-4 focus:ring-[#005E53]/10"
             />
-          </div>
+          </label>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:flex-nowrap">
             <FilterSelect
               label="Loài"
               onChange={handleSpeciesChange}
               options={speciesOptions}
               value={species}
             />
+            <Button
+              variant="ghost"
+              className="h-10 w-fit shrink-0 rounded-xl px-3 text-base font-normal leading-6 text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#004C43] disabled:pointer-events-none disabled:opacity-50"
+              disabled={!(searchInput.trim().length > 0 || species !== "all")}
+              onClick={() => {
+                setSearchInput("")
+                setSpecies("all")
+              }}
+            >
+              Đặt lại bộ lọc
+            </Button>
           </div>
 
-          <div className="label-md flex min-w-[150px] items-center justify-start gap-2 text-petcenter-text-secondary xl:ml-auto xl:justify-end">
-            <SlidersHorizontal className="h-4 w-4" />
+          <div className="label-md flex min-w-[150px] items-center justify-start gap-2 text-[#3E4946] xl:ml-auto xl:justify-end">
+            <SlidersHorizontal className="size-4" aria-hidden="true" />
             {shouldShowSkeleton ? "Đang tải..." : isRefreshingResults ? "Đang tìm..." : `Hiển thị ${displayedPets.length}/${total} thú cưng`}
           </div>
         </div>
         <div
           className={cn(
-            "mt-3 h-0.5 overflow-hidden rounded-full bg-petcenter-border transition-opacity duration-200",
+            "mt-3 h-0.5 overflow-hidden rounded-full bg-[#E6E8DD] transition-opacity duration-200",
             isRefreshingResults ? "opacity-100" : "opacity-0"
           )}
         >
-          <div className="h-full w-1/3 animate-[search-progress_1.1s_ease-in-out_infinite] rounded-full bg-petcenter-primary" />
+          <div className="h-full w-1/3 animate-[search-progress_1.1s_ease-in-out_infinite] rounded-full bg-[#005E53]" />
         </div>
       </section>
 
@@ -240,18 +263,23 @@ function FilterSelect({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="label-md whitespace-nowrap text-petcenter-text-muted">{label}:</span>
-      <select
-        className="body-md h-10 rounded-control border border-petcenter-border-strong bg-white px-3 pr-9 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <span className="whitespace-nowrap text-sm font-normal leading-5 text-[#3E4946]">{label}:</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-9 min-w-[120px] rounded-lg border border-[#CFD8D5] bg-white px-3 text-sm leading-5 text-[#1B1C15] outline-none transition focus:border-[#005E53] focus:ring-2 focus:ring-[#005E53]/10">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper" className="max-h-44 rounded-lg border border-[#CFD8D5] bg-white p-1 shadow-md">
+          {options.map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="rounded-md py-2 px-3 text-sm font-normal text-[#3E4946] hover:bg-[#F3F7F6] focus:bg-[#E0F2F1] focus:text-[#005E53] cursor-pointer"
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </label>
   )
 }

@@ -13,8 +13,7 @@ export function mapTypeCode(dbCode: string): string {
 }
 
 export function formatAppointmentCode(appointmentId: string): string {
-    const suffix = appointmentId.replace(/^appt_?/i, "").toUpperCase();
-    return `LH-${suffix}`;
+    return appointmentId;
 }
 
 export function formatExaminationCode(appointmentId: string): string {

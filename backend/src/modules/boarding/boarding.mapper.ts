@@ -212,6 +212,8 @@ export function mapBoardingRecord(row: BoardingRecordListRow): BoardingRecordLis
 export function getAttachmentType(url: string): BoardingCareLogDto["attachments"][number]["type"] {
   const normalizedUrl = url.toLowerCase();
 
+  if (normalizedUrl.includes("/video/upload/")) return "video";
+  if (normalizedUrl.includes("/image/upload/")) return "image";
   if (/\.(mp4|mov|webm|m4v)(\?|$)/.test(normalizedUrl)) return "video";
   if (/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/.test(normalizedUrl)) return "image";
 

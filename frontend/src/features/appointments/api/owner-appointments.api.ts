@@ -58,8 +58,11 @@ export const ownerAppointmentsApi = {
     };
   },
 
-  async getDetail(appointmentId: string) {
-    const response = await apiRequest<OwnerAppointmentDetail>(`/owner/appointments/${appointmentId}`);
+  async getDetail(appointmentId: string, init: RequestInit = {}) {
+    const response = await apiRequest<OwnerAppointmentDetail>(
+      `/owner/appointments/${encodeURIComponent(appointmentId)}`,
+      init
+    );
     return response.data;
   },
 
@@ -88,7 +91,7 @@ export const ownerAppointmentsApi = {
 
   async cancel(appointmentId: string, payload: { reason?: string }) {
     const response = await apiRequest<OwnerAppointmentDetail>(
-      `/owner/appointments/${appointmentId}/cancel`,
+      `/owner/appointments/${encodeURIComponent(appointmentId)}/cancel`,
       {
         method: "PATCH",
         body: JSON.stringify(payload),

@@ -320,9 +320,7 @@ function getTaskPetDescription(row: AppointmentTaskRow): string {
 }
 
 function formatDoctorAppointmentCode(appointmentId: string): string {
-  const suffix = appointmentId.replace(/^appt_?/i, "").toUpperCase();
-
-  return `LH-${suffix}`;
+  return appointmentId;
 }
 
 function formatDoctorExaminationCode(appointmentId: string): string {

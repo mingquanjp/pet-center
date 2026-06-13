@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Bed,
   CalendarClock,
-  ChevronRight,
   Edit3,
   History,
   Info,
@@ -26,6 +25,14 @@ import { petsApi } from "../../api/pets.api";
 import type { PetActivityLog, StaffPetDetail } from "../../types/pet.types";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { cn } from "@/lib/utils";
 
 type StaffPetDetailPageProps = {
@@ -35,7 +42,6 @@ type StaffPetDetailPageProps = {
 const text = {
   back: "Quay l\u1ea1i h\u1ed3 s\u01a1",
   list: "H\u1ed3 s\u01a1 th\u00fa c\u01b0ng",
-  detail: "Chi ti\u1ebft",
   edit: "Ch\u1ec9nh s\u1eeda h\u1ed3 s\u01a1",
   detailInfo: "Th\u00f4ng tin chi ti\u1ebft",
   owner: "Ch\u1ee7 nu\u00f4i",
@@ -78,10 +84,6 @@ const statusMeta: Record<PetActivityLog["activityStatus"], { label: string; clas
   rejected: { label: "Từ chối", className: "bg-petcenter-danger-bg text-petcenter-danger-text border-petcenter-danger-text/20" },
   failed: { label: "Thất bại", className: "bg-petcenter-danger-bg text-petcenter-danger-text border-petcenter-danger-text/20" },
 };
-
-function formatPetCode(petId: string): string {
-  return petId.includes("-") ? petId.toUpperCase() : petId.replace(/^pet_?/i, "PET-").toUpperCase();
-}
 
 function formatWeight(weightKg: number | null): string {
   return weightKg === null ? text.noData : `${weightKg.toLocaleString("vi-VN")} kg`;
@@ -154,22 +156,26 @@ export function StaffPetDetailPage({ petId }: StaffPetDetailPageProps) {
     );
   }
 
-  const petCode = formatPetCode(pet.petId);
+  const petCode = pet.petId;
   const speciesBreed = `${pet.speciesLabel}${pet.breed ? ` / ${pet.breed}` : ""}`;
   const petSubtitle = `${pet.speciesLabel}${pet.breed ? ` ${pet.breed}` : ""}`;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2 text-[13px] text-petcenter-text-secondary">
-          <Link className="transition-colors hover:text-petcenter-primary" href="/staff/pets">
-            {text.list}
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <span>{petCode}</span>
-          <ChevronRight className="h-4 w-4" />
-          <span className="font-medium text-petcenter-text">{text.detail}</span>
-        </div>
+        <Breadcrumb>
+          <BreadcrumbList className="text-base text-petcenter-text-secondary">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild className="transition-colors hover:text-petcenter-primary">
+                <Link href="/staff/pets">{text.list}</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-bold text-petcenter-text">{petCode}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
         <Button
           asChild

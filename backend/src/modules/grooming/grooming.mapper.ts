@@ -145,10 +145,10 @@ export function getSourceLabel(sourceType: StaffGroomingTicketRow["source_type"]
 }
 
 export function getStaffPaymentMethodLabel(paymentOption: GroomingPaymentOption | null, sourceType: StaffGroomingTicketRow["source_type"]): string {
-    if (paymentOption === "counter") return "Tại quầy";
-    if (paymentOption === "online") return "Online";
+    if (paymentOption === "counter") return "Tại trung tâm";
+    if (paymentOption === "online") return "Thanh toán online";
 
-    return getSourceLabel(sourceType);
+    return sourceType === "counter" ? "Tại trung tâm" : "Thanh toán online";
 }
 
 export function mapStaffGroomingTicket(row: StaffGroomingTicketRow): StaffGroomingTicketDto {
@@ -169,7 +169,7 @@ export function mapStaffGroomingTicket(row: StaffGroomingTicketRow): StaffGroomi
     sourceType: row.source_type,
     sourceLabel: getSourceLabel(row.source_type),
     paymentMethodLabel: getStaffPaymentMethodLabel(row.payment_option, row.source_type),
-    paymentStatusLabel: isPaid ? "Đã TT" : "Chưa TT",
+    paymentStatusLabel: isPaid ? "Đã thanh toán" : "Chưa thanh toán",
     paymentStatusTone: isPaid ? "paid" : "pending",
     specialRequest: row.special_request,
     totalAmount: Number(row.estimated_total),
