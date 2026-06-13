@@ -1,11 +1,9 @@
 export type MedicineUnit =
   | "tablet"
+  | "blister"
   | "bottle"
   | "packet"
   | "tube"
-  | "ml"
-  | "dose"
-  | "other"
 
 export type MedicineStatus = "active" | "inactive"
 

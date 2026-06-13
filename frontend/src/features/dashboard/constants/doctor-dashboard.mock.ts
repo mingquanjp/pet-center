@@ -43,7 +43,7 @@ export const MOCK_DOCTOR_DASHBOARD: DoctorDashboardData = {
     },
     {
       id: "appt_2024_002",
-      examId: null,
+      examId: "mex671",
       examinationCode: "PK-2024-002",
       appointmentCode: "LH-2024-002",
       examCode: "PK-2024-002",

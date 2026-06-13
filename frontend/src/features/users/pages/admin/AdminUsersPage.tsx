@@ -17,6 +17,7 @@ import {
   PawPrint,
   Phone,
   Pencil,
+  RotateCcw,
   Save,
   Search,
   ShieldCheck,
@@ -234,14 +235,15 @@ export function AdminUsersPage() {
 
         <UserStats stats={stats} />
 
-        <div className="relative flex flex-col overflow-hidden rounded-2xl border border-petcenter-border bg-petcenter-card shadow-card">
-          <UserFilterBar
-            filters={filters}
-            isLoading={isLoading}
-            isInitialLoading={isInitialLoading}
-            onChange={handleFilterChange}
-          />
+        <UserFilterBar
+          filters={filters}
+          isLoading={isLoading}
+          isInitialLoading={isInitialLoading}
+          onChange={handleFilterChange}
+          onReset={() => handleFilterChange(defaultFilters)}
+        />
 
+        <div className="relative flex flex-col overflow-hidden rounded-2xl border border-petcenter-border bg-petcenter-card shadow-card">
           <div className={cn("relative flex-1", isLoading && !isInitialLoading && "opacity-50")}>
             {isInitialLoading ? (
               <div className="py-10">
@@ -380,15 +382,21 @@ function UserFilterBar({
   isInitialLoading,
   isLoading,
   onChange,
+  onReset,
 }: {
   filters: AdminUserFilters
   isInitialLoading: boolean
   isLoading: boolean
   onChange: (filters: AdminUserFilters) => void
+  onReset: () => void
 }) {
   const [searchValue, setSearchValue] = React.useState(filters.search)
   const isSearchSettling = normalizeSearchText(searchValue) !== normalizeSearchText(filters.search)
   const isRefreshingResults = !isInitialLoading && (isLoading || isSearchSettling)
+  const handleReset = () => {
+    setSearchValue("")
+    onReset()
+  }
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -401,16 +409,16 @@ function UserFilterBar({
   }, [filters, onChange, searchValue])
 
   return (
-    <div className="w-full border-b border-petcenter-border p-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-50 flex-1">
+    <div className="w-full rounded-2xl border border-petcenter-border bg-white p-4 shadow-sm">
+      <div className="flex w-full flex-wrap items-center gap-4">
+        <div className="relative min-w-[240px] flex-[2]">
           {isRefreshingResults ? (
             <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-petcenter-primary" />
           ) : (
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary" />
           )}
           <input
-            className="body-md w-full rounded-[0.75rem] border border-petcenter-border bg-petcenter-background py-2 pl-9 pr-3 text-petcenter-text placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
+            className="body-md w-full rounded-xl border border-petcenter-border bg-petcenter-background py-2.5 pl-9 pr-3 text-petcenter-text placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
             onChange={(event) => setSearchValue(event.target.value)}
             placeholder="Tìm kiếm mã tài khoản, tên, email, SĐT..."
             type="text"
@@ -418,10 +426,10 @@ function UserFilterBar({
           />
         </div>
 
-        <label className="flex items-center gap-2">
+        <label className="flex min-w-[180px] flex-1 items-center gap-2">
           <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">Vai trò:</span>
           <select
-            className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background px-3 py-2 text-petcenter-text focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
+            className="body-md min-w-0 w-full flex-1 rounded-xl border border-petcenter-border bg-petcenter-background px-3 py-2.5 text-petcenter-text focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
             onChange={(event) => onChange({ ...filters, role: event.target.value as "ALL" | AdminUserRole })}
             value={filters.role}
           >
@@ -433,10 +441,10 @@ function UserFilterBar({
           </select>
         </label>
 
-        <label className="flex items-center gap-2">
+        <label className="flex min-w-[180px] flex-1 items-center gap-2">
           <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">Trạng thái:</span>
           <select
-            className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background px-3 py-2 text-petcenter-text focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
+            className="body-md min-w-0 w-full flex-1 rounded-xl border border-petcenter-border bg-petcenter-background px-3 py-2.5 text-petcenter-text focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
             onChange={(event) => onChange({ ...filters, status: event.target.value as "ALL" | AdminUserStatus })}
             value={filters.status}
           >
@@ -446,14 +454,15 @@ function UserFilterBar({
             <option value="inactive">Không hoạt động</option>
           </select>
         </label>
-      </div>
-      <div
-        className={cn(
-          "mt-3 h-0.5 overflow-hidden rounded-full bg-petcenter-border transition-opacity duration-200",
-          isRefreshingResults ? "opacity-100" : "opacity-0"
-        )}
-      >
-        <div className="h-full w-1/3 animate-[search-progress_1.1s_ease-in-out_infinite] rounded-full bg-petcenter-primary" />
+
+        <button
+          className="body-md flex shrink-0 items-center justify-center gap-2 rounded-xl border border-petcenter-border bg-petcenter-background px-5 py-2.5 font-medium text-petcenter-text-secondary transition-colors hover:bg-petcenter-border hover:text-petcenter-text"
+          onClick={handleReset}
+          type="button"
+        >
+          <RotateCcw className="h-4 w-4" />
+          <span className="hidden sm:inline">Đặt lại</span>
+        </button>
       </div>
     </div>
   )

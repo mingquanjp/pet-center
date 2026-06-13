@@ -59,12 +59,10 @@ const typeSpecificFields: Record<string, StandardFieldConfig[]> = {
     { fieldName: "doseNumber", fieldLabel: "Mũi tiêm", fieldType: "select", isRequired: false, optionSource: "vaccinationDose" },
     { fieldName: "vaccineBatchNumber", fieldLabel: "Lô vaccine", fieldType: "text", isRequired: false },
     { fieldName: "postVaccinationReaction", fieldLabel: "Phản ứng sau tiêm", fieldType: "text", isRequired: false },
-    { fieldName: "nextDoseDate", fieldLabel: "Ngày nhắc mũi tiếp theo", fieldType: "date", isRequired: false },
     { fieldName: "vaccinationNote", fieldLabel: "Ghi chú sau tiêm", fieldType: "text", isRequired: false },
   ],
   lab_test: [
     { fieldName: "labTestType", fieldLabel: "Loại xét nghiệm", fieldType: "select", isRequired: true, optionSource: "labTestType" },
-    { fieldName: "labResultStatus", fieldLabel: "Trạng thái kết quả", fieldType: "select", isRequired: true, optionSource: "labResultStatus" },
     { fieldName: "labPerformedDate", fieldLabel: "Ngày thực hiện", fieldType: "date", isRequired: true },
     { fieldName: "labResultText", fieldLabel: "Kết quả ghi nhận", fieldType: "text", isRequired: false },
     { fieldName: "labDoctorComment", fieldLabel: "Nhận xét của bác sĩ", fieldType: "text", isRequired: false },
@@ -194,15 +192,7 @@ export async function getStaffAppointmentsCount(filters: any) {
   return parseInt(result.rows[0]?.total ?? "0", 10);
 }
 
-/**
- * Stats are calculated with the same search/date/serviceType/status filters
- * but WITHOUT the tab filter, so that tab counts remain stable.
- */
-export async function getStaffAppointmentsStats(filters: any) {
-  // Build filters WITHOUT tab
-  const filtersWithoutTab = { ...filters, tab: undefined };
-  const { where, params } = buildFilterClauses(filtersWithoutTab);
-
+export async function getStaffAppointmentsStats() {
   const sql = `
     SELECT
       COUNT(*) FILTER (WHERE ma.appointment_status = 'pending')::text    AS pending_count,
@@ -211,13 +201,9 @@ export async function getStaffAppointmentsStats(filters: any) {
       COUNT(*) FILTER (WHERE ma.appointment_status = 'cancelled')::text  AS cancelled_count,
       COUNT(*) FILTER (WHERE (ma.scheduled_at AT TIME ZONE '${timeZone}')::date = (now() AT TIME ZONE '${timeZone}')::date)::text AS today_total_count
     FROM pet_center.medical_appointments ma
-    JOIN pet_center.pets p ON ma.pet_id = p.pet_id
-    JOIN pet_center.users u ON ma.owner_user_id = u.user_id
-    JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
-    WHERE 1=1 ${where}
   `;
 
-  const result = await query<StaffAppointmentStatsRow>(sql, params);
+  const result = await query<StaffAppointmentStatsRow>(sql);
   return result.rows[0];
 }
 
@@ -392,6 +378,10 @@ export async function updateAppointmentDoctor(
   `;
 
   await client.query(sql, [doctorUserId, appointmentId]);
+  await client.query(
+    "UPDATE pet_center.medical_exams SET examined_by_veterinarian_id = $1 WHERE appointment_id = $2",
+    [doctorUserId, appointmentId]
+  );
 }
 
 export async function lockDoctorForAssignment(
@@ -431,9 +421,27 @@ export async function confirmAppointmentWithDoctor(
   const params = [doctorUserId, staffUserId, internalNote || null, appointmentId];
   if (client) {
     await client.query(sql, params);
+    await client.query(
+      `
+        INSERT INTO pet_center.medical_exams (exam_id, appointment_id, exam_status, examined_by_veterinarian_id)
+        VALUES ($1, $2, 'waiting', $3)
+        ON CONFLICT (appointment_id) DO UPDATE
+        SET examined_by_veterinarian_id = EXCLUDED.examined_by_veterinarian_id
+      `,
+      [await createId("mex", client), appointmentId, doctorUserId]
+    );
     return;
   }
   await query(sql, params);
+  await query(
+    `
+      INSERT INTO pet_center.medical_exams (exam_id, appointment_id, exam_status, examined_by_veterinarian_id)
+      VALUES ($1, $2, 'waiting', $3)
+      ON CONFLICT (appointment_id) DO UPDATE
+      SET examined_by_veterinarian_id = EXCLUDED.examined_by_veterinarian_id
+    `,
+    [await createId("mex"), appointmentId, doctorUserId]
+  );
 }
 
 export async function rejectAppointment(

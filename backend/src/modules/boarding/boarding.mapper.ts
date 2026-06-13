@@ -62,8 +62,8 @@ export function getPaymentStatusLabel(paymentStatus: BoardingRecordListItemDto["
 export function getHealthStatusLabel(healthStatus: BoardingAlertLevel | "unknown"): string {
   const labels: Record<BoardingAlertLevel | "unknown", string> = {
     normal: "Bình thường",
-    attention: "Cần chú ý",
-    urgent: "Cần xử lý",
+    attention: "Cần theo dõi",
+    urgent: "Bất thường",
     unknown: "Chưa cập nhật"
   };
 

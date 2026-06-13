@@ -91,6 +91,7 @@ export async function findDoctorMedicalRecords(params: {
       JOIN pet_center.medical_appointments ma ON ma.appointment_id = me.appointment_id
       LEFT JOIN pet_center.exam_types et ON et.exam_type_id = ma.exam_type_id
       WHERE ma.pet_id = p.pet_id
+        AND me.exam_status IN ('result_recorded', 'prescribed', 'follow_up_required')
       ORDER BY me.exam_date DESC NULLS LAST, me.exam_id DESC
       LIMIT 1
     ) latest ON true
@@ -244,6 +245,7 @@ export async function findDoctorMedicalRecordDetailRows(petId: string) {
         JOIN pet_center.users vet ON vet.user_id = me.examined_by_veterinarian_id
         LEFT JOIN pet_center.exam_types et ON et.exam_type_id = ma.exam_type_id
         WHERE ma.pet_id = $1
+          AND me.exam_status IN ('result_recorded', 'prescribed', 'follow_up_required')
         ORDER BY me.exam_date DESC NULLS LAST, me.exam_id DESC;
       `,
       [petId]

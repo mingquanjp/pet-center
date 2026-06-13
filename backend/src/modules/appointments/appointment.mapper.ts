@@ -16,9 +16,8 @@ export function formatAppointmentCode(appointmentId: string): string {
     return appointmentId;
 }
 
-export function formatExaminationCode(appointmentId: string): string {
-    const suffix = appointmentId.replace(/^appt_?/i, "").toUpperCase();
-    return `PK-${suffix}`;
+export function formatExaminationCode(examinationId: string): string {
+    return examinationId;
 }
 
 export function formatPetAge(row: Pick<DoctorExaminationListRow, "birth_date" | "estimated_age">): string | undefined {

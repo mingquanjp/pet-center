@@ -22,13 +22,6 @@ import { AppPagination } from "@/components/ui/app-pagination"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { LoadingState } from "@/components/ui/loading-state"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 import { doctorFollowUpsApi } from "../../api/doctor-follow-ups.api"
@@ -179,18 +172,12 @@ export function DoctorFollowUpsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-[30px] font-bold leading-9 tracking-[0] text-[#1b1c15]">
-              Tái khám
-            </h1>
-            <p className="mt-1 max-w-[672px] text-sm leading-5 text-[#3e4946]">
-              Theo dõi các ca cần tái khám, nhắc lịch và cập nhật ghi chú chuyên môn.
-            </p>
-          </div>
-        </div>
+    <div className="flex-1 space-y-6">
+      <header>
+        <h1 className="heading-lg text-petcenter-text">Tái khám</h1>
+        <p className="body-md mt-1 max-w-3xl text-petcenter-text-secondary">
+          Theo dõi các ca cần tái khám, nhắc lịch và cập nhật ghi chú chuyên môn.
+        </p>
       </header>
 
       <section aria-label="Thống kê tái khám" className="grid gap-6 md:grid-cols-3">
@@ -219,70 +206,57 @@ export function DoctorFollowUpsPage() {
         })}
       </section>
 
-      <section className="rounded-[16px] border border-[#e4e3d7] bg-[#fbfaee] p-4 shadow-[0_4px_8px_rgba(31,38,31,0.05)]">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e7a76]" />
+      <div className="relative flex flex-col overflow-hidden rounded-2xl bg-petcenter-card shadow-card">
+      <section className="w-full border-b border-petcenter-border p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-50 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary" />
             <input
-              value={filters.search}
+              className="body-md w-full rounded-[0.75rem] border border-petcenter-border bg-petcenter-background py-2 pl-9 pr-3 text-petcenter-text placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
               onChange={(event) => handleSearchChange(event.target.value)}
-              placeholder="Tìm theo ID, tên thú cưng..."
-              type="search"
-              className="h-11 w-full rounded-full border border-[rgba(189,201,197,0.4)] bg-white pl-11 pr-4 text-sm text-[#1b1c15] outline-none transition placeholder:text-[#6b7280] focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+              placeholder="Tìm kiếm mã tái khám, tên thú cưng..."
+              type="text"
+              value={filters.search}
             />
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <label className="flex items-center gap-2">
-              <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">
-                Trạng thái:
-              </span>
-              <Select value={filters.status} onValueChange={handleStatusFilterChange}>
-                <SelectTrigger
-                  aria-label="Lọc theo trạng thái tái khám"
-                  className="h-10 min-w-[150px] rounded-full border-[rgba(189,201,197,0.6)] bg-white px-4 text-sm text-[#1b1c15] shadow-none focus:ring-4 focus:ring-[#005e53]/10"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border border-[#bdc9c5] bg-white p-1 text-[#1b1c15]">
-                  {statusFilterOptions.map((option) => (
-                    <SelectItem
-                      className="rounded-lg px-3 py-2 text-sm focus:bg-[#d8f3ee] focus:text-[#005e53]"
-                      key={option.value}
-                      value={option.value}
-                    >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
+          <label className="flex items-center gap-2">
+            <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">Trạng thái:</span>
+            <select
+              className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background px-3 py-2 text-petcenter-text focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
+              onChange={(event) => handleStatusFilterChange(event.target.value as DoctorFollowUpStatusFilter)}
+              value={filters.status}
+            >
+              {statusFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
 
-            <label className="flex items-center gap-2">
-              <span className="whitespace-nowrap text-sm font-medium text-[#3e4946]">Ngày:</span>
-              <input
-                value={filters.date}
-                onChange={(event) => handleDateChange(event.target.value)}
-                type="date"
-                aria-label="Ngày tái khám"
-                className="h-10 rounded-full border border-[rgba(189,201,197,0.4)] bg-white px-3 text-sm text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
-              />
-            </label>
-          </div>
+          <label className="flex items-center gap-2">
+            <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">Ngày:</span>
+            <input
+              aria-label="Ngày tái khám"
+              className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background px-3 py-2 text-petcenter-text focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
+              onChange={(event) => handleDateChange(event.target.value)}
+              type="date"
+              value={filters.date}
+            />
+          </label>
 
           <Button
+            className="gap-2 rounded-[0.75rem] border-petcenter-border px-4 py-2 text-petcenter-text-secondary hover:bg-petcenter-background hover:text-petcenter-text"
+            onClick={handleResetFilters}
             type="button"
             variant="outline"
-            className="h-10 rounded-full border-[#bdc9c5] bg-white px-4 font-medium text-[#3e4946] hover:bg-[#e9e9dd] xl:ml-auto"
-            onClick={handleResetFilters}
           >
-            <RotateCcw aria-hidden="true" className="mr-2 size-4" />
+            <RotateCcw aria-hidden="true" className="h-4 w-4" />
             Đặt lại
           </Button>
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-[16px] border border-[#e4e3d7] bg-white shadow-[0_4px_16px_rgba(31,38,31,0.05)]">
+      <section className="overflow-hidden bg-white">
         {isInitialLoading ? (
           <LoadingState
             className="py-16"
@@ -358,6 +332,7 @@ export function DoctorFollowUpsPage() {
           </div>
         )}
       </section>
+      </div>
 
       <FollowUpDetailDialog
         followUp={selectedFollowUp ?? selectedFollowUpPreview}

@@ -48,7 +48,7 @@ export async function mapDoctorExaminationDetail(row: DoctorExaminationDetailRow
     return {
     id: row.id,
     examId: row.exam_id,
-    examinationCode: formatExaminationCode(row.id),
+    examinationCode: formatExaminationCode(row.exam_id || row.id),
     appointmentCode: formatAppointmentCode(row.id),
     status: getDoctorExaminationStatus(row),
     pet: {
@@ -86,7 +86,7 @@ export async function mapDoctorExaminationDetail(row: DoctorExaminationDetailRow
     fields: fieldDefinitions.map((definition) => mapDoctorExaminationFieldDefinition(definition, fieldValues)),
     recentHistory: recentHistory.map((item) => ({
       appointmentId: item.appointment_id,
-      examinationCode: formatExaminationCode(item.appointment_id),
+      examinationCode: formatExaminationCode(item.exam_id),
       scheduledAt: new Date(item.scheduled_at).toISOString(),
       examTypeName: item.type_name,
       diagnosis: item.diagnosis || undefined,
@@ -136,8 +136,8 @@ export async function mapDoctorExaminationDetail(row: DoctorExaminationDetailRow
       ? {
           previousExamId: recheckContext.previous_exam_id || undefined,
           previousAppointmentId: recheckContext.previous_appointment_id || undefined,
-          previousExaminationCode: recheckContext.previous_appointment_id
-            ? formatExaminationCode(recheckContext.previous_appointment_id)
+          previousExaminationCode: recheckContext.previous_exam_id || recheckContext.previous_appointment_id
+            ? formatExaminationCode(recheckContext.previous_exam_id || recheckContext.previous_appointment_id!)
             : undefined,
           previousDiagnosis: recheckContext.previous_diagnosis || undefined,
           followUpReason: recheckContext.follow_up_reason || undefined,

@@ -9,7 +9,7 @@ import type {
   OwnerPetOptionRow,
 } from "./owner-appointments.types.js";
 
-const effectiveStatusSql = "CASE WHEN me.exam_id IS NOT NULL THEN 'completed' ELSE ma.appointment_status END";
+const effectiveStatusSql = "CASE WHEN ma.examination_status IN ('completed', 'follow_up') THEN 'completed' ELSE ma.appointment_status END";
 const timeZone = "Asia/Ho_Chi_Minh";
 
 function buildOwnerAppointmentFilterClauses(ownerUserId: string, filters: OwnerAppointmentListQuery) {
@@ -331,6 +331,16 @@ export async function insertOwnerAppointment(
     input.scheduledAt,
     input.symptomDescription ?? null,
   ]);
+}
+
+export async function insertOwnerMedicalExam(examId: string, appointmentId: string, client: PoolClient) {
+  await client.query(
+    `
+      INSERT INTO pet_center.medical_exams (exam_id, appointment_id, exam_status)
+      VALUES ($1, $2, 'waiting')
+    `,
+    [examId, appointmentId],
+  );
 }
 
 export async function cancelOwnerAppointment(appointmentId: string, ownerUserId: string, client: PoolClient) {

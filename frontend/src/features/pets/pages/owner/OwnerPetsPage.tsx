@@ -137,7 +137,7 @@ export function OwnerPetsPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-section">
+    <div className="flex w-full flex-col gap-section">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="heading-lg text-petcenter-text tracking-tight">Thú cưng của tôi</h1>

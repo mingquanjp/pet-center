@@ -1,4 +1,5 @@
-export type DoctorPrescriptionStatus = "prescribed"
+export type DoctorPrescriptionStatus = "prescribed" | "result_recorded" | "follow_up_required"
+export type DoctorPrescriptionStatusFilter = "ALL" | DoctorPrescriptionStatus
 
 export interface DoctorPrescriptionPet {
   id: string
@@ -75,6 +76,7 @@ export interface DoctorPrescriptionPagination {
 
 export interface DoctorPrescriptionFilters {
   search: string
+  status: DoctorPrescriptionStatusFilter
   date: string
   page: number
   limit: number

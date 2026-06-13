@@ -2,12 +2,10 @@ import { MedicineStatus, MedicineUnit } from "../types/medicine.types"
 
 export const medicineUnitLabel: Record<MedicineUnit, string> = {
   tablet: "Viên",
+  blister: "Vỉ",
   bottle: "Chai",
   packet: "Gói",
   tube: "Tuýp",
-  ml: "ml",
-  dose: "Liều",
-  other: "Khác",
 }
 
 export const medicineStatusLabel: Record<MedicineStatus, string> = {
@@ -17,12 +15,10 @@ export const medicineStatusLabel: Record<MedicineStatus, string> = {
 
 export const medicineUnitOptions = [
   { value: "tablet", label: "Viên" },
+  { value: "blister", label: "Vỉ" },
   { value: "bottle", label: "Chai" },
   { value: "packet", label: "Gói" },
   { value: "tube", label: "Tuýp" },
-  { value: "ml", label: "ml" },
-  { value: "dose", label: "Liều" },
-  { value: "other", label: "Khác" },
 ]
 
 export const medicineStatusOptions = [

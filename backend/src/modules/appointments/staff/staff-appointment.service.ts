@@ -33,7 +33,7 @@ export async function listStaffAppointments(filters: any) {
   const [rows, total, statsRow] = await Promise.all([
     repo.getStaffAppointmentsList(filters),
     repo.getStaffAppointmentsCount(filters),
-    repo.getStaffAppointmentsStats(filters),
+    repo.getStaffAppointmentsStats(),
   ]);
 
   const data = rows.map((row) => ({

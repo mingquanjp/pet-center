@@ -12,13 +12,8 @@ function formatFollowUpCode(followUpId: string) {
   return `TK-${suffix}`;
 }
 
-function formatExaminationCode(row: Pick<DoctorFollowUpListRow | DoctorFollowUpDetailRow, "appointment_id" | "exam_id">) {
-  const appointmentSuffix = row.appointment_id.replace(/^appt_?/i, "").toUpperCase();
-  if (appointmentSuffix !== row.appointment_id) {
-    return `PK-${appointmentSuffix}`;
-  }
-
-  return `PK-${row.exam_id.replace(/^exam_?/, "").toUpperCase()}`;
+function formatExaminationCode(row: Pick<DoctorFollowUpListRow | DoctorFollowUpDetailRow, "exam_id">) {
+  return row.exam_id;
 }
 
 function mapSpeciesLabel(species: string) {

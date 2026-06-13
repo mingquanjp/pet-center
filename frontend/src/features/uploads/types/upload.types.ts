@@ -7,3 +7,14 @@ export type UploadedImage = {
   format: string;
   bytes: number;
 };
+
+export type UploadedFile = {
+  publicId: string;
+  url: string;
+  secureUrl: string;
+  resourceType: "image" | "video" | "raw" | "auto";
+  format: string;
+  bytes: number;
+  width?: number;
+  height?: number;
+};

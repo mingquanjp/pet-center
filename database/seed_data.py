@@ -385,7 +385,7 @@ def build_seed() -> dict[str, list[tuple]]:
     data["pet_health_profiles"] = health_profiles
 
     data["medicines"] = []
-    med_units = ["tablet", "bottle", "packet", "tube", "ml", "dose", "other"]
+    med_units = ["tablet", "blister", "packet", "tube", "bottle"]
     med_names = ["Amoxicillin", "Doxycycline", "Meloxicam", "Prednisolone", "Vitamin B", "Men vi sinh", "Thuốc tẩy giun", "Thuốc nhỏ mắt"]
     for index in range(1, 81):
         name = f"{random.choice(med_names)} {index}"
@@ -453,6 +453,14 @@ def build_seed() -> dict[str, list[tuple]]:
     prescription_items = []
     followups = []
     invoice_sources = []
+    medicine_unit_by_id = {row[0]: row[2] for row in data["medicines"]}
+    dosage_suffix_by_unit = {
+        "tablet": "viên/lần",
+        "blister": "viên/lần",
+        "packet": "gói/lần",
+        "tube": "lần",
+        "bottle": "ml/lần",
+    }
     for index, (appointment_id, pet_id, owner_id, exam_type_id, vet_id, scheduled, _status) in enumerate(confirmed_past[:550], 1):
         exam_id = f"mex{index}"
         exam_status = random.choices(["result_recorded", "prescribed", "follow_up_required"], [45, 35, 20])[0]
@@ -502,15 +510,16 @@ def build_seed() -> dict[str, list[tuple]]:
             prescriptions.append((prescription_id, exam_id, min(scheduled.date(), today), "Dùng đúng liều và liên hệ phòng khám nếu triệu chứng nặng hơn."))
             for _ in range(random.randint(1, 4)):
                 med_id = f"med{random.randint(1, 80)}"
+                dosage = f"{random.choice([1, 2, 3])} {dosage_suffix_by_unit[medicine_unit_by_id[med_id]]}"
                 prescription_items.append(
                     (
                         f"rxi{len(prescription_items) + 1}",
                         prescription_id,
                         med_id,
                         random.choice([10, 14, 1, 5, 2, 30]),
-                        random.choice(["1 viên", "2 ml", "1 liều", "Bôi một lớp mỏng"]),
-                        random.choice(["Mỗi ngày một lần", "Mỗi ngày hai lần", "Mỗi 12 giờ", "Sau bữa ăn"]),
-                        random.choice(["3 ngày", "5 ngày", "7 ngày", "10 ngày"]),
+                        dosage,
+                        f"{random.choice([1, 2, 3])} lần/ngày",
+                        f"{random.choice([3, 5, 7, 10])} ngày",
                         "Ưu tiên dùng sau khi ăn nếu phù hợp.",
                         random.choice([None, "Ngừng dùng nếu thú cưng bị nôn"]),
                     )

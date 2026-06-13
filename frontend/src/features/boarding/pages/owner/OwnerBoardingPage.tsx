@@ -548,10 +548,21 @@ function formatLastUpdatedAt(value: string | null | undefined): string {
 
   if (Number.isNaN(date.getTime())) return "Chưa cập nhật"
 
-  return new Intl.DateTimeFormat("vi-VN", {
+  const parts = new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(date)
+    hour12: false,
+  })
+    .formatToParts(date)
+    .reduce<Record<string, string>>((result, part) => {
+      result[part.type] = part.value
+      return result
+    }, {})
+
+  return `${parts.hour}:${parts.minute} ${parts.day}/${parts.month}/${parts.year}`
 }
 
 function BoardingRecordsError({ message }: { message: string }) {

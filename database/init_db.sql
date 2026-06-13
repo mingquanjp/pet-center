@@ -166,10 +166,10 @@ CREATE TABLE medical_exams (
     diagnosis TEXT,
     conclusion TEXT,
     health_note TEXT,
-    exam_status VARCHAR(30) NOT NULL DEFAULT 'result_recorded',
-    exam_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    examined_by_veterinarian_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT chk_medical_exams_status CHECK (exam_status IN ('result_recorded', 'prescribed', 'follow_up_required'))
+    exam_status VARCHAR(30) NOT NULL DEFAULT 'waiting',
+    exam_date DATE,
+    examined_by_veterinarian_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_medical_exams_status CHECK (exam_status IN ('waiting', 'examining', 'result_recorded', 'prescribed', 'follow_up_required'))
 );
 
 CREATE TABLE medical_exam_field_values (
@@ -205,7 +205,7 @@ CREATE TABLE medicines (
     usage_note TEXT,
     unit_price NUMERIC(12,2) NOT NULL DEFAULT 0,
     medicine_status VARCHAR(20) NOT NULL DEFAULT 'active',
-    CONSTRAINT chk_medicines_unit CHECK (unit IN ('tablet', 'bottle', 'packet', 'tube', 'ml', 'dose', 'other')),
+    CONSTRAINT chk_medicines_unit CHECK (unit IN ('tablet', 'blister', 'packet', 'tube', 'bottle')),
     CONSTRAINT chk_medicines_unit_price CHECK (unit_price >= 0),
     CONSTRAINT chk_medicines_status CHECK (medicine_status IN ('active', 'inactive'))
 );

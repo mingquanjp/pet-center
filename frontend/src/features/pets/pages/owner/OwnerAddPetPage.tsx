@@ -183,7 +183,7 @@ export function OwnerAddPetPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1440px]">
+    <div className="w-full">
       <nav className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="body-md text-petcenter-text-secondary">
           <Link className="font-semibold text-petcenter-primary hover:underline" href="/owner/pets">

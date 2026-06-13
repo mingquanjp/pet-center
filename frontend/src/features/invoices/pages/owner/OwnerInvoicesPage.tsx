@@ -53,7 +53,7 @@ export function OwnerInvoicesPage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5">
+    <div className="flex w-full flex-col gap-5">
       <section>
         <h1 className="heading-lg text-petcenter-text">Hóa đơn của tôi</h1>
         <p className="body-md mt-1 text-petcenter-text-secondary">

@@ -63,7 +63,7 @@ export function OwnerCreateAppointmentPage() {
 
 function OwnerCreateAppointmentLoading() {
   return (
-    <div className="w-full max-w-[1280px]">
+    <div className="w-full">
       <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-text-secondary">
         Đang tải dữ liệu tạo lịch hẹn...
       </Card>
@@ -224,7 +224,7 @@ function OwnerCreateAppointmentContent() {
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-[1280px]">
+      <div className="w-full">
         <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-text-secondary">
           Đang tải dữ liệu tạo lịch hẹn...
         </Card>
@@ -234,7 +234,7 @@ function OwnerCreateAppointmentContent() {
 
   if (isError) {
     return (
-      <div className="w-full max-w-[1280px]">
+      <div className="w-full">
         <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-danger-text">
           Không thể tải dữ liệu tạo lịch hẹn.
         </Card>
@@ -243,7 +243,7 @@ function OwnerCreateAppointmentContent() {
   }
 
   return (
-    <div className="w-full max-w-[1280px]">
+    <div className="w-full">
       <div className="mb-8">
         <h1 className="heading-lg text-petcenter-text">Tạo lịch hẹn khám</h1>
         <p className="body-lg mt-2 text-petcenter-text-secondary">

@@ -32,7 +32,7 @@ export function OwnerAppointmentDetailPage({
 
   if (isLoading) {
     return (
-      <div className="w-full max-w-[1280px]">
+      <div className="w-full">
         <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-text-secondary">
           Đang tải chi tiết lịch hẹn...
         </Card>
@@ -42,7 +42,7 @@ export function OwnerAppointmentDetailPage({
 
   if (isError || !data) {
     return (
-      <div className="w-full max-w-[1280px]">
+      <div className="w-full">
         <Card className="items-center rounded-2xl border-petcenter-border bg-petcenter-card p-8 text-center shadow-card ring-0">
           <h1 className="title-md text-petcenter-text">Không tìm thấy lịch hẹn</h1>
           <Button
@@ -72,7 +72,7 @@ export function OwnerAppointmentDetailPage({
   }
 
   return (
-    <div className="flex w-full max-w-[1280px] flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <nav className="label-md flex flex-wrap items-center gap-2 text-petcenter-text-secondary">
           <Link className="transition-colors hover:text-petcenter-primary" href="/owner/appointments">

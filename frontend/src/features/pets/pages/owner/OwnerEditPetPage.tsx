@@ -221,7 +221,7 @@ export function OwnerEditPetPage({ petId }: { petId: string }) {
   const avatarUrl = avatarPreviewUrl ?? form.profileImageUrl
 
   return (
-    <div className="mx-auto w-full max-w-[1440px]">
+    <div className="w-full">
       <nav className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="body-md text-petcenter-text-secondary">
           Danh sách thú cưng &gt;{" "}
@@ -502,7 +502,7 @@ function formatFileSize(size: number) {
 
 function EditPetSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-[1440px] animate-pulse">
+    <div className="w-full animate-pulse">
       <div className="mb-5 h-10 w-72 rounded bg-petcenter-sidebar" />
       <div className="mb-6 h-20 rounded bg-petcenter-sidebar" />
       <div className="grid grid-cols-1 overflow-hidden rounded-card border border-petcenter-border bg-white shadow-card lg:grid-cols-[330px_minmax(0,1fr)]">

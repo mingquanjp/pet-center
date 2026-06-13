@@ -59,12 +59,10 @@ const typeSpecificFields: Record<string, StandardFieldConfig[]> = {
     { fieldName: "doseNumber", fieldLabel: "Mũi tiêm", fieldType: "select", isRequired: false, optionSource: "vaccinationDose" },
     { fieldName: "vaccineBatchNumber", fieldLabel: "Lô vaccine", fieldType: "text", isRequired: false },
     { fieldName: "postVaccinationReaction", fieldLabel: "Phản ứng sau tiêm", fieldType: "text", isRequired: false },
-    { fieldName: "nextDoseDate", fieldLabel: "Ngày nhắc mũi tiếp theo", fieldType: "date", isRequired: false },
     { fieldName: "vaccinationNote", fieldLabel: "Ghi chú sau tiêm", fieldType: "text", isRequired: false },
   ],
   lab_test: [
     { fieldName: "labTestType", fieldLabel: "Loại xét nghiệm", fieldType: "select", isRequired: true, optionSource: "labTestType" },
-    { fieldName: "labResultStatus", fieldLabel: "Trạng thái kết quả", fieldType: "select", isRequired: true, optionSource: "labResultStatus" },
     { fieldName: "labPerformedDate", fieldLabel: "Ngày thực hiện", fieldType: "date", isRequired: true },
     { fieldName: "labResultText", fieldLabel: "Kết quả ghi nhận", fieldType: "text", isRequired: false },
     { fieldName: "labDoctorComment", fieldLabel: "Nhận xét của bác sĩ", fieldType: "text", isRequired: false },
@@ -146,6 +144,7 @@ function buildDoctorExaminationBaseSql(
     params.push(`%${filters.search}%`);
     innerWhere += ` AND (
       ma.appointment_id ILIKE $${params.length}
+      OR me.exam_id ILIKE $${params.length}
       OR p.pet_name ILIKE $${params.length}
       OR u.full_name ILIKE $${params.length}
       OR u.phone_number ILIKE $${params.length}
@@ -382,6 +381,18 @@ export async function createMedicalExamForAppointment(
   await client.query(sql, [examId, appointmentId, doctorUserId]);
 }
 
+export async function updateMedicalExamLifecycle(
+  examId: string,
+  doctorUserId: string,
+  status: "waiting" | "examining",
+  client: PoolClient
+) {
+  await client.query(
+    "UPDATE pet_center.medical_exams SET examined_by_veterinarian_id = $1, exam_status = $2 WHERE exam_id = $3",
+    [doctorUserId, status, examId]
+  );
+}
+
 export async function ensureStandardExamFieldDefinitions(examTypeId: string, typeCode: string) {
   const expectedFields = [...commonClinicalFields, ...(typeSpecificFields[typeCode] ?? [])];
   if (expectedFields.length === 0) return;
@@ -556,6 +567,7 @@ export async function getDoctorExaminationHistory(petId: string, currentAppointm
   const result = await query<DoctorExaminationHistoryRow>(
     `
       SELECT
+        me.exam_id,
         ma.appointment_id,
         ma.pet_id,
         ma.scheduled_at,

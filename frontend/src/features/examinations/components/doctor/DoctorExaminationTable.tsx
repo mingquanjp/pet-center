@@ -113,7 +113,9 @@ export function DoctorExaminationTable({ examinations, pagination, onPageChange,
                   key={examination.id}
                   className="transition-colors hover:bg-petcenter-background/60"
                 >
-                  <td className="px-6 py-4 font-semibold text-petcenter-text">{examination.examinationCode}</td>
+                  <td className="px-6 py-4 font-semibold text-petcenter-text">
+                    {examination.examinationCode}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-petcenter-filter text-xs font-bold text-petcenter-primary">

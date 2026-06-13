@@ -9,6 +9,7 @@ export type DoctorExamFieldConfig = {
   unit?: string
   options?: Array<{ value: string; label: string }>
   fullWidth?: boolean
+  singleLine?: boolean
 }
 
 export const clinicalExamFields: DoctorExamFieldConfig[] = [
@@ -109,6 +110,7 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       type: "text",
       required: true,
       placeholder: "Nhập tên vaccine...",
+      singleLine: true,
     },
     {
       name: "vaccinationDate",
@@ -133,6 +135,7 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       label: "Lô vaccine",
       type: "text",
       required: false,
+      singleLine: true,
     },
     {
       name: "postVaccinationReaction",
@@ -141,12 +144,6 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       required: false,
       placeholder: "Ghi nhận phản ứng sau tiêm nếu có...",
       fullWidth: true,
-    },
-    {
-      name: "nextDoseDate",
-      label: "Ngày nhắc mũi tiếp theo",
-      type: "date",
-      required: false,
     },
     {
       name: "vaccinationNote",
@@ -168,16 +165,6 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
         { value: "parvo_care", label: "Test Parvo/Care" },
         { value: "skin_coat", label: "Xét nghiệm da/lông" },
         { value: "other", label: "Khác" },
-      ],
-    },
-    {
-      name: "labResultStatus",
-      label: "Trạng thái kết quả",
-      type: "select",
-      required: true,
-      options: [
-        { value: "pending", label: "Chờ kết quả" },
-        { value: "available", label: "Đã có kết quả" },
       ],
     },
     {

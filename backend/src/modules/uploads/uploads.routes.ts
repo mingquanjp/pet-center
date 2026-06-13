@@ -128,3 +128,17 @@ uploadsRouter.post(
   asyncHandler(uploadsController.uploadFile)
 );
 
+uploadsRouter.post(
+  "/uploads/file/view-url",
+  authMiddleware,
+  (req, _res, next) => {
+    if (typeof req.body.url !== "string" || !req.body.url.trim()) {
+      next(new AppError("URL tệp không hợp lệ", "INVALID_FILE_URL", httpStatus.BAD_REQUEST));
+      return;
+    }
+
+    next();
+  },
+  asyncHandler(uploadsController.getFileViewUrl)
+);
+

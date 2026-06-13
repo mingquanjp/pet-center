@@ -51,7 +51,7 @@ export function OwnerAppointmentsPage() {
   }
 
   return (
-    <div className="flex w-full max-w-[1280px] flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="heading-lg text-petcenter-text tracking-tight">Lịch hẹn của tôi</h1>

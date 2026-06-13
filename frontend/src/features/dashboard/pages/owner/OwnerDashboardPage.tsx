@@ -180,7 +180,7 @@ export function OwnerDashboardPage() {
   ]
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-section">
+    <div className="flex w-full flex-col gap-section">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
           <h1 className="heading-lg text-petcenter-primary">Chào buổi sáng, {dashboard.ownerName}!</h1>
@@ -198,10 +198,10 @@ export function OwnerDashboardPage() {
             Thêm hồ sơ thú cưng
           </Link>
           <Link
-            className="label-md inline-flex h-10 items-center justify-center gap-2 rounded-pill bg-petcenter-cta px-5 font-semibold text-white shadow-card transition-colors hover:bg-petcenter-cta-hover"
+            className="body-md inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-[0.75rem] bg-petcenter-cta px-4 font-semibold text-white shadow-card transition-all hover:bg-petcenter-cta-hover active:scale-95"
             href="/owner/appointments/create"
           >
-            <CalendarPlus className="h-4 w-4" />
+            <CalendarPlus className="size-5" />
             Đặt lịch khám
           </Link>
         </div>
@@ -663,7 +663,7 @@ function DashboardError({ message, onRetry }: { message: string; onRetry: () => 
 
 function DashboardSkeleton() {
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] animate-pulse flex-col gap-section">
+    <div className="flex w-full animate-pulse flex-col gap-section">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3">
           <div className="h-10 w-80 rounded bg-petcenter-sidebar" />

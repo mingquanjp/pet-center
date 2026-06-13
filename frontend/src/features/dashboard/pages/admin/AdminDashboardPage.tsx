@@ -229,7 +229,7 @@ export function AdminDashboardPage() {
   }, [recentActivityRows.length, isLoading])
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-section">
+    <div className="flex-1 space-y-6">
       <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="heading-lg text-petcenter-text">{"Tổng quan Dashboard"}</h1>

@@ -195,7 +195,7 @@ export function OwnerBoardingBookingPage() {
   }
 
   return (
-    <div className="flex w-full max-w-[1280px] flex-col gap-8">
+    <div className="flex w-full flex-col gap-8">
       <section className="flex flex-col gap-4">
         <nav className="flex items-center gap-2 text-sm leading-5" aria-label="Breadcrumb">
           <Link href="/owner/boarding" className="text-[#3E4946] transition hover:text-[#00796B]">

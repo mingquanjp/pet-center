@@ -386,6 +386,7 @@ export async function createOwnerAppointment(
       },
       client,
     );
+    await repo.insertOwnerMedicalExam(await createId("mex", client), appointmentId, client);
 
     return {
       id: appointmentId,

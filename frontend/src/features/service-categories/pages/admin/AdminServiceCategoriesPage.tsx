@@ -311,16 +311,16 @@ function FilterBar({
   onReset: () => void
 }) {
   return (
-    <div className="rounded-card border border-petcenter-border bg-petcenter-filter p-4 shadow-card">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-        <div className="relative min-w-0 flex-1">
+    <div className="w-full rounded-2xl border border-petcenter-border bg-white p-4 shadow-sm">
+      <div className="flex w-full flex-wrap items-center gap-4">
+        <div className="relative min-w-[240px] flex-[2]">
           {isRefreshingResults ? (
-            <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-petcenter-primary" />
+            <LoaderCircle className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-petcenter-primary" />
           ) : (
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary" />
           )}
           <input
-            className="body-md h-11 w-full rounded-pill border border-petcenter-border-strong bg-white pl-11 pr-4 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
+            className="body-md w-full rounded-xl border border-petcenter-border bg-petcenter-background py-2.5 pl-9 pr-3 text-petcenter-text placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="Tìm mã, tên hoặc mô tả dịch vụ..."
             type="search"
@@ -328,10 +328,10 @@ function FilterBar({
           />
         </div>
 
-        <label className="flex items-center gap-2">
-          <span className="label-md whitespace-nowrap text-petcenter-text-muted">Danh mục:</span>
+        <label className="flex min-w-[180px] flex-1 items-center gap-2">
+          <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">Danh mục:</span>
           <select
-            className="body-md h-10 rounded-control border border-petcenter-border-strong bg-white px-3 pr-9 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
+            className="body-md min-w-0 w-full flex-1 rounded-xl border border-petcenter-border bg-petcenter-background px-3 py-2.5 text-petcenter-text focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
             value={filters.category}
             onChange={(event) => onFiltersChange({ category: event.target.value as ServiceCategoryFilters["category"] })}
           >
@@ -344,10 +344,10 @@ function FilterBar({
           </select>
         </label>
 
-        <label className="flex items-center gap-2">
-          <span className="label-md whitespace-nowrap text-petcenter-text-muted">Trạng thái:</span>
+        <label className="flex min-w-[180px] flex-1 items-center gap-2">
+          <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">Trạng thái:</span>
           <select
-            className="body-md h-10 rounded-control border border-petcenter-border-strong bg-white px-3 pr-9 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
+            className="body-md min-w-0 w-full flex-1 rounded-xl border border-petcenter-border bg-petcenter-background px-3 py-2.5 text-petcenter-text focus:border-petcenter-primary focus:outline-none focus:ring-1 focus:ring-petcenter-primary"
             value={filters.status}
             onChange={(event) => onFiltersChange({ status: event.target.value as ServiceCategoryFilters["status"] })}
           >
@@ -357,18 +357,9 @@ function FilterBar({
           </select>
         </label>
 
-        <button onClick={onReset} className="body-md flex h-10 shrink-0 items-center justify-center gap-2 rounded-control border border-petcenter-border-strong bg-white px-4 font-medium text-petcenter-text-secondary transition hover:bg-petcenter-sidebar hover:text-petcenter-text">
+        <button onClick={onReset} className="body-md flex shrink-0 items-center justify-center gap-2 rounded-xl border border-petcenter-border bg-petcenter-background px-5 py-2.5 font-medium text-petcenter-text-secondary transition-colors hover:bg-petcenter-border hover:text-petcenter-text">
           <RotateCcw className="w-4 h-4" /> <span className="hidden sm:inline">Đặt lại</span>
         </button>
-
-      </div>
-      <div
-        className={cn(
-          "mt-3 h-0.5 overflow-hidden rounded-full bg-petcenter-border transition-opacity duration-200",
-          isRefreshingResults ? "opacity-100" : "opacity-0"
-        )}
-      >
-        <div className="h-full w-1/3 animate-[search-progress_1.1s_ease-in-out_infinite] rounded-full bg-petcenter-primary" />
       </div>
     </div>
   )

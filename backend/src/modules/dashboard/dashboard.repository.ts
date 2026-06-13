@@ -97,7 +97,7 @@ type AppointmentTaskRow = QueryResultRow & {
 
 type DoctorAssignedExamRow = QueryResultRow & {
   appointment_id: string;
-  exam_id: string | null;
+  exam_id: string;
   pet_id: string;
   pet_name: string;
   species: string;
@@ -114,6 +114,7 @@ type DoctorAssignedExamRow = QueryResultRow & {
   type_code: string;
   type_name: string;
   appointment_status: "pending" | "confirmed";
+  examination_status: "waiting" | "examining";
 };
 
 type DoctorStatsRow = QueryResultRow & {
@@ -323,12 +324,6 @@ function formatDoctorAppointmentCode(appointmentId: string): string {
   return appointmentId;
 }
 
-function formatDoctorExaminationCode(appointmentId: string): string {
-  const suffix = appointmentId.replace(/^appt_?/i, "").toUpperCase();
-
-  return `PK-${suffix}`;
-}
-
 function normalizeDoctorSpecies(species: string): DoctorAssignedExamDto["pet"]["species"] {
   return species === "Dog" || species === "Cat" ? species : "Other";
 }
@@ -371,17 +366,17 @@ function formatDoctorScheduledTime(value: Date): string {
   }).format(value);
 }
 
-function mapDoctorExamStatus(status: DoctorAssignedExamRow["appointment_status"]): DoctorAssignedExamDto["status"] {
-  return status === "confirmed" ? "EXAMINING" : "WAITING";
+function mapDoctorExamStatus(status: DoctorAssignedExamRow["examination_status"]): DoctorAssignedExamDto["status"] {
+  return status === "examining" ? "EXAMINING" : "WAITING";
 }
 
 function mapDoctorAssignedExam(row: DoctorAssignedExamRow): DoctorAssignedExamDto {
   return {
     id: row.appointment_id,
     examId: row.exam_id,
-    examinationCode: formatDoctorExaminationCode(row.appointment_id),
+    examinationCode: row.exam_id,
     appointmentCode: formatDoctorAppointmentCode(row.appointment_id),
-    examCode: formatDoctorExaminationCode(row.appointment_id),
+    examCode: row.exam_id,
     pet: {
       id: row.pet_id,
       name: row.pet_name,
@@ -405,7 +400,7 @@ function mapDoctorAssignedExam(row: DoctorAssignedExamRow): DoctorAssignedExamDt
       code: row.type_code.toUpperCase(),
       name: row.type_name,
     },
-    status: mapDoctorExamStatus(row.appointment_status),
+    status: mapDoctorExamStatus(row.examination_status),
   };
 }
 
@@ -868,11 +863,13 @@ export async function getDoctorDashboardStats(doctorUserId: string): Promise<Doc
        )::text as today_exam_count,
        count(*) filter (
          where (ma.scheduled_at at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date
-           and ma.appointment_status = 'pending'
+           and ma.appointment_status in ('pending', 'confirmed')
+           and ma.examination_status = 'waiting'
        )::text as waiting_exam_count,
        count(*) filter (
          where (ma.scheduled_at at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date
            and ma.appointment_status = 'confirmed'
+           and ma.examination_status = 'examining'
        )::text as in_progress_exam_count,
        (
          select count(*)::text
@@ -918,12 +915,13 @@ export async function findDoctorAssignedExams(
        et.exam_type_id,
        et.type_code,
        et.type_name,
-       ma.appointment_status
+       ma.appointment_status,
+       ma.examination_status
      from pet_center.medical_appointments ma
      join pet_center.pets p on p.pet_id = ma.pet_id
      join pet_center.users owner on owner.user_id = ma.owner_user_id
      join pet_center.exam_types et on et.exam_type_id = ma.exam_type_id
-     left join pet_center.medical_exams me on me.appointment_id = ma.appointment_id
+     join pet_center.medical_exams me on me.appointment_id = ma.appointment_id
      where ma.veterinarian_user_id = $1
        and ma.appointment_status in ('pending', 'confirmed')
        and ma.scheduled_at >= now()

@@ -99,7 +99,7 @@ export type DoctorDashboardStatDto = {
 
 export type DoctorAssignedExamDto = {
   id: string;
-  examId: string | null;
+  examId: string;
   examinationCode: string;
   appointmentCode: string;
   examCode: string;
