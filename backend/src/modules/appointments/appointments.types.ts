@@ -218,6 +218,7 @@ export interface DoctorExaminationDetailRow extends DoctorExaminationListRow {
 }
 
 export interface DoctorExaminationHistoryRow {
+  exam_id: string;
   appointment_id: string;
   pet_id: string;
   scheduled_at: Date;

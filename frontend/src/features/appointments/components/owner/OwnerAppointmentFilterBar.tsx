@@ -1,4 +1,12 @@
-import { Calendar, RotateCcw, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 
 import { ownerAppointmentStatusFilterOptions } from "../../constants/appointment.constants";
 import {
@@ -29,6 +37,12 @@ export function OwnerAppointmentFilterBar({
   onFiltersChange,
   onResetFilters,
 }: OwnerAppointmentFilterBarProps) {
+  const hasActiveFilter =
+    filters.search.trim().length > 0 ||
+    filters.petId !== "ALL" ||
+    filters.status !== "ALL" ||
+    filters.date !== ""
+
   function updateFilters(nextFilters: Partial<OwnerAppointmentFilters>) {
     onFiltersChange({
       ...filters,
@@ -37,67 +51,58 @@ export function OwnerAppointmentFilterBar({
   }
 
   return (
-    <div className="w-full border-b border-petcenter-border p-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative min-w-50 flex-1">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary"
-            aria-hidden="true"
-          />
+    <section className="rounded-[16px] border border-[#E6E8DD] bg-white p-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <label className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6E7774]" aria-hidden="true" />
+          <span className="sr-only">Tìm kiếm lịch hẹn</span>
           <input
-            className="body-md w-full rounded-[0.75rem] border border-petcenter-border bg-petcenter-background py-2 pl-9 pr-3 text-petcenter-text outline-none transition placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
+            type="search"
+            placeholder="Tìm kiếm mã lịch, tên thú cưng, dịch vụ..."
             value={filters.search}
             onChange={(event) => updateFilters({ search: event.target.value })}
-            placeholder="Tìm kiếm mã lịch, tên thú cưng, dịch vụ..."
-            type="search"
+            className="h-11 w-full rounded-full border border-[#CFD8D5] bg-white pl-14 pr-4 text-base leading-6 text-[#1B1C15] outline-none transition placeholder:text-[#8A918E] focus:border-[#005E53] focus:ring-4 focus:ring-[#005E53]/10"
           />
-        </div>
+        </label>
 
-        <FilterSelect
-          label="Thú cưng"
-          options={petOptions}
-          value={filters.petId}
-          onChange={(value) => updateFilters({ petId: value })}
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:flex-nowrap">
+          <FilterSelect
+            label="Thú cưng"
+            options={petOptions}
+            value={filters.petId}
+            onChange={(value) => updateFilters({ petId: value as OwnerAppointmentPetFilter })}
+          />
 
-        <FilterSelect
-          label="Trạng thái"
-          options={ownerAppointmentStatusFilterOptions}
-          value={filters.status}
-          onChange={(value) =>
-            updateFilters({ status: value as OwnerAppointmentStatusFilter })
-          }
-        />
+          <FilterSelect
+            label="Trạng thái"
+            options={ownerAppointmentStatusFilterOptions}
+            value={filters.status}
+            onChange={(value) => updateFilters({ status: value as OwnerAppointmentStatusFilter })}
+          />
 
-        <label className="flex items-center gap-2">
-          <span className="text-sm font-medium whitespace-nowrap text-petcenter-text-secondary">
-            Ngày hẹn:
-          </span>
-          <span className="relative">
-            <Calendar
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary"
-              aria-hidden="true"
-            />
+          <label className="flex items-center gap-2">
+            <span className="whitespace-nowrap text-sm font-normal leading-5 text-[#3E4946]">
+              Ngày hẹn:
+            </span>
             <input
-              className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background py-2 pl-9 pr-3 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
               type="date"
+              className="h-9 min-w-[120px] rounded-lg border border-[#CFD8D5] bg-white px-3 text-sm leading-5 text-[#1B1C15] outline-none transition focus:border-[#005E53] focus:ring-2 focus:ring-[#005E53]/10"
               value={filters.date}
               onChange={(event) => updateFilters({ date: event.target.value })}
             />
-          </span>
-        </label>
+          </label>
 
-        <button
-          aria-label="Đặt lại bộ lọc"
-          type="button"
-          onClick={onResetFilters}
-          className="body-md flex items-center justify-center gap-2 rounded-[0.75rem] border border-petcenter-border px-4 py-2 font-medium text-petcenter-text-secondary transition-colors hover:bg-petcenter-background hover:text-petcenter-text"
-        >
-          <RotateCcw className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Đặt lại</span>
-        </button>
+          <Button
+            variant="ghost"
+            className="h-10 w-fit shrink-0 rounded-xl px-3 text-base font-normal leading-6 text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#004C43] disabled:pointer-events-none disabled:opacity-50"
+            disabled={!hasActiveFilter}
+            onClick={onResetFilters}
+          >
+            Đặt lại bộ lọc
+          </Button>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -114,20 +119,25 @@ function FilterSelect({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="text-sm font-medium whitespace-nowrap text-petcenter-text-secondary">
+      <span className="whitespace-nowrap text-sm font-normal leading-5 text-[#3E4946]">
         {label}:
       </span>
-      <select
-        className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background px-3 py-2 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-9 min-w-[120px] rounded-lg border border-[#CFD8D5] bg-white px-3 text-sm leading-5 text-[#1B1C15] outline-none transition focus:border-[#005E53] focus:ring-2 focus:ring-[#005E53]/10">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper" className="max-h-44 rounded-lg border border-[#CFD8D5] bg-white p-1 shadow-md">
+          {options.map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="rounded-md py-2 px-3 text-sm font-normal text-[#3E4946] hover:bg-[#F3F7F6] focus:bg-[#E0F2F1] focus:text-[#005E53] cursor-pointer"
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </label>
   );
 }

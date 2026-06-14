@@ -11,7 +11,7 @@ vi.mock("../../../src/db/transactions.js", () => ({
   withTransaction: vi.fn((cb) => cb({})),
 }));
 vi.mock("../../../src/shared/utils/id.js", () => ({
-  createId: vi.fn().mockResolvedValue("appt_mock"),
+  createId: vi.fn((prefix: string) => Promise.resolve(`${prefix}_mock`)),
 }));
 vi.mock("../../../src/modules/notifications/notification-events.js", () => ({
   notifyAppointmentCreated: vi.fn().mockResolvedValue(undefined),
@@ -44,10 +44,11 @@ describe("createOwnerAppointment", () => {
 
     expect(result).toMatchObject({
       id: "appt_mock",
-      appointmentCode: "LH-MOCK",
+      appointmentCode: "appt_mock",
       status: "PENDING",
     });
     expect(mockRepo.insertOwnerAppointment).toHaveBeenCalled();
+    expect(mockRepo.insertOwnerMedicalExam).toHaveBeenCalledWith("mex_mock", "appt_mock", expect.anything());
   });
 
   it("UT-APPOINTMENT-002 - Từ chối đặt lịch sát giờ khám <= 30 phút", async () => {

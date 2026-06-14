@@ -214,7 +214,7 @@ export function OwnerSpaBookingPage() {
   }
 
   return (
-    <div className="max-w-[1280px] space-y-8">
+    <div className="w-full space-y-8">
       <section className="space-y-1">
         <div className="flex items-center gap-2 text-[13px] leading-[18px]">
           <Link href="/owner/spa" className="text-[#3E4946] hover:text-[#005E53]">

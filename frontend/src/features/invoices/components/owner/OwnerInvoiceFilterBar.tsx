@@ -1,7 +1,14 @@
 import * as React from "react";
-import { RotateCcw, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ownerInvoiceServiceFilterOptions,
   ownerInvoiceStatusFilterOptions,
@@ -19,23 +26,30 @@ export function OwnerInvoiceFilterBar({
   onFiltersChange,
   onReset,
 }: OwnerInvoiceFilterBarProps) {
+  const hasActiveFilter =
+    filters.search.trim().length > 0 ||
+    filters.status !== "ALL" ||
+    filters.serviceType !== "ALL" ||
+    filters.date !== "";
+
   return (
-    <section className="rounded-card border border-petcenter-border bg-petcenter-filter p-4 shadow-card">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-petcenter-text-muted" />
+    <section className="rounded-[16px] border border-[#E6E8DD] bg-white p-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <label className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6E7774]" aria-hidden="true" />
+          <span className="sr-only">Tìm mã hóa đơn, tên thú cưng...</span>
           <input
+            type="search"
+            placeholder="Tìm mã hóa đơn, tên thú cưng..."
             value={filters.search}
             onChange={(event) =>
               onFiltersChange({ ...filters, search: event.target.value })
             }
-            placeholder="Tìm mã hóa đơn, tên thú cưng..."
-            type="search"
-            className="body-md h-11 w-full rounded-pill border border-petcenter-border-strong bg-white pl-11 pr-4 text-petcenter-text outline-none transition placeholder:text-petcenter-text-muted focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
+            className="h-11 w-full rounded-full border border-[#CFD8D5] bg-white pl-14 pr-4 text-base leading-6 text-[#1B1C15] outline-none transition placeholder:text-[#8A918E] focus:border-[#005E53] focus:ring-4 focus:ring-[#005E53]/10"
           />
-        </div>
+        </label>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:flex-nowrap">
           <FilterSelect
             label="Trạng thái"
             value={filters.status}
@@ -61,30 +75,29 @@ export function OwnerInvoiceFilterBar({
           />
 
           <label className="flex items-center gap-2">
-            <span className="label-md whitespace-nowrap text-petcenter-text-muted">
+            <span className="whitespace-nowrap text-sm font-normal leading-5 text-[#3E4946]">
               Ngày:
             </span>
             <input
+              type="date"
               value={filters.date}
               onChange={(event) =>
                 onFiltersChange({ ...filters, date: event.target.value })
               }
-              type="date"
               aria-label="Ngày tạo hóa đơn"
-              className="body-md h-10 rounded-control border border-petcenter-border-strong bg-white px-3 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
+              className="h-9 min-w-[120px] rounded-lg border border-[#CFD8D5] bg-white px-3 text-sm leading-5 text-[#1B1C15] outline-none transition focus:border-[#005E53] focus:ring-2 focus:ring-[#005E53]/10"
             />
           </label>
-        </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onReset}
-          className="label-md h-10 rounded-control border-petcenter-border-strong bg-white px-4 font-semibold text-petcenter-text-secondary hover:bg-petcenter-sidebar hover:text-petcenter-text xl:ml-auto"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Đặt lại
-        </Button>
+          <Button
+            variant="ghost"
+            className="h-10 w-fit shrink-0 rounded-xl px-3 text-base font-normal leading-6 text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#004C43] disabled:pointer-events-none disabled:opacity-50"
+            disabled={!hasActiveFilter}
+            onClick={onReset}
+          >
+            Đặt lại bộ lọc
+          </Button>
+        </div>
       </div>
     </section>
   );
@@ -103,20 +116,25 @@ function FilterSelect({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="label-md whitespace-nowrap text-petcenter-text-muted">
+      <span className="whitespace-nowrap text-sm font-normal leading-5 text-[#3E4946]">
         {label}:
       </span>
-      <select
-        className="body-md h-10 rounded-control border border-petcenter-border-strong bg-white px-3 pr-9 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-4 focus:ring-petcenter-primary/10"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-9 min-w-[120px] rounded-lg border border-[#CFD8D5] bg-white px-3 text-sm leading-5 text-[#1B1C15] outline-none transition focus:border-[#005E53] focus:ring-2 focus:ring-[#005E53]/10">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper" className="max-h-44 rounded-lg border border-[#CFD8D5] bg-white p-1 shadow-md">
+          {options.map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="rounded-md py-2 px-3 text-sm font-normal text-[#3E4946] hover:bg-[#F3F7F6] focus:bg-[#E0F2F1] focus:text-[#005E53] cursor-pointer"
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </label>
   );
 }

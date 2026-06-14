@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,6 +14,7 @@ interface OwnerSpaRequestCardProps {
 
 export function OwnerSpaRequestCard({ onCancelRequest, request }: OwnerSpaRequestCardProps) {
   const Icon = request.icon
+  const hasActions = request.canCancel
 
   return (
     <Card className="rounded-[16px] border border-[#E6E8DD] bg-white py-0 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
@@ -67,9 +67,9 @@ export function OwnerSpaRequestCard({ onCancelRequest, request }: OwnerSpaReques
           </div>
         ) : null}
 
-        <Separator className="bg-[#E6E8DD]" />
+        {hasActions ? <Separator className="bg-[#E6E8DD]" /> : null}
 
-        <div className="flex justify-end gap-3">
+        {hasActions ? <div className="flex justify-end gap-3">
           {request.canCancel ? (
             <Button
               variant="outline"
@@ -80,10 +80,7 @@ export function OwnerSpaRequestCard({ onCancelRequest, request }: OwnerSpaReques
               Hủy yêu cầu
             </Button>
           ) : null}
-          <Button asChild className="h-10 rounded-lg bg-[#005E53] px-4 text-base font-normal leading-6 text-white hover:bg-[#004C43]">
-            <Link href={`/owner/spa/${request.id}`}>Xem chi tiết</Link>
-          </Button>
-        </div>
+        </div> : null}
       </CardContent>
     </Card>
   )

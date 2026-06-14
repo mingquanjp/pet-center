@@ -51,7 +51,7 @@ export function OwnerAppointmentsPage() {
   }
 
   return (
-    <div className="flex w-full max-w-[1280px] flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="heading-lg text-petcenter-text tracking-tight">Lịch hẹn của tôi</h1>
@@ -71,16 +71,16 @@ export function OwnerAppointmentsPage() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-petcenter-border bg-petcenter-card shadow-card">
-        <OwnerAppointmentFilterBar
-          filters={filters}
-          petOptions={petOptions}
-          resultCount={data.length}
-          totalCount={pagination.totalItems}
-          onFiltersChange={handleFiltersChange}
-          onResetFilters={handleResetFilters}
-        />
+      <OwnerAppointmentFilterBar
+        filters={filters}
+        petOptions={petOptions}
+        resultCount={data.length}
+        totalCount={pagination.totalItems}
+        onFiltersChange={handleFiltersChange}
+        onResetFilters={handleResetFilters}
+      />
 
+      <div className="overflow-hidden rounded-[16px] border border-[#E6E8DD] bg-white shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
         <div className="relative">
           {isLoading ? (
             <div className="p-8 body-md text-petcenter-text-secondary">

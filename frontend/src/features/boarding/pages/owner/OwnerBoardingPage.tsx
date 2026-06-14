@@ -21,6 +21,13 @@ import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AppPagination } from "@/components/ui/app-pagination"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { boardingApi } from "../../api/boarding.api"
 import type {
@@ -235,23 +242,24 @@ export function OwnerBoardingPage() {
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <section className="flex flex-col gap-4 pb-2 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <h1 className="heading-lg text-balance text-[#1B1C15]">Lưu trú của tôi</h1>
-          <p className="body-lg text-pretty text-[#3E4946]">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center pb-2">
+        <div>
+          <h1 className="heading-lg text-petcenter-text tracking-tight">Lưu trú của tôi</h1>
+          <p className="body-md mt-1 text-petcenter-text-secondary">
             Đặt phòng và theo dõi thú cưng trong thời gian lưu trú.
           </p>
         </div>
+
         <Button
           asChild
-          className="h-12 w-fit gap-2 rounded-lg bg-[#F59E0B] px-6 text-lg font-semibold text-white shadow-[0_1px_1px_rgba(0,0,0,0.05)] hover:bg-[#D97706]"
+          className="h-10 shrink-0 rounded-[0.75rem] bg-petcenter-cta px-4 body-md font-semibold text-white shadow-card transition-all hover:bg-petcenter-cta-hover active:scale-95"
         >
           <Link href="/owner/boarding/booking">
-            <Plus className="size-4" aria-hidden="true" />
+            <Plus className="size-5" aria-hidden="true" />
             Đặt phòng lưu trú
           </Link>
         </Button>
-      </section>
+      </div>
 
       <BoardingFilters filters={filters} onFilterChange={updateFilter} roomTypeOptions={knownRoomTypes} />
 
@@ -321,25 +329,35 @@ function BoardingFilters({
   onFilterChange: (key: keyof BoardingFilters, value: string) => void
   roomTypeOptions: Array<{ label: string; value: string }>
 }) {
+  const hasActiveFilter =
+    filters.search.trim().length > 0 ||
+    filters.status !== "all" ||
+    filters.roomTypeId !== "all" ||
+    filters.timeRange !== "all"
+
+  function resetFilters() {
+    onFilterChange("search", "")
+    onFilterChange("status", "all")
+    onFilterChange("roomTypeId", "all")
+    onFilterChange("timeRange", "all")
+  }
+
   return (
-    <section className="rounded-[12px] border border-[#E6E8DD] bg-white p-[17px] shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
-        <label className="relative min-w-0 xl:w-[392px] xl:flex-none">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-[#6E7A76]"
-            aria-hidden="true"
-          />
+    <section className="rounded-[16px] border border-[#E6E8DD] bg-white p-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+        <label className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6E7774]" aria-hidden="true" />
           <span className="sr-only">Tìm kiếm lưu trú</span>
           <input
-            className="h-10 w-full rounded-lg border border-transparent bg-[#E4E3D7] pl-10 pr-4 text-sm leading-5 text-[#1B1C15] outline-none transition placeholder:text-[#6E7A76] focus:border-[#00796B] focus:bg-white focus:ring-4 focus:ring-[#00796B]/10"
-            onChange={(event) => onFilterChange("search", event.target.value)}
-            placeholder="Tìm kiếm theo mã lưu trú, thú cưng..."
             type="search"
+            placeholder="Tìm theo mã lưu trú, thú cưng..."
             value={filters.search}
+            onChange={(event) => onFilterChange("search", event.target.value)}
+            className="h-11 w-full rounded-full border border-[#CFD8D5] bg-white pl-14 pr-4 text-base leading-6 text-[#1B1C15] outline-none transition placeholder:text-[#8A918E] focus:border-[#005E53] focus:ring-4 focus:ring-[#005E53]/10"
           />
         </label>
 
-        <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3 xl:items-center">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:flex-nowrap">
           <BoardingFilterSelect
             label="Trạng thái"
             onChange={(value) => onFilterChange("status", value)}
@@ -358,6 +376,14 @@ function BoardingFilters({
             options={timeRangeOptions}
             value={filters.timeRange}
           />
+          <Button
+            variant="ghost"
+            className="h-10 w-fit shrink-0 rounded-xl px-3 text-base font-normal leading-6 text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#004C43] disabled:pointer-events-none disabled:opacity-50"
+            disabled={!hasActiveFilter}
+            onClick={resetFilters}
+          >
+            Đặt lại bộ lọc
+          </Button>
         </div>
       </div>
     </section>
@@ -376,26 +402,24 @@ function BoardingFilterSelect({
   value: string
 }) {
   return (
-    <label className="flex min-w-0 items-center gap-3">
-      <span className="shrink-0 text-sm leading-5 text-[#3E4946]">{label}:</span>
-      <span className="relative block min-w-0 flex-1">
-        <select
-          aria-label={label}
-          className="h-10 w-full appearance-none rounded-lg border border-[#BDC9C5] bg-white px-3 pr-9 text-sm leading-5 text-[#1B1C15] outline-none transition focus:border-[#00796B] focus:ring-4 focus:ring-[#00796B]/10"
-          onChange={(event) => onChange(event.target.value)}
-          value={value}
-        >
+    <label className="flex items-center gap-2">
+      <span className="whitespace-nowrap text-sm font-normal leading-5 text-[#3E4946]">{label}:</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-9 min-w-[120px] rounded-lg border border-[#CFD8D5] bg-white px-3 text-sm leading-5 text-[#1B1C15] outline-none transition focus:border-[#005E53] focus:ring-2 focus:ring-[#005E53]/10">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent position="popper" className="max-h-44 rounded-lg border border-[#CFD8D5] bg-white p-1 shadow-md">
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="rounded-md py-2 px-3 text-sm font-normal text-[#3E4946] hover:bg-[#F3F7F6] focus:bg-[#E0F2F1] focus:text-[#005E53] cursor-pointer"
+            >
               {option.label}
-            </option>
+            </SelectItem>
           ))}
-        </select>
-        <ChevronRight
-          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 size-4 rotate-90 text-[#3E4946]"
-          aria-hidden="true"
-        />
-      </span>
+        </SelectContent>
+      </Select>
     </label>
   )
 }
@@ -524,10 +548,21 @@ function formatLastUpdatedAt(value: string | null | undefined): string {
 
   if (Number.isNaN(date.getTime())) return "Chưa cập nhật"
 
-  return new Intl.DateTimeFormat("vi-VN", {
+  const parts = new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(date)
+    hour12: false,
+  })
+    .formatToParts(date)
+    .reduce<Record<string, string>>((result, part) => {
+      result[part.type] = part.value
+      return result
+    }, {})
+
+  return `${parts.hour}:${parts.minute} ${parts.day}/${parts.month}/${parts.year}`
 }
 
 function BoardingRecordsError({ message }: { message: string }) {

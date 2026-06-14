@@ -62,7 +62,14 @@ export function OwnerSpaListPage() {
     status: "all",
     timeRange: "all",
   })
+  const [historyFilters, setHistoryFilters] = React.useState<HistoryServiceFilterState>({
+    search: "",
+    pet: "all",
+    status: "all",
+    timeRange: "all",
+  })
   const [bookedSearchQuery, setBookedSearchQuery] = React.useState("")
+  const [historySearchQuery, setHistorySearchQuery] = React.useState("")
   const [bookedPage, setBookedPage] = React.useState(1)
   const [historyPage, setHistoryPage] = React.useState(1)
   const [bookedPagination, setBookedPagination] = React.useState<Pagination>(defaultPagination)
@@ -93,6 +100,15 @@ export function OwnerSpaListPage() {
 
     return () => window.clearTimeout(timer)
   }, [bookedFilters.search])
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setHistorySearchQuery(historyFilters.search.trim())
+      setHistoryPage(1)
+    }, 350)
+
+    return () => window.clearTimeout(timer)
+  }, [historyFilters.search])
 
   React.useEffect(() => {
     const abortController = new AbortController()
@@ -238,18 +254,31 @@ export function OwnerSpaListPage() {
         setIsLoadingHistoryRequests(true)
         setHistoryRequestsError(null)
 
-        const result = await spaApi.listTicketHistory(
-          {
-            page: historyPage,
-            limit: SPA_REQUEST_PAGE_SIZE,
-          },
-          { signal: abortController.signal }
-        )
+        const [result, bookingOptions] = await Promise.all([
+          spaApi.listTicketHistory(
+            {
+              search: historySearchQuery || undefined,
+              petId: historyFilters.pet === "all" ? undefined : historyFilters.pet,
+              status: historyFilters.status,
+              timeRange: historyFilters.timeRange,
+              page: historyPage,
+              limit: SPA_REQUEST_PAGE_SIZE,
+            },
+            { signal: abortController.signal }
+          ),
+          bookedPets.length === 0
+            ? spaApi.getBookingOptions(undefined, { signal: abortController.signal })
+            : Promise.resolve(null),
+        ])
 
         if (!abortController.signal.aborted) {
           setHistoryRequests(result.tickets.map(mapGroomingTicketToRequest))
           setHistoryPagination(result.pagination)
           setHasLoadedHistoryRequests(true)
+
+          if (bookingOptions) {
+            setBookedPets(bookingOptions.pets)
+          }
         }
       } catch (error) {
         if (!abortController.signal.aborted) {
@@ -270,24 +299,36 @@ export function OwnerSpaListPage() {
     return () => {
       abortController.abort()
     }
-  }, [activeTab, historyPage])
+  }, [
+    activeTab,
+    bookedPets.length,
+    historyFilters.pet,
+    historyFilters.status,
+    historyFilters.timeRange,
+    historyPage,
+    historySearchQuery,
+  ])
 
   return (
     <div className="space-y-6">
-      <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <h1 className="heading-lg text-balance text-petcenter-text">Dịch vụ làm đẹp</h1>
-          <p className="body-md text-pretty text-petcenter-text-secondary">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <h1 className="heading-lg text-petcenter-text tracking-tight">Dịch vụ làm đẹp</h1>
+          <p className="body-md mt-1 text-petcenter-text-secondary">
             Đặt lịch tắm gội, cắt tỉa và chăm sóc thú cưng tại trung tâm.
           </p>
         </div>
-        <Button asChild className="h-9 w-fit gap-2 rounded-lg bg-[#FEA619] px-6 text-xs font-medium text-[#2A1700] shadow-[0_1px_1px_rgba(0,0,0,0.05)] hover:bg-[#F59E0B]">
+
+        <Button
+          asChild
+          className="h-10 shrink-0 rounded-[0.75rem] bg-petcenter-cta px-4 body-md font-semibold text-white shadow-card transition-all hover:bg-petcenter-cta-hover active:scale-95"
+        >
           <Link href="/owner/spa/booking">
-            <Plus className="size-3" aria-hidden="true" />
+            <Plus className="size-5" aria-hidden="true" />
             Đặt dịch vụ
           </Link>
         </Button>
-      </section>
+      </div>
 
       <Tabs
         value={activeTab}
@@ -333,6 +374,17 @@ export function OwnerSpaListPage() {
         </TabsContent>
 
         <TabsContent value="history" className="mt-0 flex-none space-y-4">
+          <BookedServiceFilters
+            filters={historyFilters}
+            onFiltersChange={setHistoryFilters}
+            onPageReset={() => setHistoryPage(1)}
+            petOptions={bookedPetOptions}
+            statusOptions={[
+              { label: "Tất cả", value: "all" },
+              { label: "Hoàn tất", value: "completed" },
+              { label: "Đã hủy", value: "cancelled" },
+            ]}
+          />
           <HistoryServicesTab
             errorMessage={historyRequestsError}
             isLoading={shouldShowHistorySkeleton}
@@ -359,6 +411,13 @@ type BookedServiceFilterState = {
   search: string
   pet: string
   status: "all" | BookedGroomingTicketStatus
+  timeRange: "all" | "today" | "upcoming" | "past"
+}
+
+type HistoryServiceFilterState = {
+  search: string
+  pet: string
+  status: "all" | "completed" | "cancelled"
   timeRange: "all" | "today" | "upcoming" | "past"
 }
 
@@ -763,16 +822,18 @@ function CancelSummaryRow({
   )
 }
 
-function BookedServiceFilters({
+function BookedServiceFilters<T extends BookedServiceFilterState | HistoryServiceFilterState>({
   filters,
   onFiltersChange,
   onPageReset,
   petOptions,
+  statusOptions,
 }: {
-  filters: BookedServiceFilterState
-  onFiltersChange: React.Dispatch<React.SetStateAction<BookedServiceFilterState>>
+  filters: T
+  onFiltersChange: React.Dispatch<React.SetStateAction<T>>
   onPageReset: () => void
   petOptions: Array<{ label: string; value: string }>
+  statusOptions?: Array<{ label: string; value: string }>
 }) {
   const hasActiveFilter =
     filters.search.trim().length > 0 ||
@@ -782,15 +843,16 @@ function BookedServiceFilters({
 
   function resetFilters() {
     onPageReset()
-    onFiltersChange({
+    onFiltersChange((currentFilters) => ({
+      ...currentFilters,
       search: "",
       pet: "all",
       status: "all",
       timeRange: "all",
-    })
+    }))
   }
 
-  function updateFilter(key: keyof BookedServiceFilterState, value: string) {
+  function updateFilter(key: keyof T, value: string) {
     onPageReset()
     onFiltersChange((currentFilters) => ({
       ...currentFilters,
@@ -823,7 +885,7 @@ function BookedServiceFilters({
           <BookedFilterSelect
             label="Trạng thái"
             onChange={(value) => updateFilter("status", value)}
-            options={[
+            options={statusOptions ?? [
               { label: "Tất cả", value: "all" },
               { label: "Chờ tiếp nhận", value: "pending" },
               { label: "Đã tiếp nhận", value: "waiting" },

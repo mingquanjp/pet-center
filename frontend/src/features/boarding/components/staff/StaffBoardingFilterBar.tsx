@@ -43,14 +43,15 @@ export function StaffBoardingFilterBar({ filters, onChange, onReset }: Props) {
     return baseOptions.concat(staffBoardingRoomFilterOptions.slice(1));
   }, [roomTypes]);
 
+  const hasActiveFilters = Boolean(searchValue) || filters.roomType !== "ALL" || filters.timeRange !== "ALL";
+
   return (
-    <div className="p-4 border-b border-petcenter-border w-full">
+    <div className="w-full border-b border-petcenter-border p-4">
       <div className="flex flex-wrap items-center gap-3">
-        {/* Search Input */}
-        <div className="relative flex-1 min-w-50">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-petcenter-text-secondary" />
+        <div className="relative min-w-50 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary" />
           <input
-            className="w-full pl-9 pr-3 py-2 bg-petcenter-background body-md border border-petcenter-border rounded-[0.75rem] focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary placeholder:text-petcenter-text-secondary text-petcenter-text"
+            className="body-md w-full rounded-[0.75rem] border border-petcenter-border bg-petcenter-background py-2 pl-9 pr-3 text-petcenter-text outline-none transition placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
             placeholder="Tìm tên thú cưng, chủ nuôi, SĐT..."
             type="text"
             value={searchValue}
@@ -58,11 +59,10 @@ export function StaffBoardingFilterBar({ filters, onChange, onReset }: Props) {
           />
         </div>
 
-        {/* Room Filter */}
         <label className="flex items-center gap-2">
-          <span className="text-sm font-medium text-petcenter-text-secondary whitespace-nowrap">Phòng:</span>
+          <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">Phòng:</span>
           <select
-            className="py-2 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-[0.75rem] text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary min-w-35"
+            className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background px-3 py-2 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
             value={filters.roomType}
             onChange={(e) => onChange({ ...filters, roomType: e.target.value as StaffBoardingRoomFilter | string })}
           >
@@ -72,11 +72,10 @@ export function StaffBoardingFilterBar({ filters, onChange, onReset }: Props) {
           </select>
         </label>
 
-        {/* Time Range Filter */}
         <label className="flex items-center gap-2">
-          <span className="text-sm font-medium text-petcenter-text-secondary whitespace-nowrap">Thời gian:</span>
+          <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">Thời gian:</span>
           <select
-            className="py-2 px-3 bg-petcenter-background body-md border border-petcenter-border rounded-[0.75rem] text-petcenter-text focus:outline-none focus:ring-1 focus:ring-petcenter-primary focus:border-petcenter-primary min-w-35"
+            className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background px-3 py-2 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
             value={filters.timeRange}
             onChange={(e) => onChange({ ...filters, timeRange: e.target.value as StaffBoardingTimeFilter })}
           >
@@ -86,13 +85,13 @@ export function StaffBoardingFilterBar({ filters, onChange, onReset }: Props) {
           </select>
         </label>
 
-        {/* Reset Button */}
         <button
           aria-label="Reset Filters"
+          disabled={!hasActiveFilters}
           onClick={onReset}
-          className="p-2 px-4 gap-2 text-petcenter-text-secondary border border-petcenter-border rounded-[0.75rem] hover:bg-petcenter-background hover:text-petcenter-text transition-colors flex items-center justify-center body-md font-medium"
+          className="body-md flex h-10 w-fit shrink-0 items-center justify-center gap-2 rounded-[0.75rem] border border-petcenter-border px-4 font-medium text-petcenter-text-secondary transition-colors hover:bg-petcenter-background hover:text-petcenter-text disabled:pointer-events-none disabled:opacity-50"
         >
-          <RotateCcw className="w-4 h-4" /> <span className="hidden sm:inline">Đặt lại</span>
+          <RotateCcw className="h-4 w-4" /> <span className="hidden sm:inline">Đặt lại</span>
         </button>
       </div>
     </div>

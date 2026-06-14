@@ -1,7 +1,10 @@
 import type { QueryResultRow } from "pg";
 
+export type DoctorPrescriptionStatus = "prescribed" | "result_recorded" | "follow_up_required";
+
 export type ListDoctorPrescriptionsFilters = {
   search?: string;
+  status?: "ALL" | DoctorPrescriptionStatus;
   date?: string;
   page: number;
   limit: number;
@@ -15,6 +18,7 @@ export type DoctorPrescriptionListRow = QueryResultRow & {
   general_note: string | null;
   diagnosis: string | null;
   conclusion: string | null;
+  exam_status: DoctorPrescriptionStatus;
   pet_id: string;
   pet_name: string;
   species: string;
@@ -44,6 +48,7 @@ export type DoctorPrescriptionDetailRow = QueryResultRow & {
   general_note: string | null;
   diagnosis: string | null;
   conclusion: string | null;
+  exam_status: DoctorPrescriptionStatus;
   pet_id: string;
   pet_name: string;
   species: string;

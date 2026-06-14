@@ -97,7 +97,7 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <nav className="label-md flex flex-wrap items-center gap-2 text-petcenter-text-secondary" aria-label="Breadcrumb">
         <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
           Thú cưng
@@ -390,7 +390,7 @@ function TableCell({ children, className }: { children: React.ReactNode; classNa
 
 function ExamDetailSkeleton() {
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] animate-pulse flex-col gap-6">
+    <div className="flex w-full animate-pulse flex-col gap-6">
       <div className="h-6 w-96 max-w-full rounded bg-petcenter-sidebar" />
       <div className="h-20 rounded bg-petcenter-sidebar" />
       <div className="grid grid-cols-1 gap-gutter lg:grid-cols-12">

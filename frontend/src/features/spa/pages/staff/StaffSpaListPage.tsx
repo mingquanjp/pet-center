@@ -7,10 +7,10 @@ import { Droplets, Hand, RotateCcw, Scissors, Search, Sparkles } from "lucide-re
 import { AppPagination } from "@/components/ui/app-pagination"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { LoadingState } from "@/components/ui/loading-state"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import { spaApi } from "../../api/spa.api"
 import { StaffSpaStatusBadge } from "../../components/staff/StaffSpaStatusBadge"
 import type {
@@ -90,27 +90,12 @@ const timeRangeOptions: Array<{ value: StaffGroomingTicketTimeRangeFilter; label
 
 function formatSchedule(value: string): string {
   const date = new Date(value)
-  const dateKey = new Intl.DateTimeFormat("en-CA", {
+  const dateLabel = new Intl.DateTimeFormat("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
     day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   }).format(date)
-  const today = new Date()
-  const todayKey = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(today)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(today.getDate() + 1)
-  const tomorrowKey = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(tomorrow)
   const timeLabel = new Intl.DateTimeFormat("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
     hour: "2-digit",
@@ -118,16 +103,7 @@ function formatSchedule(value: string): string {
     hour12: false,
   }).format(date)
 
-  if (dateKey === todayKey) return `Hôm nay, ${timeLabel}`
-  if (dateKey === tomorrowKey) return `Ngày mai, ${timeLabel}`
-
-  const dateLabel = new Intl.DateTimeFormat("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    day: "2-digit",
-    month: "2-digit",
-  }).format(date)
-
-  return `${dateLabel}, ${timeLabel}`
+  return `${dateLabel} - ${timeLabel}`
 }
 
 function getActionLabel(ticket: StaffGroomingTicket): string | null {
@@ -135,6 +111,16 @@ function getActionLabel(ticket: StaffGroomingTicket): string | null {
   if (ticket.canStart) return "Bắt đầu thực hiện"
   if (ticket.canComplete) return "Hoàn thành dịch vụ"
   return null
+}
+
+function getActionSuccessMessage(ticket: StaffGroomingTicket): string {
+  if (ticket.canAccept) return "Đã tiếp nhận yêu cầu spa."
+  if (ticket.canStart) return "Đã bắt đầu thực hiện dịch vụ spa."
+  return "Đã hoàn thành dịch vụ spa."
+}
+
+function getActionErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
 }
 
 function getServiceVisual(serviceName: string) {
@@ -218,7 +204,9 @@ export function StaffSpaListPage() {
       })
       setErrorMessage(null)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể tải danh sách dịch vụ spa")
+      const message = getActionErrorMessage(error, "Không thể tải danh sách dịch vụ spa")
+      setErrorMessage(message)
+      toast.error(message, { id: "staff-spa-load-error" })
     } finally {
       setIsLoading(false)
     }
@@ -237,10 +225,29 @@ export function StaffSpaListPage() {
 
     try {
       let updatedTicket: StaffGroomingTicket | null = null
+      let successMessage = getActionSuccessMessage(ticket)
 
       if (ticket.canAccept) {
         updatedTicket = await spaApi.acceptStaffTicket(ticket.groomingTicketId)
       } else if (ticket.canStart) {
+        const scheduledTime = new Date(ticket.scheduledAt).getTime()
+        const currentTime = Date.now()
+
+        if (currentTime < scheduledTime) {
+          toast.warning("Chưa đến thời gian thực hiện dịch vụ.")
+          setPendingTicketId(null)
+          return
+        }
+
+        if (currentTime - scheduledTime > 30 * 60 * 1000) {
+          updatedTicket = await spaApi.cancelStaffTicket(ticket.groomingTicketId)
+          successMessage = "Quá 30 phút so với thời gian đặt lịch, phiếu đã tự động chuyển sang trạng thái huỷ."
+          toast.error(successMessage)
+          replaceTicket(updatedTicket)
+          setPendingTicketId(null)
+          return
+        }
+
         updatedTicket = await spaApi.startStaffTicket(ticket.groomingTicketId)
       } else if (ticket.canComplete) {
         updatedTicket = await spaApi.completeStaffTicket(ticket.groomingTicketId)
@@ -249,9 +256,12 @@ export function StaffSpaListPage() {
       if (updatedTicket) {
         replaceTicket(updatedTicket)
         setErrorMessage(null)
+        toast.success(successMessage)
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể cập nhật yêu cầu spa")
+      const message = getActionErrorMessage(error, "Không thể cập nhật yêu cầu spa")
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setPendingTicketId(null)
     }
@@ -268,8 +278,11 @@ export function StaffSpaListPage() {
       replaceTicket(updatedTicket)
       setCancelTicket(null)
       setErrorMessage(null)
+      toast.success("Đã hủy yêu cầu spa.")
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Không thể hủy yêu cầu spa")
+      const message = getActionErrorMessage(error, "Không thể hủy yêu cầu spa")
+      setErrorMessage(message)
+      toast.error(message)
     } finally {
       setPendingTicketId(null)
     }
@@ -330,21 +343,21 @@ export function StaffSpaListPage() {
         </Button>
       </section>
 
-      <section className="rounded-[16px] border border-[#e6e8dd] bg-white p-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
-        <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-center">
-          <label className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-5 top-1/2 size-5 -translate-y-1/2 text-[#6e7774]" aria-hidden="true" />
+      <section className="relative flex flex-col overflow-hidden rounded-2xl border border-petcenter-border bg-petcenter-card shadow-card">
+        <div className="flex flex-wrap items-center gap-3 p-4">
+          <label className="relative min-w-50 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-petcenter-text-secondary" aria-hidden="true" />
             <span className="sr-only">Tìm yêu cầu spa</span>
-            <Input
+            <input
               value={search}
               onChange={(event) => handleSearchChange(event.target.value)}
               placeholder="Tìm theo mã dịch vụ, thú cưng"
-              className="h-11 w-full rounded-full border border-[#cfd8d5] bg-white pl-14 pr-4 text-base leading-6 text-[#1b1c15] shadow-none outline-none transition placeholder:text-[#8a918e] focus-visible:border-[#005e53] focus-visible:ring-4 focus-visible:ring-[#005e53]/10"
+              className="body-md w-full rounded-[0.75rem] border border-petcenter-border bg-petcenter-background py-2 pl-9 pr-3 text-petcenter-text outline-none transition placeholder:text-petcenter-text-secondary focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
               type="search"
             />
           </label>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center 2xl:flex-nowrap">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <StaffFilterSelect
               label="Thú cưng"
               onChange={(value) => handleSpeciesChange(value as StaffGroomingTicketSpeciesFilter)}
@@ -365,12 +378,12 @@ export function StaffSpaListPage() {
             />
             <Button
               variant="ghost"
-              className="h-10 w-fit shrink-0 rounded-xl px-3 text-base font-normal leading-6 text-[#005e53] hover:bg-[#e0f2f1] hover:text-[#004c43] disabled:pointer-events-none disabled:opacity-50"
+              className="body-md h-10 w-fit shrink-0 rounded-[0.75rem] border border-petcenter-border px-4 font-medium text-petcenter-text-secondary transition-colors hover:bg-petcenter-background hover:text-petcenter-text disabled:pointer-events-none disabled:opacity-50"
               disabled={!hasActiveFilter}
               onClick={resetFilters}
             >
               <RotateCcw className="mr-1 size-4" />
-              Đặt lại bộ lọc
+              <span className="hidden sm:inline">Đặt lại</span>
             </Button>
           </div>
         </div>
@@ -656,9 +669,9 @@ function StaffFilterSelect({
 }) {
   return (
     <label className="flex items-center gap-2">
-      <span className="whitespace-nowrap text-base font-normal leading-6 text-[#3e4946]">{label}:</span>
+      <span className="whitespace-nowrap text-sm font-medium text-petcenter-text-secondary">{label}:</span>
       <select
-        className="h-11 min-w-[132px] rounded-[16px] border border-[#cfd8d5] bg-white px-4 pr-9 text-base leading-6 text-[#1b1c15] outline-none transition focus:border-[#005e53] focus:ring-4 focus:ring-[#005e53]/10"
+        className="body-md min-w-35 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background px-3 py-2 text-petcenter-text outline-none transition focus:border-petcenter-primary focus:ring-1 focus:ring-petcenter-primary"
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >

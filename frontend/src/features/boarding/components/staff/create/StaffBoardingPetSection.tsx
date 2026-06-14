@@ -346,7 +346,7 @@ export function StaffBoardingPetSection({ ownerId, pets, selectedPetId, onPetSel
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-semibold text-[#0F172A]">Đặc điểm nhận diện & sức khỏ</label>
+                      <label className="text-sm font-semibold text-[#0F172A]">Đặc điểm nhận diện & sức khỏe</label>
                       <textarea
                         value={identifyingMarks}
                         onChange={(event) => setIdentifyingMarks(event.target.value)}

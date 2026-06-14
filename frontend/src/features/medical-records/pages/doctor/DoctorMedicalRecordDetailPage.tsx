@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { useDoctorMedicalRecordDetail } from "../../hooks/useDoctorMedicalRecordDetail";
 import { DoctorPetSummaryCard } from "../../components/doctor/detail/DoctorPetSummaryCard";
@@ -16,7 +16,11 @@ interface Props {
 
 export function DoctorMedicalRecordDetailPage({ petId }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data, isLoading, error } = useDoctorMedicalRecordDetail(petId);
+  const returnTo = searchParams.get("returnTo");
+  const backHref = returnTo?.startsWith("/doctor/") ? returnTo : "/doctor/medical-records";
+  const backLabel = backHref.startsWith("/doctor/examinations/") ? "Quay lại phiếu khám" : "Quay lại danh sách";
 
   if (isLoading) {
     return <DoctorMedicalRecordDetailSkeleton />;
@@ -37,12 +41,12 @@ export function DoctorMedicalRecordDetailPage({ petId }: Props) {
         </div>
 
         <button
-          onClick={() => router.push("/doctor/medical-records")}
+          onClick={() => router.push(backHref)}
           type="button"
           className="inline-flex items-center justify-center gap-1.5 rounded-control border border-petcenter-primary px-4 py-2 text-sm font-medium text-petcenter-primary transition-colors hover:bg-petcenter-primary hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
-          Quay lại danh sách
+          {backLabel}
         </button>
       </div>
 

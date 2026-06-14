@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-const medicineUnitSchema = z.enum(["tablet", "bottle", "packet", "tube", "ml", "dose", "other"]);
+const medicineUnitSchema = z.enum(["tablet", "blister", "packet", "tube", "bottle"]);
 const medicineStatusSchema = z.enum(["active", "inactive"]);
 
 export const getAdminMedicinesQuerySchema = z.object({
   search: z.string().max(100).optional(),
-  unit: z.enum(["ALL", "tablet", "bottle", "packet", "tube", "ml", "dose", "other"]).optional(),
+  unit: z.enum(["ALL", "tablet", "blister", "packet", "tube", "bottle"]).optional(),
   status: z.enum(["ALL", "active", "inactive"]).optional(),
   page: z.preprocess(
     (val) => (val ? Number(val) : 1),

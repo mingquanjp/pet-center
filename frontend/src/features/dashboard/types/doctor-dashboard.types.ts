@@ -11,7 +11,7 @@ export interface DoctorDashboardStats {
 
 export interface DoctorAssignedExam {
   id: string;
-  examId?: string | null;
+  examId: string;
   examinationCode: string;
   appointmentCode: string;
   examCode: string;

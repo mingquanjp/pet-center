@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { extname } from "node:path";
 import type { UploadApiOptions, UploadApiResponse } from "cloudinary";
 import { cloudinary } from "../../config/cloudinary.js";
 import { env } from "../../config/env.js";
@@ -13,10 +15,26 @@ const allowedFileMimeTypes = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "video/mp4",
   "video/webm",
   "video/ogg",
   "video/quicktime", // .mov files
+]);
+const rawFileMimeTypes = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 ]);
 
 export async function uploadImage(file: Express.Multer.File): Promise<UploadedImageDto> {
@@ -56,7 +74,7 @@ export async function uploadFile(file: Express.Multer.File): Promise<UploadedFil
 
   if (!allowedFileMimeTypes.has(file.mimetype)) {
     throw new AppError(
-      "Định dạng tệp không hợp lệ. Vui lòng chọn ảnh (JPG, PNG, WEBP) hoặc video (MP4, WEBM, OGG, MOV).",
+      "Định dạng tệp không hợp lệ. Vui lòng chọn PDF, Word, Excel, PowerPoint, ảnh hoặc video.",
       "INVALID_FILE_TYPE",
       httpStatus.BAD_REQUEST
     );
@@ -66,9 +84,11 @@ export async function uploadFile(file: Express.Multer.File): Promise<UploadedFil
     throw new AppError("Tệp tin tải lên không được vượt quá 100MB", "FILE_TOO_LARGE", httpStatus.BAD_REQUEST);
   }
 
+  const isRawFile = rawFileMimeTypes.has(file.mimetype);
   const result = await uploadBuffer(file.buffer, {
     folder: env.CLOUDINARY_UPLOAD_FOLDER,
-    resource_type: "auto",
+    resource_type: isRawFile ? "raw" : "auto",
+    ...(isRawFile ? { public_id: `${randomUUID()}${extname(file.originalname).toLowerCase()}` } : {}),
   });
 
   return {
@@ -83,6 +103,41 @@ export async function uploadFile(file: Express.Multer.File): Promise<UploadedFil
     width: result.width,
     height: result.height
   };
+}
+
+export function createFileViewUrl(fileUrl: string): string {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(fileUrl);
+  } catch {
+    throw new AppError("URL tệp không hợp lệ", "INVALID_FILE_URL", httpStatus.BAD_REQUEST);
+  }
+
+  const pathParts = parsedUrl.pathname.split("/").filter(Boolean);
+  const [cloudName, resourceType, deliveryType, version, ...publicIdParts] = pathParts;
+  const isCloudinaryFile =
+    parsedUrl.protocol === "https:" &&
+    parsedUrl.hostname === "res.cloudinary.com" &&
+    cloudName === env.CLOUDINARY_CLOUD_NAME &&
+    deliveryType === "upload" &&
+    /^v\d+$/.test(version ?? "") &&
+    publicIdParts.length > 0;
+
+  if (!isCloudinaryFile) {
+    throw new AppError("URL tệp không thuộc kho lưu trữ của hệ thống", "INVALID_FILE_URL", httpStatus.BAD_REQUEST);
+  }
+
+  if (resourceType !== "raw") {
+    return fileUrl;
+  }
+
+  return cloudinary.utils.private_download_url(decodeURIComponent(publicIdParts.join("/")), "", {
+    resource_type: "raw",
+    type: "upload",
+    expires_at: Math.floor(Date.now() / 1000) + 5 * 60,
+    attachment: false,
+  });
 }
 
 function uploadBuffer(

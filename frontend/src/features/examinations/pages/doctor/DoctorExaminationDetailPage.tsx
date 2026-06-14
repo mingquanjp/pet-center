@@ -3,11 +3,12 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { FormEvent, useEffect, useMemo, useState } from "react"
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react"
 import {
   ArrowLeft,
   CalendarClock,
   ClipboardCheck,
+  ExternalLink,
   Pencil,
   FileText,
   HeartPulse,
@@ -16,11 +17,22 @@ import {
   Plus,
   Stethoscope,
   Trash2,
+  UploadCloud,
   User,
 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import {
   Dialog,
   DialogContent,
@@ -32,6 +44,8 @@ import {
 import { LoadingState } from "@/components/ui/loading-state"
 import { getMedicineUnitLabel } from "@/features/medicines/utils/medicine-format"
 import type { MedicineUnit } from "@/features/medicines/types/medicine.types"
+import { uploadsApi } from "@/features/uploads/api/uploads.api"
+import { cn } from "@/lib/utils"
 
 import { doctorExaminationsApi } from "../../api/doctor-examinations.api"
 import {
@@ -79,6 +93,66 @@ function formatMedicineUnit(unit?: string | null) {
   if (!unit) return ""
 
   return getMedicineUnitLabel(unit as MedicineUnit)
+}
+
+type PrescriptionDurationUnit = "ngày" | "tuần" | "tháng" | "năm"
+
+type PrescriptionDraftValues = {
+  quantity: string
+  dosage: string
+  frequency: string
+  duration: string
+  durationUnit: PrescriptionDurationUnit
+}
+
+function emptyPrescriptionDraftValues(): PrescriptionDraftValues {
+  return {
+    quantity: "1",
+    dosage: "",
+    frequency: "",
+    duration: "",
+    durationUnit: "ngày",
+  }
+}
+
+function getDosageSuffix(unit?: string | null) {
+  if (!unit) return "đơn vị/lần"
+  if (unit === "packet") return "gói/lần"
+  if (unit === "bottle") return "ml/lần"
+  if (unit === "tube") return "lần"
+  return "viên/lần"
+}
+
+function parseNumericValue(value?: string | null) {
+  return value?.match(/\d+(?:[.,]\d+)?/)?.[0]?.replace(",", ".") ?? ""
+}
+
+function parsePrescriptionDraftValues(item: DoctorPrescriptionItem): PrescriptionDraftValues {
+  return {
+    quantity: item.quantity === undefined || item.quantity === null ? "" : String(item.quantity),
+    dosage: parseNumericValue(item.dosage),
+    frequency: parseNumericValue(item.frequency),
+    duration: parseNumericValue(item.duration),
+    durationUnit: item.duration.toLowerCase().includes("năm")
+      ? "năm"
+      : item.duration.toLowerCase().includes("tháng")
+        ? "tháng"
+        : item.duration.toLowerCase().includes("tuần")
+          ? "tuần"
+          : "ngày",
+  }
+}
+
+function buildDosage(value: string, unit?: string | null) {
+  return `${value} ${getDosageSuffix(unit)}`
+}
+
+function buildFrequency(value: string) {
+  return `${value} lần/ngày`
+}
+
+function buildDuration(value: string, unit: PrescriptionDurationUnit) {
+  return `${value} ${unit}`
 }
 
 function formatDateTime(value?: string) {
@@ -169,22 +243,216 @@ function ReadOnlyField({ label, value }: { label: string; value?: string | numbe
   )
 }
 
+async function openUploadedFile(fileUrl: string) {
+  const fileWindow = window.open("about:blank", "_blank")
+
+  try {
+    const viewUrl = await uploadsApi.getFileViewUrl(fileUrl)
+    if (fileWindow) {
+      fileWindow.location.href = viewUrl
+    } else {
+      window.location.href = viewUrl
+    }
+  } catch (error) {
+    fileWindow?.close()
+    toast.error(error instanceof Error ? error.message : "Không thể mở tệp")
+  }
+}
+
+function ReadOnlyExamField({
+  config,
+  value,
+}: {
+  config: DoctorExamFieldConfig
+  value: string
+}) {
+  if (config.type !== "file") {
+    return <ReadOnlyField label={config.label} value={fieldValueLabel(config, value)} />
+  }
+
+  return (
+    <div className={config.fullWidth ? "md:col-span-2" : ""}>
+      <p className="label-md mb-1 text-petcenter-text-secondary">{config.label}</p>
+      {value ? (
+        <button
+          className="inline-flex items-center gap-2 font-medium text-petcenter-primary hover:underline"
+          onClick={() => void openUploadedFile(value)}
+          type="button"
+        >
+          <FileText className="h-4 w-4" />
+          Xem tệp đã tải lên
+          <ExternalLink className="h-4 w-4" />
+        </button>
+      ) : (
+        <p className="body-md font-medium text-petcenter-text">Chưa cập nhật</p>
+      )}
+    </div>
+  )
+}
+
+function getUploadedFileName(url: string) {
+  try {
+    const filename = new URL(url).pathname.split("/").pop()
+    return filename ? decodeURIComponent(filename) : "Tệp kết quả đã tải lên"
+  } catch {
+    return "Tệp kết quả đã tải lên"
+  }
+}
+
+function ExamFileUpload({
+  value,
+  disabled,
+  isUploading,
+  onChange,
+  onFileUpload,
+}: {
+  value: string
+  disabled: boolean
+  isUploading?: boolean
+  onChange: (value: string) => void
+  onFileUpload?: (file: File) => void
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false)
+
+  const selectFile = (files?: FileList | null) => {
+    const file = files?.[0]
+    if (file) onFileUpload?.(file)
+  }
+
+  const cancelUploadedFile = () => {
+    onChange("")
+    setIsCancelDialogOpen(false)
+    toast.success("Đã hủy tài liệu đính kèm")
+  }
+
+  return (
+    <div className="space-y-3">
+      <button
+        className={cn(
+          "flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-all",
+          "disabled:cursor-not-allowed disabled:opacity-60",
+          isDragging
+            ? "border-[#0D9488] bg-[#0D9488]/5"
+            : "border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#0D9488]/50 hover:bg-[#F1F5F9]"
+        )}
+        disabled={disabled || isUploading}
+        onClick={() => inputRef.current?.click()}
+        onDragEnter={(event) => {
+          event.preventDefault()
+          setIsDragging(true)
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDragOver={(event) => {
+          event.preventDefault()
+          setIsDragging(true)
+        }}
+        onDrop={(event) => {
+          event.preventDefault()
+          setIsDragging(false)
+          selectFile(event.dataTransfer.files)
+        }}
+        type="button"
+      >
+        <input
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*,video/*"
+          className="hidden"
+          disabled={disabled || isUploading}
+          onChange={(event) => {
+            selectFile(event.target.files)
+            event.target.value = ""
+          }}
+          ref={inputRef}
+          type="file"
+        />
+        <div className="mb-3 rounded-full border border-[#E2E8F0] bg-white p-3 shadow-sm">
+          <UploadCloud className="h-6 w-6 text-[#0D9488]" />
+        </div>
+        <span className="text-[15px] font-semibold text-[#0F172A]">
+          {isUploading ? "Đang tải tệp lên..." : "Kéo thả tài liệu hoặc click để tải lên"}
+        </span>
+        <span className="mt-1 text-[13px] font-medium text-[#64748B]">
+          Hỗ trợ PDF, Word, Excel, PowerPoint, ảnh và video. Tối đa 100MB.
+        </span>
+      </button>
+
+      {value ? (
+        <div className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-[#E2E8F0] bg-[#F8FAFC]">
+            <FileText className="h-6 w-6 text-[#0D9488]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[14px] font-semibold text-[#0F172A]">{getUploadedFileName(value)}</p>
+            <p className="text-[13px] font-medium text-[#64748B]">Tệp kết quả đã tải lên</p>
+          </div>
+          <Button
+            className="h-8 w-8 rounded-full text-[#64748B] hover:bg-[#F0FDFA] hover:text-[#0D9488]"
+            onClick={() => void openUploadedFile(value)}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <ExternalLink className="h-4 w-4" />
+            <span className="sr-only">Mở tệp</span>
+          </Button>
+          <Button
+            className="h-8 w-8 rounded-full text-[#64748B] hover:bg-[#FEF2F2] hover:text-[#EF4444]"
+            disabled={disabled || isUploading}
+            onClick={() => setIsCancelDialogOpen(true)}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Xóa tệp</span>
+          </Button>
+        </div>
+      ) : null}
+
+      <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hủy tài liệu đính kèm?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn hủy tài liệu này khỏi phiếu khám không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Không</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-petcenter-danger-text text-white hover:bg-petcenter-danger-text/90"
+              onClick={cancelUploadedFile}
+            >
+              Xác nhận hủy
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}
+
 function FormField({
   config,
   value,
   error,
   disabled,
+  isUploading,
   onChange,
+  onFileUpload,
 }: {
   config: DoctorExamFieldConfig
   value: string
   error?: string
   disabled: boolean
+  isUploading?: boolean
   onChange: (value: string) => void
+  onFileUpload?: (file: File) => void
 }) {
   const inputId = `exam-field-${config.name}`
   const input =
-    config.type === "text" ? (
+    config.type === "text" && !config.singleLine ? (
       <textarea
         className={fieldInputClass}
         disabled={disabled}
@@ -202,28 +470,36 @@ function FormField({
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >
-        <option value="">Chọn {config.label.toLowerCase()}...</option>
+        <option value="" disabled hidden>Chọn {config.label.toLowerCase()}...</option>
         {(config.options ?? []).map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </select>
+    ) : config.type === "file" ? (
+      <ExamFileUpload
+        disabled={disabled}
+        isUploading={isUploading}
+        onChange={onChange}
+        onFileUpload={onFileUpload}
+        value={value}
+      />
     ) : (
       <input
         className={fieldInputClass}
         disabled={disabled}
         id={inputId}
         onChange={(event) => onChange(event.target.value)}
-        placeholder={config.type === "file" ? "Dán URL tệp kết quả..." : config.placeholder}
+        placeholder={config.placeholder}
         step={config.type === "number" ? "0.1" : undefined}
-        type={config.type === "file" ? "url" : config.type}
+        type={config.type}
         value={value}
       />
     )
 
   return (
-    <label className={config.fullWidth ? "md:col-span-2" : ""} htmlFor={inputId}>
+    <div className={config.fullWidth ? "md:col-span-2" : ""}>
       <span className="label-md mb-1 block font-medium text-petcenter-text">
         {config.label} {config.required ? <span className="text-petcenter-danger-text">*</span> : null}
       </span>
@@ -232,7 +508,7 @@ function FormField({
         {config.unit ? <span className="body-sm w-10 text-petcenter-text-secondary">{config.unit}</span> : null}
       </div>
       {error ? <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{error}</p> : null}
-    </label>
+    </div>
   )
 }
 
@@ -251,7 +527,6 @@ function buildInitialFieldValues(detail: DoctorExaminationDetail) {
 
   if (detail.examType.code === "LAB_TEST") {
     values.labPerformedDate ||= todayInputValue()
-    values.labResultStatus ||= "pending"
   }
 
   return values
@@ -275,6 +550,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
   const [detail, setDetail] = useState<DoctorExaminationDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [uploadingFieldName, setUploadingFieldName] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
   const [diagnosis, setDiagnosis] = useState("")
@@ -288,6 +564,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [isPrescriptionDialogOpen, setIsPrescriptionDialogOpen] = useState(false)
   const [prescriptionDraft, setPrescriptionDraft] = useState<DoctorPrescriptionItem>(emptyPrescriptionItem())
+  const [prescriptionDraftValues, setPrescriptionDraftValues] = useState<PrescriptionDraftValues>(emptyPrescriptionDraftValues())
   const [prescriptionDraftErrors, setPrescriptionDraftErrors] = useState<Record<string, string>>({})
   const [editingPrescriptionIndex, setEditingPrescriptionIndex] = useState<number | null>(null)
   const [deletingPrescriptionIndex, setDeletingPrescriptionIndex] = useState<number | null>(null)
@@ -348,16 +625,8 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     if (!detail) return false
 
     const nextErrors: Record<string, string> = {}
-    const labStatus = fieldValues.labResultStatus
-
     for (const config of configuredFields) {
-      const isRequired =
-        config.required ||
-        (detail.examType.code === "LAB_TEST" &&
-          labStatus === "available" &&
-          (config.name === "labResultText" || config.name === "labDoctorComment"))
-
-      if (isRequired && !fieldValues[config.name]?.trim()) {
+      if (config.required && !fieldValues[config.name]?.trim()) {
         nextErrors[config.name] = "Trường này là bắt buộc"
       }
     }
@@ -438,8 +707,26 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     applyDetailState(result)
   }
 
+  const handleFileUpload = async (fieldName: string, file: File) => {
+    try {
+      setUploadingFieldName(fieldName)
+      const uploadedFile = await uploadsApi.uploadFile(file)
+      setFieldValues((current) => ({ ...current, [fieldName]: uploadedFile.secureUrl }))
+      setValidationErrors((current) => ({ ...current, [fieldName]: "" }))
+      toast.success("Tải tệp lên thành công")
+    } catch (uploadError) {
+      toast.error(uploadError instanceof Error ? uploadError.message : "Không thể tải tệp lên")
+    } finally {
+      setUploadingFieldName(null)
+    }
+  }
+
   const handleSaveDraft = async () => {
     if (!detail) return
+    if (uploadingFieldName) {
+      toast.error("Vui lòng chờ tải tệp hoàn tất")
+      return
+    }
 
     try {
       setIsSubmitting(true)
@@ -461,13 +748,16 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
 
   const openPrescriptionDialog = () => {
     setPrescriptionDraft(emptyPrescriptionItem())
+    setPrescriptionDraftValues(emptyPrescriptionDraftValues())
     setPrescriptionDraftErrors({})
     setEditingPrescriptionIndex(null)
     setIsPrescriptionDialogOpen(true)
   }
 
   const openEditPrescriptionDialog = (index: number) => {
-    setPrescriptionDraft(prescriptionItems[index] ?? emptyPrescriptionItem())
+    const item = prescriptionItems[index] ?? emptyPrescriptionItem()
+    setPrescriptionDraft(item)
+    setPrescriptionDraftValues(parsePrescriptionDraftValues(item))
     setPrescriptionDraftErrors({})
     setEditingPrescriptionIndex(index)
     setIsPrescriptionDialogOpen(true)
@@ -477,10 +767,16 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     const nextErrors: Record<string, string> = {}
 
     if (!prescriptionDraft.medicineId) nextErrors.medicineId = "Vui lòng chọn thuốc"
-    if (!prescriptionDraft.quantity || prescriptionDraft.quantity <= 0) nextErrors.quantity = "Nhập số lượng"
-    if (!prescriptionDraft.dosage.trim()) nextErrors.dosage = "Nhập liều dùng"
-    if (!prescriptionDraft.frequency.trim()) nextErrors.frequency = "Nhập tần suất"
-    if (!prescriptionDraft.duration.trim()) nextErrors.duration = "Nhập thời gian"
+    if (!Number.isInteger(Number(prescriptionDraftValues.quantity)) || Number(prescriptionDraftValues.quantity) <= 0) {
+      nextErrors.quantity = "Số lượng phải là số nguyên lớn hơn 0"
+    }
+    if (!Number(prescriptionDraftValues.dosage) || Number(prescriptionDraftValues.dosage) <= 0) nextErrors.dosage = "Nhập liều dùng"
+    if (!Number.isInteger(Number(prescriptionDraftValues.frequency)) || Number(prescriptionDraftValues.frequency) <= 0) {
+      nextErrors.frequency = "Tần suất phải là số nguyên lớn hơn 0"
+    }
+    if (!Number.isInteger(Number(prescriptionDraftValues.duration)) || Number(prescriptionDraftValues.duration) <= 0) {
+      nextErrors.duration = "Thời gian phải là số nguyên lớn hơn 0"
+    }
     if (!prescriptionDraft.usageInstruction.trim()) nextErrors.usageInstruction = "Nhập hướng dẫn sử dụng"
 
     setPrescriptionDraftErrors(nextErrors)
@@ -507,6 +803,10 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
       ...prescriptionDraft,
       medicineName: medicine?.name,
       medicineUnit: medicine?.unit,
+      quantity: Number(prescriptionDraftValues.quantity),
+      dosage: buildDosage(prescriptionDraftValues.dosage, medicine?.unit),
+      frequency: buildFrequency(prescriptionDraftValues.frequency),
+      duration: buildDuration(prescriptionDraftValues.duration, prescriptionDraftValues.durationUnit),
       note: prescriptionDraft.note?.trim() || undefined,
     }
 
@@ -519,6 +819,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     })
     setIsPrescriptionDialogOpen(false)
     setPrescriptionDraft(emptyPrescriptionItem())
+    setPrescriptionDraftValues(emptyPrescriptionDraftValues())
     setPrescriptionDraftErrors({})
     setEditingPrescriptionIndex(null)
     toast.success(editingPrescriptionIndex === null ? "Đã thêm thuốc thành công" : "Đã cập nhật thuốc thành công")
@@ -535,6 +836,10 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     event.preventDefault()
     if (!detail) {
       toast.error("Không thể hoàn tất khám vì phiếu khám chưa tải xong")
+      return
+    }
+    if (uploadingFieldName) {
+      toast.error("Vui lòng chờ tải tệp hoàn tất")
       return
     }
 
@@ -577,7 +882,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 space-y-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm text-petcenter-text-secondary">
@@ -639,7 +944,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                     {detail.pet.ageText ? ` · ${detail.pet.ageText}` : ""}
                   </p>
                   <p className="body-sm mt-0.5 text-petcenter-text-secondary">
-                    {detail.pet.gender || "Chưa rõ giới tính"}
+                    {detail.pet.gender ? (detail.pet.gender.toLowerCase() === "male" ? "Đực" : detail.pet.gender.toLowerCase() === "female" ? "Cái" : detail.pet.gender) : "Chưa rõ giới tính"}
                     {detail.pet.weightText ? ` · ${detail.pet.weightText}` : ""}
                   </p>
                 </div>
@@ -749,10 +1054,10 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {typeFields.map((config) =>
                 isReadOnly ? (
-                  <ReadOnlyField
+                  <ReadOnlyExamField
                     key={config.name}
-                    label={config.label}
-                    value={fieldValueLabel(config, fieldValues[config.name] || "")}
+                    config={config}
+                    value={fieldValues[config.name] || ""}
                   />
                 ) : (
                   <FormField
@@ -760,7 +1065,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                     config={config}
                     disabled={Boolean(isWaiting)}
                     error={validationErrors[config.name]}
+                    isUploading={uploadingFieldName === config.name}
                     onChange={(value) => setFieldValues((current) => ({ ...current, [config.name]: value }))}
+                    onFileUpload={(file) => void handleFileUpload(config.name, file)}
                     value={fieldValues[config.name] || ""}
                   />
                 )
@@ -938,6 +1245,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
               setIsPrescriptionDialogOpen(open)
               if (!open) {
                 setEditingPrescriptionIndex(null)
+                setPrescriptionDraftValues(emptyPrescriptionDraftValues())
                 setPrescriptionDraftErrors({})
               }
             }}
@@ -970,7 +1278,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                     }}
                     value={prescriptionDraft.medicineId}
                   >
-                    <option value="">Chọn thuốc...</option>
+                    <option value="" disabled hidden>Chọn thuốc...</option>
                     {detail.medicines.map((medicine) => (
                       <option key={medicine.id} value={medicine.id}>
                         {medicine.name} ({formatMedicineUnit(medicine.unit)})
@@ -990,24 +1298,102 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                     className={fieldInputClass}
                     min={1}
                     onChange={(event) =>
-                      setPrescriptionDraft((current) => ({ ...current, quantity: Number(event.target.value) }))
+                      setPrescriptionDraftValues((current) => ({ ...current, quantity: event.target.value }))
                     }
                     type="number"
-                    value={prescriptionDraft.quantity ?? ""}
+                    value={prescriptionDraftValues.quantity}
                   />
                   {prescriptionDraftErrors.quantity ? (
                     <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{prescriptionDraftErrors.quantity}</p>
                   ) : null}
                 </label>
 
+                <label>
+                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                    Liều dùng <span className="text-petcenter-danger-text">*</span>
+                  </span>
+                  <div className="flex overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
+                    <input
+                      className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none"
+                      min="0.1"
+                      onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, dosage: event.target.value }))}
+                      placeholder="Nhập số"
+                      step="0.1"
+                      type="number"
+                      value={prescriptionDraftValues.dosage}
+                    />
+                    <span className="flex items-center border-l border-petcenter-border bg-petcenter-background px-3 text-sm font-medium text-petcenter-text-secondary">
+                      {getDosageSuffix(detail.medicines.find((medicine) => medicine.id === prescriptionDraft.medicineId)?.unit)}
+                    </span>
+                  </div>
+                  {prescriptionDraftErrors.dosage ? (
+                    <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{prescriptionDraftErrors.dosage}</p>
+                  ) : null}
+                </label>
+
+                <label>
+                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                    Tần suất <span className="text-petcenter-danger-text">*</span>
+                  </span>
+                  <div className="flex overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
+                    <input
+                      className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none"
+                      min="1"
+                      onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, frequency: event.target.value }))}
+                      placeholder="Nhập số"
+                      step="1"
+                      type="number"
+                      value={prescriptionDraftValues.frequency}
+                    />
+                    <span className="flex items-center border-l border-petcenter-border bg-petcenter-background px-3 text-sm font-medium text-petcenter-text-secondary">
+                      lần/ngày
+                    </span>
+                  </div>
+                  {prescriptionDraftErrors.frequency ? (
+                    <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{prescriptionDraftErrors.frequency}</p>
+                  ) : null}
+                </label>
+
+                <label>
+                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                    Thời gian <span className="text-petcenter-danger-text">*</span>
+                  </span>
+                  <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
+                    <input
+                      className="min-w-0 bg-transparent px-3 py-2 text-sm outline-none"
+                      min="1"
+                      onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, duration: event.target.value }))}
+                      placeholder="Nhập số"
+                      step="1"
+                      type="number"
+                      value={prescriptionDraftValues.duration}
+                    />
+                    <select
+                      className="border-l border-petcenter-border bg-petcenter-background px-3 text-sm font-medium text-petcenter-text-secondary outline-none"
+                      onChange={(event) =>
+                        setPrescriptionDraftValues((current) => ({
+                          ...current,
+                          durationUnit: event.target.value as PrescriptionDurationUnit,
+                        }))
+                      }
+                      value={prescriptionDraftValues.durationUnit}
+                    >
+                      <option value="ngày">Ngày</option>
+                      <option value="tuần">Tuần</option>
+                      <option value="tháng">Tháng</option>
+                      <option value="năm">Năm</option>
+                    </select>
+                  </div>
+                  {prescriptionDraftErrors.duration ? (
+                    <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{prescriptionDraftErrors.duration}</p>
+                  ) : null}
+                </label>
+
                 {[
-                  ["dosage", "Liều dùng", "Ví dụ: 1 viên/lần"],
-                  ["frequency", "Tần suất", "Ví dụ: 2 lần/ngày"],
-                  ["duration", "Thời gian", "Ví dụ: 5 ngày"],
                   ["usageInstruction", "Hướng dẫn sử dụng", "Ví dụ: Cho uống sau ăn"],
                   ["note", "Ghi chú", "Ghi chú thêm nếu có"],
                 ].map(([key, label, placeholder]) => (
-                  <label key={key} className={key === "usageInstruction" || key === "note" ? "md:col-span-2" : ""}>
+                  <label key={key} className="md:col-span-2">
                     <span className="label-md mb-1 block font-medium text-petcenter-text">
                       {label} {key !== "note" ? <span className="text-petcenter-danger-text">*</span> : null}
                     </span>
@@ -1143,31 +1529,19 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
             </Link>
             {isReadOnly ? (
               !returnTo && (
-                <>
-                  <Link href={`/doctor/medical-records/${detail.pet.id}`}>
-                    <Button className="rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background" type="button" variant="outline">
-                      Xem bệnh án
-                    </Button>
-                  </Link>
-                  {detail.prescription ? (
-                    <Link href={`/doctor/prescriptions/${detail.prescription.id}`}>
-                      <Button className="rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background" type="button" variant="outline">
-                        Xem đơn thuốc
-                      </Button>
-                    </Link>
-                  ) : null}
-                  <Link href={`/doctor/medical-records/${detail.pet.id}`}>
-                    <Button className="rounded-control bg-petcenter-primary text-white hover:bg-petcenter-primary-hover" type="button">
-                      Xem lịch sử khám
-                    </Button>
-                  </Link>
-                </>
+                <Link
+                  href={`/doctor/medical-records/${detail.pet.id}?returnTo=${encodeURIComponent(`/doctor/examinations/${appointmentId}`)}`}
+                >
+                  <Button className="rounded-control bg-petcenter-primary text-white hover:bg-petcenter-primary-hover" type="button">
+                    Xem bệnh án
+                  </Button>
+                </Link>
               )
             ) : (
               <>
                 <Button
                   className="rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background"
-                  disabled={isSubmitting || Boolean(isWaiting)}
+                  disabled={isSubmitting || Boolean(isWaiting) || Boolean(uploadingFieldName)}
                   onClick={handleSaveDraft}
                   type="button"
                   variant="outline"
@@ -1176,10 +1550,10 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                 </Button>
                 <Button
                   className="rounded-control bg-petcenter-primary text-white hover:bg-petcenter-primary-hover"
-                  disabled={isSubmitting || Boolean(isWaiting)}
+                  disabled={isSubmitting || Boolean(isWaiting) || Boolean(uploadingFieldName)}
                   type="submit"
                 >
-                  {isSubmitting ? "Đang lưu..." : "Hoàn tất khám & Kê đơn"}
+                  {uploadingFieldName ? "Đang tải tệp..." : isSubmitting ? "Đang lưu..." : "Hoàn tất khám & Kê đơn"}
                 </Button>
               </>
             )}

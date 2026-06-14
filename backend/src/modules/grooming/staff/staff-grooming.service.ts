@@ -213,14 +213,27 @@ export async function completeStaffTicket(authUser: AuthUser, ticketId: string) 
 export async function startStaffTicket(authUser: AuthUser, ticketId: string) {
   assertStaff(authUser);
 
-  const currentStatus = await groomingRepository.findGroomingTicketStatus(ticketId);
+  const [currentStatus, scheduledAt] = await Promise.all([
+    groomingRepository.findGroomingTicketStatus(ticketId),
+    groomingRepository.findGroomingTicketScheduledAt(ticketId)
+  ]);
 
-  if (!currentStatus) {
+  if (!currentStatus || !scheduledAt) {
     throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
   if (currentStatus !== "waiting") {
     throw new AppError("Chỉ yêu cầu đã tiếp nhận mới có thể bắt đầu thực hiện", "INVALID_GROOMING_STATUS", httpStatus.CONFLICT);
+  }
+
+  const earliestStartAt = new Date(scheduledAt.getTime() - 24 * 60 * 60 * 1000);
+
+  if (Date.now() < earliestStartAt.getTime()) {
+    throw new AppError(
+      "Chỉ có thể bắt đầu thực hiện dịch vụ trong vòng 1 ngày trước thời gian đã đặt",
+      "GROOMING_START_TOO_EARLY",
+      httpStatus.CONFLICT
+    );
   }
 
   const ticket = await groomingRepository.updateGroomingTicketStatus(ticketId, "in_progress");

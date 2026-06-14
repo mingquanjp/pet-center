@@ -31,6 +31,8 @@ export function StaffBoardingCreatePage() {
   // Form State
   const [selectedOwnerId, setSelectedOwnerId] = useState<string>("");
   const [selectedPetId, setSelectedPetId] = useState<string>("");
+  const [createdOwners, setCreatedOwners] = useState<StaffBoardingOwnerOption[]>([]);
+  const [createdPets, setCreatedPets] = useState<StaffBoardingPetOption[]>([]);
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string>("");
   const [plannedCheckInDate, setPlannedCheckInDate] = useState<string>(() => {
     // Default to today
@@ -63,8 +65,14 @@ export function StaffBoardingCreatePage() {
   }
 
   // Derived State for Summary
-  const selectedOwner = options.owners.find((o: StaffBoardingOwnerOption) => o.id === selectedOwnerId) || null;
-  const selectedPet = options.pets.find((p: StaffBoardingPetOption) => p.id === selectedPetId) || null;
+  const selectedOwner =
+    createdOwners.find((owner) => owner.id === selectedOwnerId) ||
+    options.owners.find((owner: StaffBoardingOwnerOption) => owner.id === selectedOwnerId) ||
+    null;
+  const selectedPet =
+    createdPets.find((pet) => pet.id === selectedPetId) ||
+    options.pets.find((pet: StaffBoardingPetOption) => pet.id === selectedPetId) ||
+    null;
   const selectedRoomType = options.roomTypes.find((r: StaffBoardingRoomTypeOption) => r.id === selectedRoomTypeId) || null;
 
   const handleSubmit = () => {
@@ -104,6 +112,14 @@ export function StaffBoardingCreatePage() {
     setSelectedPetId("");
   };
 
+  const handleOwnerCreated = (owner: StaffBoardingOwnerOption) => {
+    setCreatedOwners((current) => [owner, ...current.filter((item) => item.id !== owner.id)]);
+  };
+
+  const handlePetCreated = (pet: StaffBoardingPetOption) => {
+    setCreatedPets((current) => [pet, ...current.filter((item) => item.id !== pet.id)]);
+  };
+
   return (
     <div className="flex-1 px-6 pt-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -116,6 +132,7 @@ export function StaffBoardingCreatePage() {
               options={options.owners}
               selectedOwnerId={selectedOwnerId}
               onOwnerSelect={handleOwnerSelect}
+              onOwnerCreated={handleOwnerCreated}
             />
 
             <StaffBoardingPetSection
@@ -123,6 +140,7 @@ export function StaffBoardingCreatePage() {
               pets={options.pets}
               selectedPetId={selectedPetId}
               onPetSelect={setSelectedPetId}
+              onPetCreated={handlePetCreated}
             />
 
             <StaffBoardingDateSection

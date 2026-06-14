@@ -508,7 +508,11 @@ export async function findRecentPetActivities(ownerUserId: string, petId: string
 
 function buildMedicalExamsWhere(filters: PetMedicalExamFilters): { whereSql: string; params: unknown[] } {
   const params: unknown[] = [filters.ownerUserId, filters.petId];
-  const conditions = ["ma.owner_user_id = $1", "ma.pet_id = $2"];
+  const conditions = [
+    "ma.owner_user_id = $1",
+    "ma.pet_id = $2",
+    "me.exam_status IN ('result_recorded', 'prescribed', 'follow_up_required')"
+  ];
 
   if (filters.examType) {
     params.push(filters.examType);
@@ -649,6 +653,7 @@ export async function findPetMedicalExamDetail(
      where ma.owner_user_id = $1
        and ma.pet_id = $2
        and me.exam_id = $3
+       and me.exam_status in ('result_recorded', 'prescribed', 'follow_up_required')
      limit 1`,
     [ownerUserId, petId, examId]
   );

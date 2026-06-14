@@ -14,3 +14,9 @@ export async function uploadFile(req: Request, res: Response): Promise<void> {
 
   sendSuccess(res, file, "Upload tệp thành công", httpStatus.CREATED);
 }
+
+export async function getFileViewUrl(req: Request, res: Response): Promise<void> {
+  const viewUrl = uploadsService.createFileViewUrl(req.body.url);
+
+  sendSuccess(res, { url: viewUrl }, "Tạo đường dẫn xem tệp thành công");
+}

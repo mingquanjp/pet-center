@@ -19,6 +19,7 @@ export const doctorPrescriptionsApi = {
     const params = new URLSearchParams()
 
     if (filters.search) params.append("search", filters.search)
+    if (filters.status !== "ALL") params.append("status", filters.status)
     if (filters.date) params.append("date", filters.date)
     params.append("page", String(filters.page))
     params.append("limit", String(filters.limit))

@@ -6,6 +6,7 @@ import {
   MedicineStatusFilter,
   MedicineUnitFilter,
 } from "../../types/medicine.types"
+import { medicineUnitOptions } from "../../constants/medicine.constants"
 
 interface AdminMedicineFilterBarProps {
   filters: AdminMedicineFilters
@@ -59,13 +60,11 @@ export function AdminMedicineFilterBar({
             onChange={(e) => onFiltersChange({ unit: e.target.value as MedicineUnitFilter })}
           >
             <option value="ALL">Tất cả</option>
-            <option value="Viên">Viên</option>
-            <option value="Chai">Chai</option>
-            <option value="Gói">Gói</option>
-            <option value="Tuýp">Tuýp</option>
-            <option value="ml">ml</option>
-            <option value="Liều">Liều</option>
-            <option value="Khác">Khác</option>
+            {medicineUnitOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
 

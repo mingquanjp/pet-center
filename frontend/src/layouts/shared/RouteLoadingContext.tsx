@@ -10,22 +10,31 @@ type RouteLoadingContextValue = {
   startRouteLoading: (href: string) => void
 }
 
+type PendingRoute = {
+  from: string
+  to: string
+}
+
 const RouteLoadingContext = React.createContext<RouteLoadingContextValue | null>(null)
 
 export function RouteLoadingProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [pendingHref, setPendingHref] = React.useState<string | null>(null)
+  const [pendingRoute, setPendingRoute] = React.useState<PendingRoute | null>(null)
 
   const startRouteLoading = React.useCallback(
     (href: string) => {
       if (href === pathname || pathname.startsWith(`${href}/`)) return
 
-      setPendingHref(href)
+      setPendingRoute({ from: pathname, to: href })
     },
     [pathname]
   )
 
-  const isRouteLoading = pendingHref !== null && pathname !== pendingHref && !pathname.startsWith(`${pendingHref}/`)
+  const isRouteLoading =
+    pendingRoute !== null &&
+    pathname === pendingRoute.from &&
+    pathname !== pendingRoute.to &&
+    !pathname.startsWith(`${pendingRoute.to}/`)
   const value = React.useMemo(() => ({ isRouteLoading, startRouteLoading }), [isRouteLoading, startRouteLoading])
 
   return <RouteLoadingContext.Provider value={value}>{children}</RouteLoadingContext.Provider>
@@ -42,6 +51,7 @@ export function useRouteLoading() {
 }
 
 export function RouteLoadingContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
   const { isRouteLoading } = useRouteLoading()
 
   return (
@@ -49,7 +59,7 @@ export function RouteLoadingContent({ children }: { children: React.ReactNode })
       {isRouteLoading ? (
         <LoadingState description="Vui lòng chờ trong giây lát." title="Đang chuyển trang..." />
       ) : (
-        children
+        <React.Fragment key={pathname}>{children}</React.Fragment>
       )}
     </div>
   )

@@ -8,20 +8,6 @@ import type {
   ListDoctorPrescriptionsFilters,
 } from "./prescriptions.types.js";
 
-function formatPrescriptionCode(prescriptionId: string) {
-  const suffix = prescriptionId.replace(/^rx_?/i, "").replace(/^pre/i, "").replace(/^prescription_?/i, "").toUpperCase();
-  return `DT-${suffix}`;
-}
-
-function formatExaminationCode(row: Pick<DoctorPrescriptionListRow | DoctorPrescriptionDetailRow, "appointment_id" | "exam_id">) {
-  const appointmentSuffix = row.appointment_id.replace(/^appt_?/i, "").toUpperCase();
-  if (appointmentSuffix !== row.appointment_id) {
-    return `PK-${appointmentSuffix}`;
-  }
-
-  return `PK-${row.exam_id.replace(/^exam_?/, "").toUpperCase()}`;
-}
-
 function mapSpeciesLabel(species: string) {
   if (species === "Dog") return "Chó";
   if (species === "Cat") return "Mèo";
@@ -56,11 +42,11 @@ function formatPetAge(row: Pick<DoctorPrescriptionListRow | DoctorPrescriptionDe
 function mapPrescriptionListItem(row: DoctorPrescriptionListRow) {
   return {
     prescriptionId: row.prescription_id,
-    prescriptionCode: formatPrescriptionCode(row.prescription_id),
+    prescriptionCode: row.prescription_id,
     examId: row.exam_id,
-    examinationCode: formatExaminationCode(row),
+    examinationCode: row.exam_id,
     prescribedDate: row.prescribed_at,
-    status: "prescribed" as const,
+    status: row.exam_status,
     doctorName: row.doctor_name,
     diagnosis: row.diagnosis,
     conclusion: row.conclusion,
@@ -102,11 +88,11 @@ function mapPrescriptionItem(row: DoctorPrescriptionItemRow) {
 function mapPrescriptionDetail(row: DoctorPrescriptionDetailRow, items: DoctorPrescriptionItemRow[]) {
   return {
     prescriptionId: row.prescription_id,
-    prescriptionCode: formatPrescriptionCode(row.prescription_id),
+    prescriptionCode: row.prescription_id,
     examId: row.exam_id,
-    examinationCode: formatExaminationCode(row),
+    examinationCode: row.exam_id,
     prescribedDate: row.prescribed_at,
-    status: "prescribed" as const,
+    status: row.exam_status,
     diagnosis: row.diagnosis,
     conclusion: row.conclusion,
     generalNote: row.general_note,

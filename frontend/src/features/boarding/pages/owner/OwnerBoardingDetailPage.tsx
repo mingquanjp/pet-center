@@ -6,16 +6,14 @@ import {
   AlertCircle,
   ArrowLeft,
   CalendarCheck,
-  Camera,
-  Check,
   Clock3,
   ClipboardList,
   FileText,
-  Filter,
   Home,
-  LogIn,
+  ListFilter,
+  NotebookPen,
   PawPrint,
-  ReceiptText,
+  Play,
   RotateCcw,
   Utensils,
 } from "lucide-react"
@@ -25,10 +23,10 @@ import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { boardingApi } from "../../api/boarding.api"
 import type {
-  BoardingCareLog,
   BoardingCareLogAlertLevel,
   BoardingCareLogAttachment,
   BoardingRecordDetail,
@@ -252,22 +250,7 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
           </InfoCard>
         </aside>
 
-        <article className="rounded-xl border border-[#E6E8DD] bg-white p-[25px] shadow-[0_4px_8px_rgba(0,0,0,0.05)]">
-          <div className="flex items-center justify-between border-b border-[#E6E8DD] pb-4">
-            <h2 className="flex items-center gap-2 text-lg font-semibold leading-[26px] text-[#1B1C15]">
-              <Clock3 className="size-[18px] text-[#00796B]" aria-hidden="true" />
-              Nhật ký chăm sóc
-            </h2>
-            <Button variant="ghost" className="h-8 gap-1 px-2 text-xs font-medium text-[#005E53] hover:bg-[#E0F2F1] hover:text-[#005E53]">
-              <Filter className="size-4" aria-hidden="true" />
-              Lọc
-            </Button>
-          </div>
-
-          <div className="pt-6">
-            <CareLogTimeline record={record} />
-          </div>
-        </article>
+        <CareLogTimeline record={record} />
       </section>
 
       <OwnerBoardingCancelDialog
@@ -354,98 +337,143 @@ function CareRequestItem({ icon: Icon, text }: { icon: LucideIcon; text: string 
 }
 
 function CareLogTimeline({ record }: { record: BoardingRecordDetail }) {
-  const entries = record.careLogs
-
-  if (entries.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-[#BDC9C5] bg-[#FBFAEE] p-6 text-center text-sm leading-5 text-[#3E4946]">
-        Chưa có nhật ký chăm sóc cho lịch lưu trú này.
-      </div>
-    )
-  }
+  const entries = [...record.careLogs].sort(
+    (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+  )
+  const [previewMedia, setPreviewMedia] = React.useState<BoardingCareLogAttachment | null>(null)
 
   return (
-    <div className="space-y-0 pl-2">
-      {entries.map((entry, index) => {
-        const Icon = getCareLogIcon(entry.logType)
+    <section className="min-h-[600px] rounded-2xl border border-petcenter-border bg-petcenter-card p-6 pb-10 shadow-card">
+      <div className="mb-6 flex items-center justify-between border-b border-petcenter-border pb-4">
+        <div className="flex items-center gap-2">
+          <NotebookPen className="h-5 w-5 text-petcenter-primary" aria-hidden="true" />
+          <h2 className="title-md text-petcenter-text">Nhật ký chăm sóc</h2>
+        </div>
+        <button className="label-md flex items-center gap-1 font-semibold text-petcenter-primary" type="button">
+          <ListFilter className="h-4 w-4" aria-hidden="true" />
+          Lọc nhật ký
+        </button>
+      </div>
 
-        return (
-          <div className="flex gap-6 pb-8 last:pb-0" key={entry.logId}>
-            <div className="relative flex shrink-0 flex-col items-center">
-              <div className={cn("z-10 flex size-10 items-center justify-center rounded-full border-2 border-white shadow-[0_1px_1px_rgba(0,0,0,0.05)]", getCareLogIconBoxClassName(entry.logType))}>
-                <Icon className={cn("size-4", entry.logType === "daily_update" ? "text-white" : "text-[#6E7A76]")} aria-hidden="true" />
-              </div>
-              {index < entries.length - 1 ? <div className="absolute bottom-[-32px] top-6 w-0.5 bg-[#E6E8DD]" /> : null}
-            </div>
+      {entries.length > 0 ? (
+        <>
+          <div className="ml-3 border-l-2 border-petcenter-border pl-7">
+            <div className="space-y-8">
+              {entries.map((entry) => (
+                <div className="relative space-y-2" key={entry.logId}>
+                  <div className="absolute -left-[33px] top-1 h-4 w-4 rounded-full bg-petcenter-primary shadow-[0_0_0_4px_white]" />
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <h3 className="body-lg font-semibold text-petcenter-text">{entry.title}</h3>
+                    <span className={cn("label-md w-fit rounded-full px-2 py-0.5 font-semibold", getHealthBadgeClassName(entry.alertLevel))}>
+                      {entry.alertLabel}
+                    </span>
+                    <span className="label-md ml-auto flex items-center gap-1 text-petcenter-text-secondary">
+                      <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                      {formatDateTime(entry.occurredAt)}
+                    </span>
+                  </div>
 
-            <div className="min-w-0 flex-1 space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xs font-medium leading-4 text-[#1B1C15]">{entry.title}</h3>
-                  <p className="mt-1 flex items-center gap-1 text-[13px] leading-[18px] text-[#3E4946]">
-                    <Clock3 className="size-3" aria-hidden="true" />
-                    {formatDateTime(entry.occurredAt)}
-                  </p>
+                  <div className="rounded-control border border-petcenter-border/60 bg-petcenter-background/70 p-4">
+                    <p className="body-md text-petcenter-text">{entry.note}</p>
+                    {entry.attachments.length > 0 ? (
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        {entry.attachments.map((attachment) => (
+                          <MediaAttachment
+                            attachment={attachment}
+                            key={attachment.url}
+                            onPreview={() =>
+                              setPreviewMedia(attachment.type === "file" ? { ...attachment, type: "image" } : attachment)
+                            }
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-                <span className={cn("shrink-0 rounded px-2 py-0.5 text-[11px] font-semibold leading-[14px] tracking-[0.22px]", getHealthBadgeClassName(entry.alertLevel))}>
-                  {entry.alertLabel}
-                </span>
-              </div>
-
-              <div className="rounded-lg border border-[#E6E8DD] bg-[#FBFAEE] p-4 text-sm leading-5 text-[#1B1C15]">
-                {entry.note}
-              </div>
-
-              {entry.attachments.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-3">
-                  {entry.attachments.map((attachment) => (
-                    <MediaAttachment attachment={attachment} key={attachment.url} />
-                  ))}
-                </div>
-              ) : null}
+              ))}
             </div>
           </div>
-        )
-      })}
-    </div>
+          <p className="label-md pt-8 text-center text-petcenter-text-secondary">
+            Không còn nhật ký nào cũ hơn cho lần lưu trú này.
+          </p>
+        </>
+      ) : (
+        <div className="flex min-h-[150px] flex-col items-center justify-center text-center">
+          <AlertCircle className="mb-2 h-8 w-8 text-petcenter-text-muted opacity-50" aria-hidden="true" />
+          <p className="text-sm font-medium italic text-petcenter-text-secondary">Chưa có nhật ký chăm sóc.</p>
+          <p className="mt-1 text-xs text-petcenter-text-muted">
+            Các mốc xử lý và cập nhật chăm sóc sẽ hiển thị tại đây.
+          </p>
+        </div>
+      )}
+
+      <Dialog open={Boolean(previewMedia)} onOpenChange={(open) => !open && setPreviewMedia(null)}>
+        <DialogContent
+          showCloseButton={false}
+          className="flex h-fit max-h-[95vh] w-fit max-w-[95vw] items-center justify-center overflow-hidden border-none bg-transparent p-0 shadow-none ring-0 sm:max-w-[95vw]"
+        >
+          <DialogTitle className="sr-only">Xem chi tiết tệp đính kèm</DialogTitle>
+          {previewMedia?.type === "video" ? (
+            <video src={previewMedia.url} className="max-h-[95vh] max-w-full rounded-md object-contain" controls autoPlay />
+          ) : previewMedia?.type === "image" ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewMedia.url} alt="Phóng to ảnh nhật ký chăm sóc" className="max-h-[95vh] max-w-full rounded-md object-contain" />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </section>
   )
 }
 
-function MediaAttachment({ attachment }: { attachment: BoardingCareLogAttachment }) {
-  if (attachment.type === "image") {
+function MediaAttachment({
+  attachment,
+  onPreview,
+}: {
+  attachment: BoardingCareLogAttachment
+  onPreview: () => void
+}) {
+  const [imagePreviewFailed, setImagePreviewFailed] = React.useState(false)
+
+  if (attachment.type === "file" && imagePreviewFailed) {
     return (
       <a
         href={attachment.url}
         target="_blank"
         rel="noreferrer"
-        className="relative block h-[81px] overflow-hidden rounded-xl border border-[#BDC9C5] bg-[#DBDBCF]"
-        aria-label="Ảnh nhật ký chăm sóc"
+        className="flex h-16 w-24 items-center justify-center rounded-control border border-petcenter-border/40 bg-petcenter-background shadow-sm transition hover:border-petcenter-primary/60"
       >
-        <span
-          aria-hidden="true"
-          className="block size-full bg-cover bg-center"
-          style={{ backgroundImage: `url(${attachment.url})` }}
-        />
+        <FileText className="size-5 text-petcenter-text-secondary" aria-hidden="true" />
+        <span className="sr-only">Mở tệp nhật ký chăm sóc</span>
       </a>
     )
   }
 
   return (
-    <a
-      href={attachment.url}
-      target="_blank"
-      rel="noreferrer"
-      className="relative flex h-[81px] items-center justify-center overflow-hidden rounded-xl border border-[#BDC9C5] bg-[#DBDBCF] transition hover:border-[#005E53]"
+    <button
+      className="group relative h-16 w-24 overflow-hidden rounded-control border border-petcenter-border/40 bg-petcenter-background shadow-sm transition hover:border-petcenter-primary/60"
+      onClick={onPreview}
+      type="button"
     >
       {attachment.type === "video" ? (
-        <span className="absolute flex size-10 items-center justify-center rounded-full bg-white/90 text-xs font-bold text-[#005E53] shadow">
-          ▶
-        </span>
+        <>
+          <video src={attachment.url} muted preload="metadata" playsInline className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100" />
+          <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+            <span className="flex size-8 items-center justify-center rounded-full bg-white/95 text-petcenter-primary shadow-md transition-transform group-hover:scale-110">
+              <Play className="ml-0.5 size-4 fill-current" aria-hidden="true" />
+            </span>
+          </span>
+        </>
       ) : (
-        <FileText className="size-5 text-[#6E7A76]" aria-hidden="true" />
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={attachment.url}
+          alt="Ảnh nhật ký chăm sóc"
+          className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={() => setImagePreviewFailed(true)}
+        />
       )}
-      <span className="sr-only">{attachment.type === "video" ? "Video nhật ký chăm sóc" : "Tệp nhật ký chăm sóc"}</span>
-    </a>
+      <span className="sr-only">{attachment.type === "video" ? "Xem video nhật ký chăm sóc" : "Xem ảnh nhật ký chăm sóc"}</span>
+    </button>
   )
 }
 
@@ -476,21 +504,6 @@ function BoardingDetailError({ message }: { message: string }) {
       </div>
     </section>
   )
-}
-
-function getCareLogIcon(logType: BoardingCareLog["logType"]): LucideIcon {
-  if (logType === "check_out") return Check
-  if (logType === "daily_update") return Camera
-  if (logType === "check_in") return LogIn
-
-  return FileText
-}
-
-function getCareLogIconBoxClassName(logType: BoardingCareLog["logType"]) {
-  if (logType === "daily_update") return "bg-[#00796B]"
-  if (logType === "check_out") return "bg-[#EAF5E8]"
-
-  return "bg-[#EFEEE2]"
 }
 
 function getHealthBadgeClassName(status: BoardingCareLogAlertLevel | undefined) {

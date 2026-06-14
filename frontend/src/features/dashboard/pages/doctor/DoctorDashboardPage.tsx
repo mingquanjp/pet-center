@@ -27,7 +27,7 @@ export function DoctorDashboardPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-section">
+    <div className="flex-1 space-y-6">
       <DoctorDashboardHeader doctor={data.doctor} />
       <DoctorDashboardStats stats={data.stats} />
 
@@ -60,7 +60,7 @@ function DoctorDashboardError({ onRetry }: { onRetry: () => void }) {
 
 function DoctorDashboardSkeleton() {
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-section">
+    <div className="flex-1 space-y-6">
       <section className="space-y-3">
         <Skeleton className="h-4 w-28 rounded-pill bg-petcenter-sidebar" />
         <Skeleton className="h-10 w-80 max-w-full rounded bg-petcenter-sidebar" />

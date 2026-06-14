@@ -118,10 +118,6 @@ function getPaginationItems(currentPage: number, totalPages: number): Array<numb
   });
 }
 
-function formatPetCode(petId: string): string {
-  return petId.includes("-") ? petId.toUpperCase() : petId.replace(/^pet_?/i, "PET-").toUpperCase();
-}
-
 export function StaffPetsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -318,7 +314,7 @@ export function StaffPetsPage() {
                 <tbody className="divide-y divide-petcenter-border">
                   {pets.map((pet) => (
                     <tr key={pet.petId} className="transition-colors hover:bg-petcenter-background/50">
-                      <td className="px-6 py-4 font-medium text-petcenter-text">{formatPetCode(pet.petId)}</td>
+                      <td className="px-6 py-4 font-medium text-petcenter-text">{pet.petId}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-petcenter-border text-petcenter-text-muted">

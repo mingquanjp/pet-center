@@ -40,7 +40,7 @@ export async function listDoctorExaminations(doctorUserId: string, filters: any)
   const data = rows.map((row) => ({
     id: row.id,
     examId: row.exam_id,
-    examinationCode: formatExaminationCode(row.id),
+    examinationCode: formatExaminationCode(row.exam_id || row.id),
     appointmentCode: formatAppointmentCode(row.id),
     pet: {
       id: row.pet_id,
@@ -114,15 +114,17 @@ export async function startDoctorExamination(doctorUserId: string, appointmentId
       throw new AppError("Examination not found", "EXAMINATION_NOT_FOUND", 404);
     }
 
+    const examId = row.exam_id || await createId("mex", client);
     if (!row.exam_id) {
       await repo.createMedicalExamForAppointment(
-        await createId("mex", client),
+        examId,
         row.appointment_id,
         doctorUserId,
         client
       );
     }
 
+    await repo.updateMedicalExamLifecycle(examId, doctorUserId, "examining", client);
     await repo.updateAppointmentExaminationStatus(row.appointment_id, "examining", client);
   });
 
@@ -146,6 +148,7 @@ export async function saveDraftDoctorExamination(
       await repo.createMedicalExamForAppointment(examId, row.appointment_id, doctorUserId, client);
     }
 
+    await repo.updateMedicalExamLifecycle(examId, doctorUserId, "examining", client);
     await repo.saveMedicalExamDraft(examId, body.diagnosis, body.conclusion, body.healthNote, client);
     await repo.replaceMedicalExamFieldValues(examId, normalizeFieldValues(body.fieldValues), client);
     await repo.updateAppointmentExaminationStatus(row.appointment_id, "examining", client);

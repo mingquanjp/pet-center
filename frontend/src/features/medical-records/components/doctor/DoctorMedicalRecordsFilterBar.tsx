@@ -72,11 +72,11 @@ export function DoctorMedicalRecordsFilterBar({
 
 
         <button
+          className="body-md inline-flex items-center justify-center gap-2 rounded-[0.75rem] border border-petcenter-border px-4 py-2 font-medium text-petcenter-text-secondary transition-colors hover:bg-petcenter-background hover:text-petcenter-text"
           onClick={onReset}
           type="button"
-          className="inline-flex h-[38px] items-center justify-center gap-2 rounded-[0.75rem] border border-petcenter-border bg-transparent px-4 py-2 text-sm font-medium text-petcenter-text-secondary hover:bg-petcenter-background hover:text-petcenter-text transition-colors"
         >
-          <RotateCcw className="w-4 h-4" />
+          <RotateCcw className="h-4 w-4" />
           <span>Đặt lại</span>
         </button>
       </div>

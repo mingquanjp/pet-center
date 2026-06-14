@@ -10,7 +10,7 @@ import type {
 function appendDoctorPrescriptionFilters(
   sql: string,
   params: unknown[],
-  filters: Pick<ListDoctorPrescriptionsFilters, "search" | "date">
+  filters: Pick<ListDoctorPrescriptionsFilters, "search" | "status" | "date">
 ) {
   let nextSql = sql;
 
@@ -35,6 +35,11 @@ function appendDoctorPrescriptionFilters(
   if (filters.date) {
     params.push(filters.date);
     nextSql += ` AND pr.prescribed_at = $${params.length}::date`;
+  }
+
+  if (filters.status && filters.status !== "ALL") {
+    params.push(filters.status);
+    nextSql += ` AND me.exam_status = $${params.length}`;
   }
 
   return nextSql;
@@ -65,6 +70,7 @@ export async function getDoctorPrescriptionsList(
       pr.general_note,
       me.diagnosis,
       me.conclusion,
+      me.exam_status,
       p.pet_id,
       p.pet_name,
       p.species,
@@ -99,6 +105,7 @@ export async function getDoctorPrescriptionsList(
       pr.general_note,
       me.diagnosis,
       me.conclusion,
+      me.exam_status,
       p.pet_id,
       p.pet_name,
       p.species,
@@ -121,7 +128,7 @@ export async function getDoctorPrescriptionsList(
 
 export async function getDoctorPrescriptionsCount(
   doctorUserId: string,
-  filters: Pick<ListDoctorPrescriptionsFilters, "search" | "date">
+  filters: Pick<ListDoctorPrescriptionsFilters, "search" | "status" | "date">
 ) {
   const params: unknown[] = [doctorUserId];
   let sql = `
@@ -164,6 +171,7 @@ export async function getDoctorPrescriptionDetail(doctorUserId: string, prescrip
       pr.general_note,
       me.diagnosis,
       me.conclusion,
+      me.exam_status,
       p.pet_id,
       p.pet_name,
       p.species,
