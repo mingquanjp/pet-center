@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
@@ -19,26 +19,17 @@ const defaultFilters: OwnerAppointmentFilters = {
   date: "",
 };
 
-export function OwnerAppointmentsPage() {
-  const [filters, setFilters] = useState<OwnerAppointmentFilters>(defaultFilters);
+export function OwnerAppointmentsPage({
+  initialCreatedAppointmentId = "",
+}: {
+  initialCreatedAppointmentId?: string;
+}) {
+  const [filters, setFilters] = useState<OwnerAppointmentFilters>(() => ({
+    ...defaultFilters,
+    search: initialCreatedAppointmentId.trim(),
+  }));
   const [page, setPage] = useState(1);
   const { data, pagination, isLoading, isError, petOptions } = useOwnerAppointments(filters, page);
-
-  useEffect(() => {
-    const createdAppointmentId =
-      typeof window === "undefined"
-        ? ""
-        : new URLSearchParams(window.location.search).get("createdAppointmentId");
-
-    if (!createdAppointmentId) {
-      return;
-    }
-
-    void Promise.resolve().then(() => {
-      setFilters({ ...defaultFilters, search: createdAppointmentId });
-      setPage(1);
-    });
-  }, []);
 
   function handleFiltersChange(nextFilters: OwnerAppointmentFilters) {
     setFilters(nextFilters);

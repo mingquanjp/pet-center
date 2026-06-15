@@ -31,10 +31,10 @@ export function OwnerAppointmentTimeSlots({
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
-          disabled={timeSlots.length === 0 || availableSlots.length === 0}
+          disabled={timeSlots.length === 0}
           className="flex h-11 w-full items-center justify-between rounded-lg border border-[#BDC9C5] bg-[#FBFAEE] px-[17px] text-left text-sm leading-5 text-[#1B1C15] transition-colors hover:bg-petcenter-background disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <span>{availableSlots.length > 0 ? selectedSlot?.label ?? "Chọn giờ" : "Hết lịch"}</span>
+          <span>{selectedSlot?.label ?? "Chưa có khung giờ"}</span>
           <ChevronDown className="size-4 text-petcenter-text-secondary" aria-hidden="true" />
         </button>
 
@@ -45,6 +45,8 @@ export function OwnerAppointmentTimeSlots({
               const availableUnits = slot.availableUnits ?? (slot.disabled ? 0 : 1);
               const slotStatus = slot.disabledReason === "cutoff"
                 ? "Quá hạn đặt"
+                : slot.disabledReason === "outside_working_hours"
+                  ? "Ngoài giờ làm việc"
                 : availableUnits > 0
                   ? `Còn ${availableUnits} Slot`
                   : "Đầy";

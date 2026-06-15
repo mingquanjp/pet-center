@@ -67,10 +67,10 @@ export const MOCK_OWNER_EXAM_TYPES: OwnerExamTypeOption[] = [
 ];
 
 export const MOCK_OWNER_TIME_SLOTS: OwnerAppointmentTimeSlot[] = [
-  { value: "08:00", label: "08:00" },
-  { value: "09:00", label: "09:00" },
-  { value: "10:30", label: "10:30" },
-  { value: "14:00", label: "14:00" },
-  { value: "15:30", label: "15:30" },
-  { value: "16:30", label: "16:30", disabled: true },
+  { value: "08:00", label: "08:00 - 09:00", startAt: "", endAt: "", durationMinutes: 60 },
+  { value: "08:30", label: "08:30 - 09:30", startAt: "", endAt: "", durationMinutes: 60 },
+  { value: "09:00", label: "09:00 - 10:00", startAt: "", endAt: "", durationMinutes: 60 },
+  { value: "09:30", label: "09:30 - 10:30", startAt: "", endAt: "", durationMinutes: 60 },
+  { value: "10:00", label: "10:00 - 11:00", startAt: "", endAt: "", durationMinutes: 60 },
+  { value: "16:30", label: "16:30 - 17:30", startAt: "", endAt: "", durationMinutes: 60, disabled: true },
 ];
