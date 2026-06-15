@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { httpStatus } from "../../../src/shared/errors/http-status.js";
-import * as repo from "../../../src/modules/appointments/appointments.repository.js";
+import * as repo from "../../../src/modules/appointments/staff/staff-appointment.repository.js";
 import * as transactions from "../../../src/db/transactions.js";
 import * as notifications from "../../../src/modules/notifications/notification-events.js";
 import {
@@ -8,7 +8,7 @@ import {
   rejectStaffAppointment,
 } from "../../../src/modules/appointments/appointments.service.js";
 
-vi.mock("../../../src/modules/appointments/appointments.repository.js");
+vi.mock("../../../src/modules/appointments/staff/staff-appointment.repository.js");
 vi.mock("../../../src/db/transactions.js", () => ({
   withTransaction: vi.fn((cb) => cb({})),
 }));

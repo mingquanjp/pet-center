@@ -3,6 +3,7 @@ import { query } from "../../../db/query.js";
 import type {
   OwnerAppointmentCountRow,
   OwnerAppointmentDetailRow,
+  OwnerAppointmentIntervalRow,
   OwnerAppointmentListQuery,
   OwnerAppointmentListRow,
   OwnerExamTypeOptionRow,
@@ -204,10 +205,16 @@ export async function listOwnerPetOptions(ownerUserId: string) {
 
 export async function listActiveExamTypes() {
   const sql = `
-    SELECT exam_type_id, type_code, type_name, description
-    FROM pet_center.exam_types
-    WHERE type_status = 'active'
-    ORDER BY type_name ASC
+    SELECT
+      et.exam_type_id,
+      et.type_code,
+      et.type_name,
+      et.description,
+      COALESCE(s.estimated_duration_minutes, 60)::int AS duration_minutes
+    FROM pet_center.exam_types et
+    LEFT JOIN pet_center.services s ON s.service_id = et.service_id
+    WHERE et.type_status = 'active'
+    ORDER BY et.type_name ASC
   `;
 
   const result = await query<OwnerExamTypeOptionRow>(sql);
@@ -230,33 +237,22 @@ export async function findOwnerPetById(ownerUserId: string, petId: string, clien
 
 export async function findActiveExamTypeById(examTypeId: string, client?: PoolClient) {
   const sql = `
-    SELECT exam_type_id, type_code, type_name, description
-    FROM pet_center.exam_types
-    WHERE exam_type_id = $1
-      AND type_status = 'active'
+    SELECT
+      et.exam_type_id,
+      et.type_code,
+      et.type_name,
+      et.description,
+      COALESCE(s.estimated_duration_minutes, 60)::int AS duration_minutes
+    FROM pet_center.exam_types et
+    LEFT JOIN pet_center.services s ON s.service_id = et.service_id
+    WHERE et.exam_type_id = $1
+      AND et.type_status = 'active'
   `;
 
   const result = client
     ? await client.query<OwnerExamTypeOptionRow>(sql, [examTypeId])
     : await query<OwnerExamTypeOptionRow>(sql, [examTypeId]);
   return result.rows[0] ?? null;
-}
-
-export async function listBusySlotsByDate(date: string, client?: PoolClient) {
-  const sql = `
-    SELECT
-      to_char(scheduled_at AT TIME ZONE '${timeZone}', 'HH24:MI') AS slot,
-      COUNT(*)::int AS booked_count
-    FROM pet_center.medical_appointments
-    WHERE (scheduled_at AT TIME ZONE '${timeZone}')::date = $1::date
-      AND appointment_status IN ('pending', 'confirmed')
-    GROUP BY slot
-  `;
-
-  const result = client
-    ? await client.query<{ slot: string; booked_count: number }>(sql, [date])
-    : await query<{ slot: string; booked_count: number }>(sql, [date]);
-  return result.rows;
 }
 
 export async function countActiveDoctors(client?: PoolClient) {
@@ -271,29 +267,51 @@ export async function countActiveDoctors(client?: PoolClient) {
   return result.rows[0]?.total ?? 0;
 }
 
-export async function countBookedAppointmentsAt(scheduledAt: Date, client: PoolClient) {
-  const sql = `
-    SELECT COUNT(*)::int AS total
-    FROM pet_center.medical_appointments
-    WHERE scheduled_at = $1
-      AND appointment_status IN ('pending', 'confirmed')
-  `;
-
-  const result = await client.query<{ total: number }>(sql, [scheduledAt]);
-  return result.rows[0]?.total ?? 0;
+export async function lockMedicalAppointmentsForScheduling(client: PoolClient) {
+  await client.query("LOCK TABLE pet_center.medical_appointments IN SHARE ROW EXCLUSIVE MODE");
 }
 
-export async function countPetAppointmentsAt(petId: string, scheduledAt: Date, client: PoolClient) {
+export async function listActiveAppointmentIntervals(
+  rangeStart: Date,
+  rangeEnd: Date,
+  client?: PoolClient,
+) {
   const sql = `
-    SELECT COUNT(*)::int AS total
+    SELECT scheduled_at, duration_minutes
     FROM pet_center.medical_appointments
-    WHERE pet_id = $1
-      AND scheduled_at = $2
-      AND appointment_status IN ('pending_payment', 'pending', 'confirmed')
+    WHERE appointment_status IN ('pending_payment', 'pending', 'confirmed')
+      AND scheduled_at < $2
+      AND scheduled_at + duration_minutes * interval '1 minute' > $1
   `;
+  const params = [rangeStart, rangeEnd];
+  const result = client
+    ? await client.query<OwnerAppointmentIntervalRow>(sql, params)
+    : await query<OwnerAppointmentIntervalRow>(sql, params);
 
-  const result = await client.query<{ total: number }>(sql, [petId, scheduledAt]);
-  return result.rows[0]?.total ?? 0;
+  return result.rows;
+}
+
+export async function hasOverlappingPetAppointment(
+  petId: string,
+  rangeStart: Date,
+  rangeEnd: Date,
+  client: PoolClient,
+) {
+  const result = await client.query<{ exists: boolean }>(
+    `
+      SELECT EXISTS (
+        SELECT 1
+        FROM pet_center.medical_appointments
+        WHERE pet_id = $1
+          AND appointment_status IN ('pending_payment', 'pending', 'confirmed')
+          AND scheduled_at < $3
+          AND scheduled_at + duration_minutes * interval '1 minute' > $2
+      ) AS "exists"
+    `,
+    [petId, rangeStart, rangeEnd],
+  );
+
+  return result.rows[0]?.exists ?? false;
 }
 
 export async function insertOwnerAppointment(
@@ -303,6 +321,7 @@ export async function insertOwnerAppointment(
     petId: string;
     examTypeId: string;
     scheduledAt: Date;
+    durationMinutes: number;
     symptomDescription?: string;
   },
   client: PoolClient,
@@ -315,12 +334,13 @@ export async function insertOwnerAppointment(
       exam_type_id,
       veterinarian_user_id,
       scheduled_at,
+      duration_minutes,
       symptom_description,
       appointment_status,
       internal_note,
       handled_by_staff_id
     )
-    VALUES ($1, $2, $3, $4, NULL, $5, $6, 'pending', NULL, NULL)
+    VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, 'pending', NULL, NULL)
   `;
 
   await client.query(sql, [
@@ -329,6 +349,7 @@ export async function insertOwnerAppointment(
     input.ownerUserId,
     input.examTypeId,
     input.scheduledAt,
+    input.durationMinutes,
     input.symptomDescription ?? null,
   ]);
 }

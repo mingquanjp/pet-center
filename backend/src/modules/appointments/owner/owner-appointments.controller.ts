@@ -30,7 +30,10 @@ export async function getOwnerAppointmentCreateOptions(req: Request, res: Respon
 }
 
 export async function getOwnerAvailableSlots(req: Request, res: Response) {
-  const result = await ownerAppointmentsService.getOwnerAvailableSlots(req.query.date as string);
+  const result = await ownerAppointmentsService.getOwnerAvailableSlots(
+    req.query.date as string,
+    req.query.examTypeId as string | undefined,
+  );
   res.json({
     success: true,
     data: result,

@@ -61,14 +61,14 @@ export async function pickDoctorForConfirmation(client: PoolClient, appointmentS
 
 export function getAppointmentRange(row: AppointmentDetailRow) {
     const appointmentStart = new Date(row.scheduled_at);
-    const appointmentEnd = new Date(appointmentStart.getTime() + 60 * 60 * 1000);
+    const appointmentEnd = new Date(appointmentStart.getTime() + row.duration_minutes * 60 * 1000);
 
     return { appointmentStart, appointmentEnd };
 }
 
 export function getPendingAppointmentRange(row: PendingAppointmentAssignmentRow) {
     const appointmentStart = new Date(row.scheduled_at);
-    const appointmentEnd = new Date(appointmentStart.getTime() + 60 * 60 * 1000);
+    const appointmentEnd = new Date(appointmentStart.getTime() + row.duration_minutes * 60 * 1000);
 
     return { appointmentStart, appointmentEnd };
 }

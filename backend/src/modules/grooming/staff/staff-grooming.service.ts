@@ -62,7 +62,17 @@ export async function listStaffAvailableServices(authUser: AuthUser) {
 export async function getStaffCounterAvailability(authUser: AuthUser, query: AvailabilityQuery) {
   assertStaff(authUser);
 
-  return groomingRepository.getAvailability(toVietnamDateString(query.date));
+  const service = query.serviceId
+    ? await groomingRepository.findBookingServicePriceBase(query.serviceId)
+    : null;
+  if (query.serviceId && !service) {
+    throw new AppError("Không tìm thấy dịch vụ spa", "GROOMING_SERVICE_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+
+  return groomingRepository.getAvailability(
+    toVietnamDateString(query.date),
+    service?.estimatedDurationMinutes ?? 30,
+  );
 }
 
 export async function getStaffCounterOptions(
@@ -149,6 +159,14 @@ export async function createStaffCounterTicket(
             "Thú cưng này đã có lịch spa trong khung giờ đã chọn",
             "GROOMING_PET_TIME_CONFLICT",
             httpStatus.CONFLICT
+          );
+        }
+
+        if (error instanceof Error && error.message === "GROOMING_OUTSIDE_WORKING_HOURS") {
+          throw new AppError(
+            "Thời gian thực hiện dịch vụ vượt quá giờ làm việc",
+            "GROOMING_OUTSIDE_WORKING_HOURS",
+            httpStatus.BAD_REQUEST,
           );
         }
 

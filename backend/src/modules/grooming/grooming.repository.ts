@@ -3,6 +3,7 @@ import type { QueryResultRow } from "pg";
 import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
 import { createId } from "../../shared/utils/id.js";
+import { getMaxConcurrentIntervals } from "../../shared/utils/interval-capacity.js";
 import { createPendingVnpayAttempt } from "../payments/payments.repository.js";
 import type {
   GroomingAvailabilityDto,
@@ -105,9 +106,9 @@ export type PaymentRow = QueryResultRow & {
   receipt_url: string | null;
 };
 
-export type BookedUnitsRow = QueryResultRow & {
-  slot_time: string;
-  booked_units: string | number;
+type GroomingIntervalRow = QueryResultRow & {
+  scheduled_at: Date;
+  duration_minutes: number;
 };
 
 export type CreateBookingInput = {
@@ -671,99 +672,144 @@ export async function countActiveStaff(client?: PoolClient): Promise<number> {
       return Number(result.rows[0]?.total ?? 0);
 }
 
-export async function findBookedUnitsBySlot(date: string, client?: PoolClient): Promise<Map<string, number>> {
+async function listActiveGroomingIntervals(
+  rangeStart: Date,
+  rangeEnd: Date,
+  client?: PoolClient,
+): Promise<GroomingIntervalRow[]> {
+  const sql = `
+    SELECT scheduled_at, duration_minutes
+    FROM pet_center.grooming_tickets
+    WHERE ticket_status IN ('pending_payment', 'pending', 'waiting', 'in_progress')
+      AND scheduled_at < $2
+      AND scheduled_at + duration_minutes * interval '1 minute' > $1
+  `;
+  const params = [rangeStart, rangeEnd];
+  const result = client
+    ? await client.query<GroomingIntervalRow>(sql, params)
+    : await query<GroomingIntervalRow>(sql, params);
 
-      const sql = `select
-     to_char(gt.scheduled_at at time zone $2, 'HH24:MI') as slot_time,
-     coalesce(sum(gti.quantity), 0)::text as booked_units
-   from pet_center.grooming_tickets gt
-   join pet_center.grooming_ticket_items gti on gti.grooming_ticket_id = gt.grooming_ticket_id
-   where (gt.scheduled_at at time zone $2)::date = $1::date
-     and gt.ticket_status in ('pending_payment', 'pending', 'waiting', 'in_progress', 'completed')
-   group by to_char(gt.scheduled_at at time zone $2, 'HH24:MI')`;
-      const params = [date, timeZone];
-      const result = client
-        ? await client.query<BookedUnitsRow>(sql, params)
-        : await query<BookedUnitsRow>(sql, params);
-
-      return new Map(result.rows.map((row) => [row.slot_time, Number(row.booked_units)]));
+  return result.rows;
 }
 
-export async function getAvailability(date: string): Promise<GroomingAvailabilityDto> {
+function buildVietnamDateTime(date: string, time: string): Date {
+  return new Date(`${date}T${time}:00+07:00`);
+}
 
-      const [activeStaffCount, bookedUnitsBySlot] = await Promise.all([
-        countActiveStaff(),
-        findBookedUnitsBySlot(date)
-      ]);
-      const capacity = activeStaffCount;
-      const slots = [];
+function formatVietnamTime(value: Date): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(value);
+}
 
-      for (let hour = slotStartHour; hour <= slotEndHour; hour += 1) {
-        for (const minute of [0, 30]) {
-          if (hour === slotEndHour && minute > slotEndMinute) continue;
+export async function getAvailability(
+  date: string,
+  durationMinutes = 30,
+): Promise<GroomingAvailabilityDto> {
+  const dayStart = buildVietnamDateTime(date, "08:00");
+  const dayEnd = buildVietnamDateTime(date, "18:00");
+  const [activeStaffCount, intervalRows] = await Promise.all([
+    countActiveStaff(),
+    listActiveGroomingIntervals(dayStart, dayEnd)
+  ]);
+  const capacity = activeStaffCount;
+  const intervals = intervalRows.map((row) => {
+    const start = new Date(row.scheduled_at);
+    return {
+      start,
+      end: new Date(start.getTime() + row.duration_minutes * 60 * 1000),
+    };
+  });
+  const slots = [];
 
-          const slotTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-          const bookedUnits = bookedUnitsBySlot.get(slotTime) ?? 0;
-          const availableUnits = Math.max(capacity - bookedUnits, 0);
+  for (let hour = slotStartHour; hour <= slotEndHour; hour += 1) {
+    for (const minute of [0, 30]) {
+      if (hour === slotEndHour && minute > slotEndMinute) continue;
 
-          slots.push({
-            time: slotTime,
-            capacity,
-            bookedUnits,
-            availableUnits,
-            available: availableUnits > 0
-          });
-        }
-      }
+      const slotTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+      const slotStart = buildVietnamDateTime(date, slotTime);
+      const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60 * 1000);
+      const bookedUnits = getMaxConcurrentIntervals(intervals, slotStart, slotEnd);
+      const availableUnits = slotEnd > dayEnd ? 0 : Math.max(capacity - bookedUnits, 0);
 
-      return {
-        date,
-        slots
-      };
+      slots.push({
+        time: slotTime,
+        label: `${slotTime} - ${formatVietnamTime(slotEnd)}`,
+        startAt: slotStart.toISOString(),
+        endAt: slotEnd.toISOString(),
+        durationMinutes,
+        capacity,
+        bookedUnits,
+        availableUnits,
+        available: availableUnits > 0
+      });
+    }
+  }
+
+  return {
+    date,
+    slots
+  };
 }
 
 async function hasOverlappingActiveGroomingForPet(
   client: PoolClient,
   petId: string,
-  scheduledAt: Date
+  scheduledAt: Date,
+  scheduledEnd: Date,
 ): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    `select exists (
+     select 1
+     from pet_center.grooming_tickets gt
+     where gt.pet_id = $1
+       and gt.ticket_status in ('pending_payment', 'pending', 'waiting', 'in_progress')
+       and gt.scheduled_at < $3
+       and gt.scheduled_at + gt.duration_minutes * interval '1 minute' > $2
+   ) as "exists"`,
+    [petId, scheduledAt, scheduledEnd]
+  );
 
-      const result = await client.query<{ exists: boolean }>(
-        `select exists (
-       select 1
-       from pet_center.grooming_tickets gt
-       where gt.pet_id = $1
-         and gt.ticket_status in ('pending_payment', 'pending', 'waiting', 'in_progress')
-         and gt.scheduled_at < $2::timestamptz + interval '30 minutes'
-         and gt.scheduled_at + interval '30 minutes' > $2::timestamptz
-     ) as "exists"`,
-        [petId, scheduledAt]
-      );
-
-      return result.rows[0]?.exists ?? false;
+  return result.rows[0]?.exists ?? false;
 }
 
 export async function createGroomingBooking(input: CreateBookingInput): Promise<GroomingTicketCreatedDto> {
+  return withTransaction(async (client) => {
+    await client.query("lock table pet_center.grooming_tickets in share row exclusive mode");
 
-      return withTransaction(async (client) => {
-        await client.query("lock table pet_center.grooming_tickets in share row exclusive mode");
+    const durationMinutes = input.service.estimatedDurationMinutes ?? 30;
+    const scheduledEnd = new Date(input.scheduledAt.getTime() + durationMinutes * 60 * 1000);
+    const bookingDate = mapper.toVietnamDateString(input.scheduledAt);
+    const closingTime = buildVietnamDateTime(bookingDate, "18:00");
+    if (scheduledEnd > closingTime) {
+      throw new Error("GROOMING_OUTSIDE_WORKING_HOURS");
+    }
 
-        const activeStaffCount = await countActiveStaff(client);
-        const capacity = activeStaffCount;
-        const bookedUnitsBySlot = await findBookedUnitsBySlot(mapper.toVietnamDateString(input.scheduledAt), client);
-        const scheduledSlot = new Intl.DateTimeFormat("en-GB", {
-          timeZone,
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false
-        }).format(input.scheduledAt);
-        const bookedUnits = bookedUnitsBySlot.get(scheduledSlot) ?? 0;
+    const activeStaffCount = await countActiveStaff(client);
+    const capacity = activeStaffCount;
+    const intervalRows = await listActiveGroomingIntervals(input.scheduledAt, scheduledEnd, client);
+    const intervals = intervalRows.map((row) => {
+      const start = new Date(row.scheduled_at);
+      return {
+        start,
+        end: new Date(start.getTime() + row.duration_minutes * 60 * 1000),
+      };
+    });
+    const bookedUnits = getMaxConcurrentIntervals(intervals, input.scheduledAt, scheduledEnd);
 
         if (capacity <= 0 || bookedUnits >= capacity) {
           throw new Error("GROOMING_SLOT_FULL");
         }
 
-        const petHasOverlappingBooking = await hasOverlappingActiveGroomingForPet(client, input.pet.petId, input.scheduledAt);
+    const petHasOverlappingBooking = await hasOverlappingActiveGroomingForPet(
+      client,
+      input.pet.petId,
+      input.scheduledAt,
+      scheduledEnd,
+    );
 
         if (petHasOverlappingBooking) {
           throw new Error("GROOMING_PET_TIME_CONFLICT");
@@ -781,9 +827,9 @@ export async function createGroomingBooking(input: CreateBookingInput): Promise<
         await client.query(
           `insert into pet_center.grooming_tickets (
          grooming_ticket_id, pet_id, owner_user_id, created_by_user_id, source_type,
-         scheduled_at, special_request, estimated_total, ticket_status
+         scheduled_at, duration_minutes, special_request, estimated_total, ticket_status
        )
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             groomingTicketId,
             input.pet.petId,
@@ -791,6 +837,7 @@ export async function createGroomingBooking(input: CreateBookingInput): Promise<
             createdByUserId,
             sourceType,
             input.scheduledAt,
+            durationMinutes,
             input.specialRequest ?? null,
             input.service.appliedPrice,
             ticketStatus

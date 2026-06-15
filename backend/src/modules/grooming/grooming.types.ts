@@ -60,6 +60,10 @@ export type StaffCounterGroomingOptionsDto = {
 
 export type GroomingAvailabilitySlotDto = {
   time: string;
+  label: string;
+  startAt: string;
+  endAt: string;
+  durationMinutes: number;
   capacity: number;
   bookedUnits: number;
   availableUnits: number;

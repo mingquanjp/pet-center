@@ -285,6 +285,7 @@ export async function seedIntegrationTestData(): Promise<IntegrationTestSeedData
         exam_type_id,
         veterinarian_user_id,
         scheduled_at,
+        duration_minutes,
         symptom_description,
         appointment_status,
         examination_status,
@@ -292,8 +293,8 @@ export async function seedIntegrationTestData(): Promise<IntegrationTestSeedData
         handled_by_staff_id
       )
       VALUES
-        ($1, $2, $3, $4, NULL, $5, 'Seed pending appointment for staff integration test', 'pending', 'waiting', NULL, NULL),
-        ($6, $2, $3, $4, $7, $8, 'Seed confirmed appointment for doctor integration test', 'confirmed', 'waiting', NULL, $9)
+        ($1, $2, $3, $4, NULL, $5, 60, 'Seed pending appointment for staff integration test', 'pending', 'waiting', NULL, NULL),
+        ($6, $2, $3, $4, $7, $8, 60, 'Seed confirmed appointment for doctor integration test', 'confirmed', 'waiting', NULL, $9)
       `,
       [
         integrationTestIds.pendingAppointmentId,
