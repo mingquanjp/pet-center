@@ -94,7 +94,7 @@ export function calculateGroomingPrice(basePrice: number, weightKg: number): num
   if (weightKg < largePetThresholdKg) {
     return basePrice;
   }
-  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg);
+  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg) + 1;
   return basePrice + surchargeSteps * largePetSurchargeAmount;
 }
 
@@ -102,11 +102,8 @@ export function getAppliedPricingConditionLabel(weightKg: number): string {
   if (weightKg < largePetThresholdKg) {
     return "Dưới 5kg";
   }
-  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg);
-  if (surchargeSteps === 0) {
-    return "Từ 5kg trở lên";
-  }
-  return `Từ 5kg trở lên (+${formatMoney(surchargeSteps * largePetSurchargeAmount)} VND)`;
+  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg) + 1;
+  return `Phụ thu theo cân nặng hiện tại: +${formatMoney(surchargeSteps * largePetSurchargeAmount)} VND`;
 }
 
 export function applyWeightBasedPrice(
