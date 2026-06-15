@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ownerAppointmentsApi } from "../api/owner-appointments.api";
 import {
@@ -31,8 +31,10 @@ export function useOwnerAppointments(filters: OwnerAppointmentFilters, page: num
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const latestRequestId = useRef(0);
 
   const fetchAppointments = useCallback(async () => {
+    const requestId = ++latestRequestId.current;
     await Promise.resolve();
 
     try {
@@ -45,6 +47,8 @@ export function useOwnerAppointments(filters: OwnerAppointmentFilters, page: num
         limit: OWNER_APPOINTMENTS_PAGE_SIZE,
       });
 
+      if (requestId !== latestRequestId.current) return;
+
       setData(response.data);
       setPagination({
         page: response.pagination.page,
@@ -53,11 +57,15 @@ export function useOwnerAppointments(filters: OwnerAppointmentFilters, page: num
         totalPages: Math.max(1, response.pagination.totalPages),
       });
     } catch (error) {
+      if (requestId !== latestRequestId.current) return;
+
       console.error("Failed to fetch owner appointments:", error);
       setData([]);
       setIsError(true);
     } finally {
-      setIsLoading(false);
+      if (requestId === latestRequestId.current) {
+        setIsLoading(false);
+      }
     }
   }, [filters, page]);
 

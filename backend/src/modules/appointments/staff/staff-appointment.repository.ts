@@ -216,6 +216,7 @@ export async function findStaffAppointmentDetailById(appointmentId: string, clie
       ma.exam_type_id,
       ma.veterinarian_user_id,
       ma.scheduled_at,
+      ma.duration_minutes,
       ma.symptom_description,
       ma.appointment_status,
       ma.internal_note,
@@ -261,6 +262,7 @@ export async function findStaffAppointmentDetailByIdForUpdate(appointmentId: str
       ma.exam_type_id,
       ma.veterinarian_user_id,
       ma.scheduled_at,
+      ma.duration_minutes,
       ma.symptom_description,
       ma.appointment_status,
       ma.internal_note,
@@ -318,7 +320,7 @@ export async function findAvailableDoctorsForAppointment(
       AND busy.appointment_status = 'confirmed'
       AND ($3::text IS NULL OR busy.appointment_id <> $3)
       AND busy.scheduled_at < $2
-      AND busy.scheduled_at + interval '60 minutes' > $1
+      AND busy.scheduled_at + busy.duration_minutes * interval '1 minute' > $1
     LEFT JOIN pet_center.medical_appointments day_appt
       ON day_appt.veterinarian_user_id = u.user_id
       AND day_appt.appointment_status = 'confirmed'
@@ -345,13 +347,14 @@ export async function findPendingAppointmentsAssignedToDoctorInRange(
   const sql = `
     SELECT
       appointment_id,
-      scheduled_at
+      scheduled_at,
+      duration_minutes
     FROM pet_center.medical_appointments
     WHERE appointment_status = 'pending'
       AND veterinarian_user_id = $1
       AND appointment_id <> $4
       AND scheduled_at < $3
-      AND scheduled_at + interval '60 minutes' > $2
+      AND scheduled_at + duration_minutes * interval '1 minute' > $2
     ORDER BY scheduled_at ASC, appointment_id ASC
     FOR UPDATE
   `;

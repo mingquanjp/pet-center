@@ -2,6 +2,7 @@ import { withTransaction } from "../../../db/transactions.js";
 import { AppError } from "../../../shared/errors/app-error.js";
 import { httpStatus } from "../../../shared/errors/http-status.js";
 import { createId } from "../../../shared/utils/id.js";
+import { getMaxConcurrentIntervals } from "../../../shared/utils/interval-capacity.js";
 import * as repo from "./owner-appointments.repository.js";
 import { notifyAppointmentCreated } from "../../notifications/notification-events.js";
 import type {
@@ -22,20 +23,16 @@ import type {
   OwnerPetOptionRow,
 } from "./owner-appointments.types.js";
 
-const FIXED_TIME_SLOTS = [
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-];
+const FIXED_TIME_SLOTS = Array.from({ length: 18 }, (_, index) => {
+  const totalMinutes = 8 * 60 + index * 30;
+  const hour = Math.floor(totalMinutes / 60);
+  const minute = totalMinutes % 60;
+
+  return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+});
 const timeZone = "Asia/Ho_Chi_Minh";
 const MIN_BOOKING_LEAD_TIME_MS = 30 * 60 * 1000;
+const MEDICAL_CLOSING_HOUR = 17;
 
 function getVietnamDateInputValue(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -52,6 +49,28 @@ function getVietnamDateInputValue(date = new Date()) {
 
 function buildVietnamSlotDate(date: string, slot: string) {
   return new Date(`${date}T${slot}:00+07:00`);
+}
+
+function buildVietnamClosingDate(date: string) {
+  return new Date(`${date}T${MEDICAL_CLOSING_HOUR.toString().padStart(2, "0")}:00:00+07:00`);
+}
+
+function getVietnamTimeValue(date: Date) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function getVietnamTimeLabel(date: Date) {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
 }
 
 function mapDbStatus(row: Pick<OwnerAppointmentListRow, "appointment_status" | "completed_exam_id">): OwnerAppointmentStatusDto {
@@ -264,28 +283,52 @@ function mapDetailRowToDto(row: OwnerAppointmentDetailRow): OwnerAppointmentDeta
   };
 }
 
-async function buildTimeSlots(date: string): Promise<OwnerAppointmentTimeSlotDto[]> {
-  const [doctorCount, bookedSlots] = await Promise.all([
+async function buildTimeSlots(date: string, examTypeId?: string): Promise<OwnerAppointmentTimeSlotDto[]> {
+  const examType = examTypeId ? await repo.findActiveExamTypeById(examTypeId) : null;
+  if (examTypeId && !examType) {
+    throw new AppError("Không tìm thấy loại khám", "EXAM_TYPE_NOT_FOUND", httpStatus.NOT_FOUND);
+  }
+  const durationMinutes = examType?.duration_minutes ?? 60;
+  const dayStart = buildVietnamSlotDate(date, FIXED_TIME_SLOTS[0]);
+  const dayEnd = buildVietnamClosingDate(date);
+  const [doctorCount, appointmentRows] = await Promise.all([
     repo.countActiveDoctors(),
-    repo.listBusySlotsByDate(date),
+    repo.listActiveAppointmentIntervals(dayStart, dayEnd),
   ]);
-  const slotCapacity = doctorCount;
-  const bookedBySlot = new Map(
-    bookedSlots.map((slot) => [slot.slot, Number(slot.booked_count)])
-  );
+  const intervals = appointmentRows.map((row) => {
+    const start = new Date(row.scheduled_at);
+    return {
+      start,
+      end: new Date(start.getTime() + row.duration_minutes * 60 * 1000),
+    };
+  });
   const now = new Date();
 
   return FIXED_TIME_SLOTS.map((slot) => {
     const slotStartsAt = buildVietnamSlotDate(date, slot);
+    const slotEndsAt = new Date(slotStartsAt.getTime() + durationMinutes * 60 * 1000);
     const isCutoffPassed = slotStartsAt.getTime() - now.getTime() <= MIN_BOOKING_LEAD_TIME_MS;
+    const isAfterClosing = slotEndsAt > dayEnd;
+    const bookedUnits = getMaxConcurrentIntervals(intervals, slotStartsAt, slotEndsAt);
     const availableUnits = isCutoffPassed
       ? 0
-      : Math.max(slotCapacity - (bookedBySlot.get(slot) ?? 0), 0);
-    const disabledReason = isCutoffPassed ? "cutoff" : availableUnits <= 0 ? "full" : undefined;
+      : isAfterClosing
+        ? 0
+        : Math.max(doctorCount - bookedUnits, 0);
+    const disabledReason = isCutoffPassed
+      ? "cutoff"
+      : isAfterClosing
+        ? "outside_working_hours"
+      : availableUnits <= 0
+        ? "full"
+        : undefined;
 
     return {
       value: slot,
-      label: slot,
+      label: `${slot} - ${getVietnamTimeLabel(slotEndsAt)}`,
+      startAt: slotStartsAt.toISOString(),
+      endAt: slotEndsAt.toISOString(),
+      durationMinutes,
       disabled: Boolean(disabledReason),
       disabledReason,
       availableUnits,
@@ -333,8 +376,8 @@ export async function getOwnerAppointmentCreateOptions(ownerUserId: string) {
   };
 }
 
-export async function getOwnerAvailableSlots(date: string) {
-  return buildTimeSlots(date);
+export async function getOwnerAvailableSlots(date: string, examTypeId?: string) {
+  return buildTimeSlots(date, examTypeId);
 }
 
 export async function createOwnerAppointment(
@@ -344,6 +387,13 @@ export async function createOwnerAppointment(
   const scheduledAt = new Date(body.scheduledAt);
   if (scheduledAt.getTime() - Date.now() <= MIN_BOOKING_LEAD_TIME_MS) {
     throw new AppError("Vui lòng đặt lịch trước giờ khám ít nhất 30 phút", "APPOINTMENT_TIME_TOO_SOON", httpStatus.BAD_REQUEST);
+  }
+  if (!FIXED_TIME_SLOTS.includes(getVietnamTimeValue(scheduledAt))) {
+    throw new AppError(
+      "Giờ khám phải nằm trong các khung giờ bắt đầu từ 08:00 đến 16:30",
+      "INVALID_APPOINTMENT_TIME",
+      httpStatus.BAD_REQUEST,
+    );
   }
 
   const result = await withTransaction(async (client) => {
@@ -360,17 +410,37 @@ export async function createOwnerAppointment(
       throw new AppError("Không tìm thấy loại khám", "EXAM_TYPE_NOT_FOUND", httpStatus.NOT_FOUND);
     }
 
-    const [doctorCount, bookedCount, duplicatePetAppointmentCount] = await Promise.all([
+    const durationMinutes = examType.duration_minutes ?? 60;
+    const appointmentEnd = new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000);
+    const appointmentDate = getVietnamDateInputValue(scheduledAt);
+    if (appointmentEnd > buildVietnamClosingDate(appointmentDate)) {
+      throw new AppError(
+        "Thời gian khám vượt quá giờ làm việc",
+        "APPOINTMENT_OUTSIDE_WORKING_HOURS",
+        httpStatus.BAD_REQUEST,
+      );
+    }
+
+    await repo.lockMedicalAppointmentsForScheduling(client);
+
+    const [doctorCount, activeIntervals, petHasOverlap] = await Promise.all([
       repo.countActiveDoctors(client),
-      repo.countBookedAppointmentsAt(scheduledAt, client),
-      repo.countPetAppointmentsAt(body.petId, scheduledAt, client),
+      repo.listActiveAppointmentIntervals(scheduledAt, appointmentEnd, client),
+      repo.hasOverlappingPetAppointment(body.petId, scheduledAt, appointmentEnd, client),
     ]);
-    if (duplicatePetAppointmentCount > 0) {
+    if (petHasOverlap) {
       throw new AppError("Thú cưng này đã có lịch hẹn trong khung giờ đã chọn", "PET_APPOINTMENT_TIME_DUPLICATED", httpStatus.CONFLICT);
     }
 
-    const slotCapacity = doctorCount;
-    if (slotCapacity <= 0 || bookedCount >= slotCapacity) {
+    const intervals = activeIntervals.map((row) => {
+      const start = new Date(row.scheduled_at);
+      return {
+        start,
+        end: new Date(start.getTime() + row.duration_minutes * 60 * 1000),
+      };
+    });
+    const bookedUnits = getMaxConcurrentIntervals(intervals, scheduledAt, appointmentEnd);
+    if (doctorCount <= 0 || bookedUnits >= doctorCount) {
       throw new AppError("Khung giờ này đã có lịch hẹn", "APPOINTMENT_SLOT_UNAVAILABLE", httpStatus.CONFLICT);
     }
 
@@ -382,6 +452,7 @@ export async function createOwnerAppointment(
         petId: body.petId,
         examTypeId: body.examTypeId,
         scheduledAt,
+        durationMinutes,
         symptomDescription: body.symptomDescription,
       },
       client,

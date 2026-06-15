@@ -106,6 +106,7 @@ export interface AppointmentDetailRow {
   exam_type_id: string;
   veterinarian_user_id: string | null;
   scheduled_at: Date;
+  duration_minutes: number;
   symptom_description: string | null;
   appointment_status: string;
   internal_note: string | null;
@@ -144,6 +145,7 @@ export interface AvailableDoctorRow {
 export interface PendingAppointmentAssignmentRow {
   appointment_id: string;
   scheduled_at: Date;
+  duration_minutes: number;
 }
 
 export type DoctorExaminationStatusDto =

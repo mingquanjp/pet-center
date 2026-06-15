@@ -73,6 +73,10 @@ export interface StaffCounterGroomingOptions {
 
 export interface GroomingAvailabilitySlot {
   time: string
+  label: string
+  startAt: string
+  endAt: string
+  durationMinutes: number
   capacity: number
   bookedUnits: number
   availableUnits: number

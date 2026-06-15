@@ -43,6 +43,7 @@ export function useOwnerCreateAppointmentData(date?: string, examTypeId?: string
 
     try {
       setIsError(false);
+      setTimeSlots([]);
       const slots = await ownerAppointmentsApi.getAvailableSlots({ date, examTypeId });
       setTimeSlots(slots);
     } catch (error) {

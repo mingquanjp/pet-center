@@ -377,8 +377,10 @@ export function StaffSpaCreatePage() {
   React.useEffect(() => {
     let isMounted = true
 
+    setIsAvailabilityLoading(true)
+
     spaApi
-      .getStaffCounterAvailability(selectedDate)
+      .getStaffCounterAvailability(selectedDate, selectedServiceId)
       .then((data) => {
         if (!isMounted) return
 
@@ -403,7 +405,7 @@ export function StaffSpaCreatePage() {
     return () => {
       isMounted = false
     }
-  }, [selectedDate])
+  }, [selectedDate, selectedServiceId])
 
   const selectedPet =
     options?.selectedPet ??
@@ -423,6 +425,7 @@ export function StaffSpaCreatePage() {
     return Array.from(petMap.values())
   }, [options?.pets, selectedPet])
   const selectedService = options?.services.find((service) => service.serviceId === selectedServiceId) ?? null
+  const selectedSlot = availability.find((slot) => slot.time === selectedTime) ?? null
   const formattedDate = formatDisplayDate(selectedDate)
   const availableSlots = availability.filter((slot) => slot.available)
   const canSubmit = Boolean(selectedPet && selectedService && selectedTime && !isSubmitting)
@@ -620,7 +623,7 @@ export function StaffSpaCreatePage() {
                         {isAvailabilityLoading
                           ? "Đang tải khung giờ..."
                           : availableSlots.length > 0 && selectedTime
-                            ? selectedTime
+                            ? selectedSlot?.label ?? selectedTime
                             : "Không có khung giờ trống"}
                       </span>
                       <ChevronDown className="size-4 text-[#3e4946]" aria-hidden="true" />
@@ -645,7 +648,7 @@ export function StaffSpaCreatePage() {
                                 selected ? "font-bold text-[#005e53]" : "font-normal text-[#1b1c15]"
                               )}
                             >
-                              <span>{slot.time}</span>
+                              <span>{slot.label}</span>
                               <span className="flex items-center gap-2 text-xs text-[#3e4946]">
                                 {slot.available ? `Còn ${slot.availableUnits}` : "Đầy"}
                                 {selected ? <Check className="size-4 text-[#005e53]" aria-hidden="true" /> : null}
@@ -690,7 +693,7 @@ export function StaffSpaCreatePage() {
                 <p className="font-semibold">{selectedService?.serviceName ?? "Chưa chọn"}</p>
               </SummaryRow>
               <SummaryRow label="Thời gian">
-                <p className="font-semibold">{selectedTime || "Chưa chọn"}</p>
+                <p className="font-semibold">{selectedSlot?.label ?? (selectedTime || "Chưa chọn")}</p>
                 <p className="text-[#3e4946]">{formattedDate}</p>
               </SummaryRow>
               <div className="flex items-center justify-between gap-4 pt-2">

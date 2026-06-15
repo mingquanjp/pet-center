@@ -146,6 +146,7 @@ CREATE TABLE medical_appointments (
     exam_type_id VARCHAR(30) NOT NULL REFERENCES exam_types(exam_type_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     veterinarian_user_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
     scheduled_at TIMESTAMPTZ NOT NULL,
+    duration_minutes INTEGER NOT NULL,
     symptom_description TEXT,
     appointment_status VARCHAR(30) NOT NULL DEFAULT 'pending',
     examination_status VARCHAR(30) NOT NULL DEFAULT 'waiting',
@@ -154,6 +155,7 @@ CREATE TABLE medical_appointments (
     handled_by_staff_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT chk_medical_appointments_status CHECK (appointment_status IN ('pending_payment', 'pending', 'confirmed', 'rejected', 'cancelled')),
     CONSTRAINT chk_medical_appointments_exam_status CHECK (examination_status IN ('waiting', 'examining', 'completed', 'follow_up')),
+    CONSTRAINT chk_medical_appointments_duration CHECK (duration_minutes > 0),
     CONSTRAINT chk_medical_appointments_rejection CHECK (
         (appointment_status = 'rejected' AND rejection_reason IS NOT NULL)
         OR (appointment_status <> 'rejected')
@@ -253,11 +255,13 @@ CREATE TABLE grooming_tickets (
     created_by_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     source_type VARCHAR(20) NOT NULL,
     scheduled_at TIMESTAMPTZ NOT NULL,
+    duration_minutes INTEGER NOT NULL,
     received_at TIMESTAMPTZ,
     special_request TEXT,
     estimated_total NUMERIC(12,2) NOT NULL DEFAULT 0,
     ticket_status VARCHAR(30) NOT NULL DEFAULT 'pending',
     CONSTRAINT chk_grooming_source_type CHECK (source_type IN ('online', 'counter')),
+    CONSTRAINT chk_grooming_duration CHECK (duration_minutes > 0),
     CONSTRAINT chk_grooming_total CHECK (estimated_total >= 0),
     CONSTRAINT chk_grooming_status CHECK (ticket_status IN ('pending_payment', 'pending', 'waiting', 'in_progress', 'completed', 'cancelled')),
     CONSTRAINT chk_grooming_received_at CHECK (received_at IS NULL OR received_at >= scheduled_at - INTERVAL '1 day')

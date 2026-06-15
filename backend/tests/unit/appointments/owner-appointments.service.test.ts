@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { httpStatus } from "../../../src/shared/errors/http-status.js";
 import * as repo from "../../../src/modules/appointments/owner/owner-appointments.repository.js";
-import { createOwnerAppointment } from "../../../src/modules/appointments/owner/owner-appointments.service.js";
+import {
+  createOwnerAppointment,
+  getOwnerAvailableSlots,
+} from "../../../src/modules/appointments/owner/owner-appointments.service.js";
 import * as transactions from "../../../src/db/transactions.js";
 import * as idUtils from "../../../src/shared/utils/id.js";
 import * as notifications from "../../../src/modules/notifications/notification-events.js";
@@ -22,13 +25,18 @@ const mockRepo = vi.mocked(repo);
 describe("createOwnerAppointment", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRepo.lockMedicalAppointmentsForScheduling.mockResolvedValue(undefined);
+    mockRepo.listActiveAppointmentIntervals.mockResolvedValue([]);
+    mockRepo.hasOverlappingPetAppointment.mockResolvedValue(false);
   });
 
   const validOwnerUserId = "usr_owner_01";
+  const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  scheduledAt.setUTCHours(3, 0, 0, 0);
   const validBody = {
     petId: "pet_001",
     examTypeId: "exam_general",
-    scheduledAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day in the future
+    scheduledAt: scheduledAt.toISOString(),
     symptomDescription: "Bỏ ăn 2 ngày",
   };
 
@@ -36,8 +44,6 @@ describe("createOwnerAppointment", () => {
     mockRepo.findOwnerPetById.mockResolvedValue({ pet_name: "Buddy", species: "Dog" } as any);
     mockRepo.findActiveExamTypeById.mockResolvedValue({ type_name: "Khám tổng quát" } as any);
     mockRepo.countActiveDoctors.mockResolvedValue(2);
-    mockRepo.countBookedAppointmentsAt.mockResolvedValue(0);
-    mockRepo.countPetAppointmentsAt.mockResolvedValue(0);
     mockRepo.insertOwnerAppointment.mockResolvedValue(undefined);
 
     const result = await createOwnerAppointment(validOwnerUserId, validBody);
@@ -47,7 +53,10 @@ describe("createOwnerAppointment", () => {
       appointmentCode: "appt_mock",
       status: "PENDING",
     });
-    expect(mockRepo.insertOwnerAppointment).toHaveBeenCalled();
+    expect(mockRepo.insertOwnerAppointment).toHaveBeenCalledWith(
+      expect.objectContaining({ durationMinutes: 60 }),
+      expect.anything(),
+    );
     expect(mockRepo.insertOwnerMedicalExam).toHaveBeenCalledWith("mex_mock", "appt_mock", expect.anything());
   });
 
@@ -90,8 +99,7 @@ describe("createOwnerAppointment", () => {
     mockRepo.findOwnerPetById.mockResolvedValue({ pet_name: "Buddy", species: "Dog" } as any);
     mockRepo.findActiveExamTypeById.mockResolvedValue({ type_name: "Khám tổng quát" } as any);
     mockRepo.countActiveDoctors.mockResolvedValue(2);
-    mockRepo.countBookedAppointmentsAt.mockResolvedValue(0);
-    mockRepo.countPetAppointmentsAt.mockResolvedValue(1); // duplicate
+    mockRepo.hasOverlappingPetAppointment.mockResolvedValue(true);
 
     const action = createOwnerAppointment(validOwnerUserId, validBody);
 
@@ -104,9 +112,7 @@ describe("createOwnerAppointment", () => {
   it("UT-APPOINTMENT-006 - Từ chối khi không có bác sĩ hoạt động", async () => {
     mockRepo.findOwnerPetById.mockResolvedValue({ pet_name: "Buddy", species: "Dog" } as any);
     mockRepo.findActiveExamTypeById.mockResolvedValue({ type_name: "Khám tổng quát" } as any);
-    mockRepo.countPetAppointmentsAt.mockResolvedValue(0);
     mockRepo.countActiveDoctors.mockResolvedValue(0); // 0 doctors
-    mockRepo.countBookedAppointmentsAt.mockResolvedValue(0);
 
     const action = createOwnerAppointment(validOwnerUserId, validBody);
 
@@ -119,15 +125,54 @@ describe("createOwnerAppointment", () => {
   it("UT-APPOINTMENT-007 - Từ chối khi slot đã đầy", async () => {
     mockRepo.findOwnerPetById.mockResolvedValue({ pet_name: "Buddy", species: "Dog" } as any);
     mockRepo.findActiveExamTypeById.mockResolvedValue({ type_name: "Khám tổng quát" } as any);
-    mockRepo.countPetAppointmentsAt.mockResolvedValue(0);
     mockRepo.countActiveDoctors.mockResolvedValue(2);
-    mockRepo.countBookedAppointmentsAt.mockResolvedValue(2); // fully booked
+    mockRepo.listActiveAppointmentIntervals.mockResolvedValue([
+      { scheduled_at: scheduledAt, duration_minutes: 60 },
+      { scheduled_at: scheduledAt, duration_minutes: 60 },
+    ]);
 
     const action = createOwnerAppointment(validOwnerUserId, validBody);
 
     await expect(action).rejects.toMatchObject({
       code: "APPOINTMENT_SLOT_UNAVAILABLE",
       statusCode: httpStatus.CONFLICT,
+    });
+  });
+});
+
+describe("getOwnerAvailableSlots", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockRepo.findActiveExamTypeById.mockResolvedValue({
+      exam_type_id: "exam_general",
+      type_code: "general_checkup",
+      type_name: "Khám tổng quát",
+      description: null,
+      duration_minutes: 45,
+    });
+    mockRepo.countActiveDoctors.mockResolvedValue(2);
+    mockRepo.listActiveAppointmentIntervals.mockResolvedValue([]);
+  });
+
+  it("returns 30-minute start intervals with service-specific end times", async () => {
+    const slots = await getOwnerAvailableSlots("2099-06-16", "exam_general");
+
+    expect(slots).toHaveLength(18);
+    expect(slots[0]).toMatchObject({
+      value: "08:00",
+      label: "08:00 - 08:45",
+      durationMinutes: 45,
+      disabled: false,
+    });
+    expect(slots[1]).toMatchObject({
+      value: "08:30",
+      label: "08:30 - 09:15",
+    });
+    expect(slots.at(-1)).toMatchObject({
+      value: "16:30",
+      label: "16:30 - 17:15",
+      disabled: true,
+      disabledReason: "outside_working_hours",
     });
   });
 });

@@ -66,10 +66,16 @@ export interface OwnerExamTypeOptionRow {
   type_code: string;
   type_name: string;
   description: string | null;
+  duration_minutes: number;
 }
 
 export interface OwnerAppointmentCountRow {
   total: string;
+}
+
+export interface OwnerAppointmentIntervalRow {
+  scheduled_at: Date;
+  duration_minutes: number;
 }
 
 export interface OwnerAppointmentDto {
@@ -147,8 +153,11 @@ export interface OwnerExamTypeOptionDto {
 export interface OwnerAppointmentTimeSlotDto {
   value: string;
   label: string;
+  startAt: string;
+  endAt: string;
+  durationMinutes: number;
   disabled?: boolean;
-  disabledReason?: "cutoff" | "full";
+  disabledReason?: "cutoff" | "full" | "outside_working_hours";
   availableUnits: number;
 }
 

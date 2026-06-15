@@ -5,7 +5,8 @@ export const bookingOptionsQuerySchema = z.object({
 });
 
 export const availabilityQuerySchema = z.object({
-  date: z.coerce.date()
+  date: z.coerce.date(),
+  serviceId: z.string().trim().min(1).max(30).optional()
 });
 
 export const listGroomingTicketsQuerySchema = z.object({

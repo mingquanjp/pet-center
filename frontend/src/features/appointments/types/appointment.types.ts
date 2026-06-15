@@ -243,8 +243,11 @@ export interface OwnerExamTypeOption {
 export interface OwnerAppointmentTimeSlot {
   value: string;
   label: string;
+  startAt: string;
+  endAt: string;
+  durationMinutes: number;
   disabled?: boolean;
-  disabledReason?: "cutoff" | "full";
+  disabledReason?: "cutoff" | "full" | "outside_working_hours";
   availableUnits?: number;
 }
 
