@@ -113,9 +113,11 @@ export function OwnerSpaBookingPage() {
         setIsLoadingSlots(true)
         setErrorMessage(null)
 
-        const availability = await spaApi.getAvailability(selectedDate, {
-          signal: abortController.signal,
-        })
+        const availability = await spaApi.getAvailability(
+          selectedDate,
+          selectedServiceId,
+          { signal: abortController.signal }
+        )
 
         if (abortController.signal.aborted) {
           return
@@ -148,7 +150,7 @@ export function OwnerSpaBookingPage() {
     return () => {
       abortController.abort()
     }
-  }, [selectedDate])
+  }, [selectedDate, selectedServiceId])
 
   const selectedPet = useMemo(
     () => pets.find((pet) => pet.id === selectedPetId) ?? pets[0] ?? null,
@@ -338,7 +340,13 @@ export function OwnerSpaBookingPage() {
                     disabled={isLoadingSlots || availableSlots.length === 0}
                     className="flex h-11 w-full items-center justify-between rounded-lg border border-[#BDC9C5] bg-[#FBFAEE] px-[17px] text-left text-sm leading-5 text-[#1B1C15] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <span>{isLoadingSlots ? "Đang tải..." : availableSlots.length > 0 ? selectedTime : "Hết lịch"}</span>
+                    <span>
+                      {isLoadingSlots
+                        ? "Đang tải..."
+                        : availableSlots.length > 0
+                          ? selectedSlot?.label ?? selectedTime
+                          : "Hết lịch"}
+                    </span>
                     <ChevronDown className="size-4 text-[#3E4946]" aria-hidden="true" />
                   </button>
 
@@ -361,7 +369,7 @@ export function OwnerSpaBookingPage() {
                               selected ? "font-bold text-[#005E53]" : "font-normal text-[#1B1C15]"
                             )}
                           >
-                            <span>{slot.time}</span>
+                            <span>{slot.label}</span>
                             <span className="flex items-center gap-2 text-xs text-[#3E4946]">
                               {slot.available ? `Còn ${slot.availableUnits}` : "Đầy"}
                               {selected ? <Check className="size-4 text-[#005E53]" aria-hidden="true" /> : null}
@@ -398,7 +406,9 @@ export function OwnerSpaBookingPage() {
               <div className="flex items-start justify-between gap-4">
                 <span className="text-[13px] leading-[18px] text-[#3E4946]">Thời gian</span>
                 <span className="text-right">
-                  <span className="block text-sm font-medium leading-5 text-[#1B1C15]">{selectedTime}</span>
+                  <span className="block text-sm font-medium leading-5 text-[#1B1C15]">
+                    {selectedSlot?.label ?? selectedTime}
+                  </span>
                   <span className="block text-[13px] leading-[18px] text-[#3E4946]">{bookingDateLabel}</span>
                 </span>
               </div>

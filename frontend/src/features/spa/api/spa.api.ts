@@ -60,9 +60,19 @@ export const spaApi = {
     return response.data
   },
 
-  async getAvailability(date: string, init: RequestInit = {}): Promise<GroomingAvailability> {
+  async getAvailability(
+    date: string,
+    serviceId?: string | null,
+    init: RequestInit = {}
+  ): Promise<GroomingAvailability> {
+    const query = new URLSearchParams({ date })
+
+    if (serviceId) {
+      query.set("serviceId", serviceId)
+    }
+
     const response = await apiRequest<GroomingAvailability>(
-      `/grooming/availability?date=${encodeURIComponent(date)}`,
+      `/grooming/availability?${query.toString()}`,
       {
         cacheTtlMs: 30 * 1000,
         ...init,
@@ -110,9 +120,19 @@ export const spaApi = {
     return response.data
   },
 
-  async getStaffCounterAvailability(date: string, init: RequestInit = {}): Promise<GroomingAvailability> {
+  async getStaffCounterAvailability(
+    date: string,
+    serviceId?: string | null,
+    init: RequestInit = {}
+  ): Promise<GroomingAvailability> {
+    const query = new URLSearchParams({ date })
+
+    if (serviceId) {
+      query.set("serviceId", serviceId)
+    }
+
     const response = await apiRequest<GroomingAvailability>(
-      `/grooming/counter/availability?date=${encodeURIComponent(date)}`,
+      `/grooming/counter/availability?${query.toString()}`,
       {
         cacheTtlMs: 20 * 1000,
         ...init,
