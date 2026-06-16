@@ -56,7 +56,6 @@ import {
   mapPaymentStatus,
   normalizeAttachmentUrlsStaff,
   getPayloadAttachmentUrls,
-  toApiDate,
   buildCurrentDayLabel,
   buildUpdateTitleFromAlertLevel,
   getCareUpdateLabel,
@@ -543,6 +542,10 @@ export async function createStaffBoardingAtCounter(
 
   if (isNaN(plannedCheckInAt.getTime()) || isNaN(plannedCheckOutAt.getTime())) {
     throw new AppError("Thời gian không hợp lệ", "INVALID_BOARDING_TIME", httpStatus.BAD_REQUEST);
+  }
+
+  if (plannedCheckInAt.getTime() <= Date.now()) {
+    throw new AppError("Thời gian nhận phòng phải ở tương lai", "INVALID_BOARDING_TIME", httpStatus.BAD_REQUEST);
   }
 
   if (plannedCheckOutAt <= plannedCheckInAt) {

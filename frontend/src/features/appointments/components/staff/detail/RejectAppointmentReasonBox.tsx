@@ -1,5 +1,5 @@
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 interface Props {
   value: string;
@@ -8,18 +8,18 @@ interface Props {
 
 export function RejectAppointmentReasonBox({ value, onChange }: Props) {
   return (
-    <div className="space-y-3 bg-petcenter-danger-bg/5 p-4 rounded-xl border border-petcenter-danger-text/20">
-      <Label htmlFor="rejection-reason" className="text-petcenter-text font-semibold text-sm">
-        Lý do từ chối <span className="text-petcenter-danger-text">*</span>
+    <div className="space-y-3">
+      <Label htmlFor="appointment-rejection-reason" className="text-[14px] font-semibold text-[#374151]">
+        Lý do từ chối <span className="text-[#EF4444]">*</span>
       </Label>
-      <Textarea
-        id="rejection-reason"
-        placeholder="Nhập lý do từ chối lịch hẹn..."
+      <Input
+        id="appointment-rejection-reason"
+        placeholder="VD: Bác sĩ chưa thể tiếp nhận trong khung giờ này..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-h-25 resize-none border-petcenter-border focus-visible:ring-petcenter-danger-text/30"
+        className="h-12 rounded-xl border-[#D1D5DB] bg-[#F9FAFB] text-[15px] shadow-inner transition-all placeholder:text-[#9CA3AF] focus-visible:border-[#0D9488] focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#0D9488]/20 focus-visible:ring-offset-0"
       />
-      <p className="text-xs text-petcenter-text-muted italic">
+      <p className="text-xs italic text-[#6B7280]">
         Lý do này sẽ được gửi tới chủ nuôi.
       </p>
     </div>

@@ -723,6 +723,7 @@ export async function getAvailability(
       end: new Date(start.getTime() + row.duration_minutes * 60 * 1000),
     };
   });
+  const now = new Date();
   const slots = [];
 
   for (let hour = slotStartHour; hour <= slotEndHour; hour += 1) {
@@ -732,8 +733,16 @@ export async function getAvailability(
       const slotTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
       const slotStart = buildVietnamDateTime(date, slotTime);
       const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60 * 1000);
+      if (slotEnd > dayEnd) continue;
+
       const bookedUnits = getMaxConcurrentIntervals(intervals, slotStart, slotEnd);
-      const availableUnits = slotEnd > dayEnd ? 0 : Math.max(capacity - bookedUnits, 0);
+      const isCutoffPassed = slotStart <= now;
+      const availableUnits = isCutoffPassed ? 0 : Math.max(capacity - bookedUnits, 0);
+      const disabledReason: "cutoff" | "full" | undefined = isCutoffPassed
+        ? "cutoff"
+        : availableUnits <= 0
+          ? "full"
+          : undefined;
 
       slots.push({
         time: slotTime,
@@ -744,7 +753,8 @@ export async function getAvailability(
         capacity,
         bookedUnits,
         availableUnits,
-        available: availableUnits > 0
+        available: !disabledReason,
+        disabledReason
       });
     }
   }

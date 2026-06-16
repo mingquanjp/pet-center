@@ -56,8 +56,8 @@ export function getPayloadAttachmentUrls(payload: { attachmentUrl?: string | nul
   return payload.attachmentUrl ? [payload.attachmentUrl] : null;
 }
 
-export function toApiDate(value: unknown): string {
-  return requireTimestamp(value).slice(0, 10);
+export function toApiDateTime(value: unknown): string {
+  return requireTimestamp(value);
 }
 
 export function buildCurrentDayLabel(record: any): string | null {
@@ -227,8 +227,8 @@ export function mapStaffBoardingListItem(record: any): StaffBoardingListItemDto 
       roomType: roomTypeName
     },
     requestedRoomType: roomTypeName,
-    checkInDate: toApiDate(record.planned_check_in_at),
-    checkOutDate: toApiDate(record.planned_check_out_at),
+    checkInDate: toApiDateTime(record.planned_check_in_at),
+    checkOutDate: toApiDateTime(record.planned_check_out_at),
     totalDays: calculateStayDays(new Date(record.planned_check_in_at), new Date(record.planned_check_out_at)),
     status: mapDbBoardingStatusToDto(record.boarding_status),
     paymentStatus: mapPaymentStatus(record),
@@ -279,8 +279,8 @@ export function mapStaffBoardingDetail(record: any, careUpdates: any[]): StaffBo
       roomType: roomTypeName
     },
     requestedRoomType: roomTypeName,
-    checkInDate: toApiDate(record.planned_check_in_at),
-    checkOutDate: toApiDate(record.planned_check_out_at),
+    checkInDate: toApiDateTime(record.planned_check_in_at),
+    checkOutDate: toApiDateTime(record.planned_check_out_at),
     actualCheckInAt: normalizeTimestamp(record.actual_check_in_at),
     actualCheckOutAt: normalizeTimestamp(record.actual_check_out_at),
     currentDayLabel: buildCurrentDayLabel(record),

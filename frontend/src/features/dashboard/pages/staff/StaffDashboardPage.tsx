@@ -20,29 +20,25 @@ const statCards = [
     key: "pendingAppointments",
     label: "Lịch chờ xác nhận",
     icon: CalendarClock,
-    bg: "#fef3c7",
-    iconColor: "#f59e0b",
+    iconClassName: "bg-petcenter-warning-bg text-petcenter-warning-text",
   },
   {
     key: "pendingGroomingTickets",
     label: "Dịch vụ spa cần xác nhận",
     icon: Leaf,
-    bg: "#ccfbf1",
-    iconColor: "#0f8f88",
+    iconClassName: "bg-petcenter-primary/10 text-petcenter-primary",
   },
   {
     key: "availableRooms",
     label: "Phòng trống",
     icon: BedDouble,
-    bg: "#d1fae5",
-    iconColor: "#00796b",
+    iconClassName: "bg-petcenter-success-bg text-petcenter-success-text",
   },
   {
     key: "todayInvoices",
     label: "Hóa đơn hôm nay",
     icon: ReceiptText,
-    bg: "#fef9c3",
-    iconColor: "#d97706",
+    iconClassName: "bg-petcenter-sidebar text-petcenter-text-secondary",
   },
 ] as const
 
@@ -173,33 +169,26 @@ export function StaffDashboardPage() {
         </p>
       </section>
 
-      <section className="grid w-full grid-cols-1 gap-4 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-gutter sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((item) => {
           const Icon = item.icon
 
           return (
             <article
               key={item.label}
-              className="relative flex h-[100px] items-center gap-4 overflow-hidden rounded-[16px] bg-white p-5 shadow-[0px_4px_20px_rgba(0,0,0,0.05)]"
+              className="flex h-32 flex-col justify-between rounded-card border border-petcenter-border bg-white p-4 shadow-card"
             >
-              <div
-                className="absolute bottom-[-24px] right-[-24px] size-24 rounded-full opacity-30"
-                style={{ backgroundColor: item.bg }}
-              />
-              <div
-                className="relative flex size-14 shrink-0 items-center justify-center rounded-[16px]"
-                style={{ backgroundColor: item.bg }}
-              >
-                <Icon className="size-[25px]" style={{ color: item.iconColor }} />
-              </div>
-              <div className="relative flex min-w-0 flex-col gap-1">
-                <p className="whitespace-nowrap text-[13px] font-medium leading-5 text-[#3e4946]">
+              <div className="flex items-start justify-between gap-3">
+                <p className="label-md text-petcenter-text-secondary">
                   {item.label}
                 </p>
-                <p className="whitespace-nowrap text-2xl font-bold leading-8 text-[#1b1c15]">
-                  {isLoading ? "..." : formatStatValue(item.key, overview?.stats)}
-                </p>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control ${item.iconClassName}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
               </div>
+              <p className="heading-lg text-petcenter-text">
+                {isLoading ? "..." : formatStatValue(item.key, overview?.stats)}
+              </p>
             </article>
           )
         })}

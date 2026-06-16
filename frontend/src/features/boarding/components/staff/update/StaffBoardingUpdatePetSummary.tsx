@@ -66,7 +66,7 @@ export function StaffBoardingUpdatePetSummary({ record }: StaffBoardingUpdatePet
 
         <div>
           <p className="text-[13px] font-medium text-[#64748B] mb-1">Thời gian</p>
-          <p className="text-[15px] font-semibold text-[#0F172A]">
+          <p className="whitespace-pre-line text-[15px] font-semibold leading-6 text-[#0F172A]">
             {timeRange}
             {currentDayLabel ? (
               <span className="text-[#0D9488] font-bold ml-1"> ({currentDayLabel})</span>

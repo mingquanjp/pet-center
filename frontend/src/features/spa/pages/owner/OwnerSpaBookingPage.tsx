@@ -126,10 +126,11 @@ export function OwnerSpaBookingPage() {
         setSlots(availability.slots)
         setSelectedTime((previousTime) => {
           const selectedSlot = availability.slots.find((slot) => slot.time === previousTime)
+          const firstAvailableSlot = availability.slots.find((slot) => slot.available)
 
           return selectedSlot?.available
             ? previousTime
-            : availability.slots.find((slot) => slot.available)?.time ?? defaultTime
+            : firstAvailableSlot?.time ?? availability.slots[0]?.time ?? defaultTime
         })
       } catch (error) {
         if (!abortController.signal.aborted) {
@@ -164,7 +165,6 @@ export function OwnerSpaBookingPage() {
     () => slots.find((slot) => slot.time === selectedTime) ?? null,
     [slots, selectedTime]
   )
-  const availableSlots = useMemo(() => slots.filter((slot) => slot.available), [slots])
   const bookingDateLabel = formatDateLabel(selectedDate)
   const totalAmount = selectedService?.appliedPrice ?? 0
   const [totalValue, totalCurrency] = formatMoney(totalAmount).split(" ")
@@ -337,15 +337,15 @@ export function OwnerSpaBookingPage() {
                   <button
                     type="button"
                     onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
-                    disabled={isLoadingSlots || availableSlots.length === 0}
+                    disabled={isLoadingSlots || slots.length === 0}
                     className="flex h-11 w-full items-center justify-between rounded-lg border border-[#BDC9C5] bg-[#FBFAEE] px-[17px] text-left text-sm leading-5 text-[#1B1C15] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <span>
                       {isLoadingSlots
                         ? "Đang tải..."
-                        : availableSlots.length > 0
-                          ? selectedSlot?.label ?? selectedTime
-                          : "Hết lịch"}
+                        : slots.length > 0
+                          ? selectedSlot?.label ?? slots[0]?.label ?? selectedTime
+                          : "Không có khung giờ"}
                     </span>
                     <ChevronDown className="size-4 text-[#3E4946]" aria-hidden="true" />
                   </button>
@@ -354,6 +354,12 @@ export function OwnerSpaBookingPage() {
                     <div className="absolute left-0 top-[50px] z-20 max-h-[260px] w-full overflow-y-auto rounded-xl border border-[#BDC9C5] bg-white p-1 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-4px_rgba(0,0,0,0.1)]">
                       {slots.map((slot) => {
                         const selected = slot.time === selectedTime
+                        const slotStatus =
+                          slot.disabledReason === "cutoff"
+                            ? "Quá hạn đặt"
+                            : slot.available
+                              ? `Còn ${slot.availableUnits}`
+                              : "Đầy"
 
                         return (
                           <button
@@ -371,7 +377,7 @@ export function OwnerSpaBookingPage() {
                           >
                             <span>{slot.label}</span>
                             <span className="flex items-center gap-2 text-xs text-[#3E4946]">
-                              {slot.available ? `Còn ${slot.availableUnits}` : "Đầy"}
+                              {slotStatus}
                               {selected ? <Check className="size-4 text-[#005E53]" aria-hidden="true" /> : null}
                             </span>
                           </button>

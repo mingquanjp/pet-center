@@ -20,14 +20,48 @@ const RouteLoadingContext = React.createContext<RouteLoadingContextValue | null>
 export function RouteLoadingProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [pendingRoute, setPendingRoute] = React.useState<PendingRoute | null>(null)
+  const clearTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearPendingRoute = React.useCallback(() => {
+    if (clearTimerRef.current) {
+      clearTimeout(clearTimerRef.current)
+      clearTimerRef.current = null
+    }
+
+    setPendingRoute(null)
+  }, [])
+
+  React.useEffect(() => {
+    if (!pendingRoute) return
+
+    const reachedTarget = pathname === pendingRoute.to || pathname.startsWith(`${pendingRoute.to}/`)
+    const leftSource = pathname !== pendingRoute.from
+
+    if (reachedTarget || leftSource) {
+      clearTimerRef.current = setTimeout(clearPendingRoute, 0)
+    }
+  }, [clearPendingRoute, pathname, pendingRoute])
+
+  React.useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) {
+        clearTimeout(clearTimerRef.current)
+      }
+    }
+  }, [])
 
   const startRouteLoading = React.useCallback(
     (href: string) => {
       if (href === pathname || pathname.startsWith(`${href}/`)) return
 
+      if (clearTimerRef.current) {
+        clearTimeout(clearTimerRef.current)
+      }
+
       setPendingRoute({ from: pathname, to: href })
+      clearTimerRef.current = setTimeout(clearPendingRoute, 5000)
     },
-    [pathname]
+    [clearPendingRoute, pathname]
   )
 
   const isRouteLoading =

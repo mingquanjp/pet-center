@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useEffect, useState } from "react"
+import { Check, ChevronDown, Plus } from "lucide-react"
 import {
   medicineStatusOptions,
   medicineUnitOptions,
@@ -55,9 +63,13 @@ export function AdminMedicineFormDialog({
     medicineStatus: "active",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const selectedUnitLabel =
+    medicineUnitOptions.find((opt) => opt.value === formData.unit)?.label || "Chọn đơn vị"
 
   useEffect(() => {
-    if (open) {
+    if (!open) return
+
+    const timer = window.setTimeout(() => {
       if (medicine) {
         setFormData({
           medicineName: medicine.medicineName,
@@ -77,7 +89,9 @@ export function AdminMedicineFormDialog({
           medicineStatus: "active",
         })
       }
-    }
+    }, 0)
+
+    return () => window.clearTimeout(timer)
   }, [open, medicine])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,23 +156,42 @@ export function AdminMedicineFormDialog({
                 <Label htmlFor="unit">
                   Đơn vị <span className="text-red-500">*</span>
                 </Label>
-                <Select
-                  value={formData.unit}
-                  onValueChange={(val) =>
-                    setFormData((prev) => ({ ...prev, unit: val as MedicineUnit }))
-                  }
-                >
-                  <SelectTrigger id="unit" className="focus-visible:ring-1 focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary">
-                    <SelectValue placeholder="Chọn đơn vị" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white z-[100] shadow-modal border border-petcenter-border text-petcenter-text ring-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      id="unit"
+                      type="button"
+                      className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-left text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-petcenter-primary focus-visible:ring-1 focus-visible:ring-petcenter-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="truncate">{selectedUnitLabel}</span>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="z-[100] bg-white shadow-modal border border-petcenter-border text-petcenter-text ring-0">
                     {medicineUnitOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
+                      <DropdownMenuItem
+                        key={opt.value}
+                        onSelect={() =>
+                          setFormData((prev) => ({ ...prev, unit: opt.value as MedicineUnit }))
+                        }
+                        className="flex cursor-pointer items-center justify-between px-2 py-2"
+                      >
+                        <span>{opt.label}</span>
+                        {formData.unit === opt.value && (
+                          <Check className="h-4 w-4 text-petcenter-primary" />
+                        )}
+                      </DropdownMenuItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                    <DropdownMenuSeparator className="my-1 bg-petcenter-border" />
+                    <DropdownMenuItem
+                      onSelect={(event) => event.preventDefault()}
+                      className="flex cursor-pointer items-center gap-2 px-2 py-2 font-medium text-petcenter-primary focus:bg-petcenter-primary/5 focus:text-petcenter-primary"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Thêm
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="space-y-2">

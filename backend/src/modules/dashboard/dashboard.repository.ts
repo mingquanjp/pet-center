@@ -556,6 +556,7 @@ export async function getOwnerDashboard(ownerUserId: string): Promise<OwnerDashb
     appointmentCountResult,
     unpaidInvoiceCountResult,
     unreadNotificationCountResult,
+    pendingServiceCountResult,
     petsResult,
     upcomingAppointmentsResult,
     recentActivitiesResult,
@@ -586,6 +587,25 @@ export async function getOwnerDashboard(ownerUserId: string): Promise<OwnerDashb
       `select count(*)::text as total
        from pet_center.notifications
        where receiver_user_id = $1 and notification_status = 'unread'`,
+      [ownerUserId]
+    ),
+    query<CountRow>(
+      `select (
+         (select count(*)
+          from pet_center.medical_appointments
+          where owner_user_id = $1
+            and appointment_status = 'pending')
+         +
+         (select count(*)
+          from pet_center.grooming_tickets
+          where owner_user_id = $1
+            and ticket_status = 'pending')
+         +
+         (select count(*)
+          from pet_center.boarding_records
+          where owner_user_id = $1
+            and boarding_status = 'pending')
+       )::text as total`,
       [ownerUserId]
     ),
     query<PetRow>(
@@ -691,6 +711,7 @@ export async function getOwnerDashboard(ownerUserId: string): Promise<OwnerDashb
       upcomingAppointmentCount: Number(appointmentCountResult.rows[0]?.total ?? 0),
       unpaidInvoiceCount: Number(unpaidInvoiceCountResult.rows[0]?.total ?? 0),
       unreadNotificationCount: Number(unreadNotificationCountResult.rows[0]?.total ?? 0),
+      pendingServiceCount: Number(pendingServiceCountResult.rows[0]?.total ?? 0),
     },
     pets: petsResult.rows.map(mapPet),
     upcomingAppointments: upcomingAppointmentsResult.rows.map(mapAppointment),

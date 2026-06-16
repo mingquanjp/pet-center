@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils"
 
 import {
   AlertCircle,
-  BellRing,
   CalendarDays,
   CalendarPlus,
   Clock3,
@@ -172,10 +171,10 @@ export function OwnerDashboardPage() {
       iconClassName: "bg-petcenter-sidebar text-petcenter-text-secondary",
     },
     {
-      label: "Thông báo mới",
-      value: dashboard.summary.unreadNotificationCount,
-      icon: BellRing,
-      iconClassName: "bg-petcenter-danger-bg text-petcenter-danger-text",
+      label: "Dịch vụ chờ tiếp nhận",
+      value: dashboard.summary.pendingServiceCount,
+      icon: Clock3,
+      iconClassName: "bg-petcenter-warning-bg text-petcenter-warning-text",
     },
   ]
 

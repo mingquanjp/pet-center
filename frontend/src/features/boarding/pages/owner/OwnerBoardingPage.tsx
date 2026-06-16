@@ -464,7 +464,7 @@ function BoardingBookingCard({ booking, onCancel }: { booking: BoardingRecordLis
             <div>
               <p>
                 Thời gian:{" "}
-                <span className="text-[#1B1C15]">
+                <span className="whitespace-pre-line text-[#1B1C15]">
                   {booking.plannedDateRangeText}
                 </span>
               </p>
