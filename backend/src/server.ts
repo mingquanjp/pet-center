@@ -1,30 +1,46 @@
-import "dotenv/config";
-import cors from "cors";
-import express from "express";
-import {pool} from "./db.js";
+import { env } from "./config/env.js";
+import { pool } from "./db/pool.js";
+import { app } from "./app.js";
 
+import { initSocket } from "./realtime/socket.js";
+import { initReminderCron } from "./modules/notifications/notification-reminders.service.js";
+import { initBoardingCron } from "./modules/boarding/boarding.cron.js";
+import { initGroomingCron } from "./modules/grooming/grooming.cron.js";
 
-const app = express();
+const server = app.listen(env.PORT, () => {
+  console.log(`API server running at http://localhost:${env.PORT}`);
+  console.log(`Swagger UI running at http://localhost:${env.PORT}/api-docs`);
+  
+  // Initialize Socket.io on the same HTTP server
+  initSocket(server);
+  console.log("Socket.io initialized");
 
-const port = Number(process.env.PORT) || 8080;
-const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
+  // Initialize reminder cron jobs
+  initReminderCron();
+  console.log("Reminder cron jobs initialized");
 
-app.use(cors({ origin: corsOrigin }));
-app.use(express.json());
+  // Initialize boarding cron jobs
+  initBoardingCron();
+  console.log("Boarding cron jobs initialized");
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+  // Initialize grooming cron jobs
+  initGroomingCron();
+  console.log("Grooming cron jobs initialized");
 });
 
-app.get("/db/health", async (_req, res) => {
-  const result = await pool.query("select now() as now");
+async function shutdown(signal: NodeJS.Signals): Promise<void> {
+  console.log(`${signal} received. Shutting down API server.`);
 
-  res.json({
-    database: "connected",
-    now: result.rows[0].now
+  server.close(async () => {
+    await pool.end();
+    process.exit(0);
   });
+}
+
+process.on("SIGINT", (signal) => {
+  void shutdown(signal);
 });
 
-app.listen(port, () => {
-  console.log(`API server running at http://localhost:${port}`);
+process.on("SIGTERM", (signal) => {
+  void shutdown(signal);
 });

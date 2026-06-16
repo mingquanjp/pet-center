@@ -1,0 +1,144 @@
+@layer base {
+  :root {
+    /* =========================
+       shadcn/ui core tokens
+       ========================= */
+
+    --background: 55 47% 96%;
+    --foreground: 120 10% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 120 10% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 120 10% 14%;
+
+    --primary: 173 100% 24%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 38 92% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 54 29% 92%;
+    --muted-foreground: 160 8% 40%;
+
+    --accent: 168 50% 90%;
+    --accent-foreground: 173 100% 24%;
+
+    --destructive: 0 75% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 70 20% 88%;
+    --input: 150 14% 84%;
+    --ring: 173 100% 24%;
+
+    --radius: 0.75rem;
+
+    /* =========================
+       PetCenter design tokens
+       Theo docs/design.md
+       ========================= */
+
+    --petcenter-background: #f7f6ea;
+    --petcenter-sidebar: #f1efe2;
+    --petcenter-card: #ffffff;
+    --petcenter-filter: #fbfaf2;
+
+    --petcenter-text: #1f261f;
+    --petcenter-text-secondary: #52605c;
+    --petcenter-text-muted: #7a837f;
+
+    --petcenter-primary: #00796b;
+    --petcenter-primary-hover: #00695c;
+    --petcenter-primary-active: #00574d;
+
+    --petcenter-cta: #f59e0b;
+    --petcenter-cta-hover: #d97706;
+    --petcenter-cta-active: #b45309;
+
+    --petcenter-border: #e6e8dd;
+    --petcenter-border-strong: #d3dad6;
+
+    --petcenter-success-bg: #dff3e3;
+    --petcenter-success-text: #2e7d32;
+
+    --petcenter-warning-bg: #fff3d8;
+    --petcenter-warning-text: #b45309;
+
+    --petcenter-info-bg: #e0f2fe;
+    --petcenter-info-text: #0369a1;
+
+    --petcenter-danger-bg: #fde2e2;
+    --petcenter-danger-text: #b91c1c;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--petcenter-background);
+    color: var(--petcenter-text);
+    font-family: Inter, system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  .heading-lg {
+    font-size: 32px;
+    line-height: 40px;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .heading-md {
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .heading-sm {
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .title-md {
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 600;
+  }
+
+  .body-lg {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 400;
+  }
+
+  .body-md {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+  }
+
+  .body-sm {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 400;
+  }
+
+  .label-md {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+  }
+
+  .label-sm {
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+}

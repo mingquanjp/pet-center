@@ -8,6 +8,35 @@ DROP SCHEMA IF EXISTS pet_center CASCADE;
 CREATE SCHEMA pet_center;
 SET search_path TO pet_center, public;
 
+CREATE SEQUENCE own_id_seq;
+CREATE SEQUENCE stf_id_seq;
+CREATE SEQUENCE doc_id_seq;
+CREATE SEQUENCE adm_id_seq;
+CREATE SEQUENCE prt_id_seq;
+CREATE SEQUENCE pet_id_seq;
+CREATE SEQUENCE hp_id_seq;
+CREATE SEQUENCE svc_id_seq;
+CREATE SEQUENCE med_id_seq;
+CREATE SEQUENCE appt_id_seq;
+CREATE SEQUENCE mex_id_seq;
+CREATE SEQUENCE efd_id_seq;
+CREATE SEQUENCE efv_id_seq;
+CREATE SEQUENCE rx_id_seq;
+CREATE SEQUENCE rxi_id_seq;
+CREATE SEQUENCE vac_id_seq;
+CREATE SEQUENCE fui_id_seq;
+CREATE SEQUENCE spa_id_seq;
+CREATE SEQUENCE gti_id_seq;
+CREATE SEQUENCE rt_id_seq;
+CREATE SEQUENCE brd_id_seq;
+CREATE SEQUENCE bup_id_seq;
+CREATE SEQUENCE inv_id_seq;
+CREATE SEQUENCE inl_id_seq;
+CREATE SEQUENCE pay_id_seq;
+CREATE SEQUENCE noti_id_seq;
+CREATE SEQUENCE elog_id_seq;
+CREATE SEQUENCE rem_id_seq;
+
 CREATE TABLE users (
     user_id VARCHAR(30) PRIMARY KEY,
     full_name VARCHAR(150) NOT NULL,
@@ -18,10 +47,20 @@ CREATE TABLE users (
     role VARCHAR(30) NOT NULL,
     account_status VARCHAR(20) NOT NULL DEFAULT 'active',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT chk_users_role CHECK (role IN ('PetOwner', 'Staff', 'Veterinarian', 'Administrator')),
+    CONSTRAINT chk_users_role CHECK (role IN ('Owner', 'Staff', 'Doctor', 'Admin')),
     CONSTRAINT chk_users_account_status CHECK (account_status IN ('active', 'locked', 'inactive')),
     CONSTRAINT chk_users_email_format CHECK (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'),
     CONSTRAINT chk_users_phone_number CHECK (phone_number IS NULL OR phone_number ~ '^[0-9+() .-]{8,20}$')
+);
+
+CREATE TABLE password_reset_tokens (
+    reset_token_id VARCHAR(30) PRIMARY KEY,
+    user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_password_reset_expiry CHECK (expires_at > created_at)
 );
 
 CREATE TABLE pets (
@@ -37,13 +76,11 @@ CREATE TABLE pets (
     weight_kg NUMERIC(7,2),
     profile_image_url TEXT,
     identifying_marks TEXT,
-    pet_status VARCHAR(20) NOT NULL DEFAULT 'active',
     CONSTRAINT chk_pets_species CHECK (species IN ('Dog', 'Cat', 'Other')),
     CONSTRAINT chk_pets_gender CHECK (gender IS NULL OR gender IN ('male', 'female', 'unknown')),
     CONSTRAINT chk_pets_age CHECK (estimated_age IS NULL OR estimated_age >= 0),
     CONSTRAINT chk_pets_weight CHECK (weight_kg IS NULL OR weight_kg > 0),
     CONSTRAINT chk_pets_birth_date CHECK (birth_date IS NULL OR birth_date <= CURRENT_DATE),
-    CONSTRAINT chk_pets_status CHECK (pet_status IN ('active', 'inactive', 'deceased')),
     CONSTRAINT chk_pets_age_source CHECK (birth_date IS NOT NULL OR estimated_age IS NOT NULL)
 );
 
@@ -67,7 +104,7 @@ CREATE TABLE services (
     estimated_duration_minutes INTEGER,
     base_price NUMERIC(12,2) NOT NULL DEFAULT 0,
     service_status VARCHAR(20) NOT NULL DEFAULT 'active',
-    CONSTRAINT chk_services_category CHECK (service_category IN ('medical', 'grooming', 'boarding', 'medicine', 'other')),
+    CONSTRAINT chk_services_category CHECK (service_category IN ('medical', 'grooming', 'boarding', 'medicine')),
     CONSTRAINT chk_services_duration CHECK (estimated_duration_minutes IS NULL OR estimated_duration_minutes > 0),
     CONSTRAINT chk_services_base_price CHECK (base_price >= 0),
     CONSTRAINT chk_services_status CHECK (service_status IN ('active', 'inactive'))
@@ -109,12 +146,16 @@ CREATE TABLE medical_appointments (
     exam_type_id VARCHAR(30) NOT NULL REFERENCES exam_types(exam_type_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     veterinarian_user_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
     scheduled_at TIMESTAMPTZ NOT NULL,
+    duration_minutes INTEGER NOT NULL,
     symptom_description TEXT,
     appointment_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+    examination_status VARCHAR(30) NOT NULL DEFAULT 'waiting',
     internal_note TEXT,
     rejection_reason TEXT,
     handled_by_staff_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT chk_medical_appointments_status CHECK (appointment_status IN ('pending_payment', 'pending', 'confirmed', 'rejected', 'cancelled')),
+    CONSTRAINT chk_medical_appointments_exam_status CHECK (examination_status IN ('waiting', 'examining', 'completed', 'follow_up')),
+    CONSTRAINT chk_medical_appointments_duration CHECK (duration_minutes > 0),
     CONSTRAINT chk_medical_appointments_rejection CHECK (
         (appointment_status = 'rejected' AND rejection_reason IS NOT NULL)
         OR (appointment_status <> 'rejected')
@@ -124,14 +165,13 @@ CREATE TABLE medical_appointments (
 CREATE TABLE medical_exams (
     exam_id VARCHAR(30) PRIMARY KEY,
     appointment_id VARCHAR(30) NOT NULL UNIQUE REFERENCES medical_appointments(appointment_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    exam_type_id VARCHAR(30) NOT NULL REFERENCES exam_types(exam_type_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     diagnosis TEXT,
     conclusion TEXT,
     health_note TEXT,
-    exam_status VARCHAR(30) NOT NULL DEFAULT 'result_recorded',
-    exam_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    examined_by_veterinarian_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT chk_medical_exams_status CHECK (exam_status IN ('result_recorded', 'prescribed', 'follow_up_required'))
+    exam_status VARCHAR(30) NOT NULL DEFAULT 'waiting',
+    exam_date DATE,
+    examined_by_veterinarian_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_medical_exams_status CHECK (exam_status IN ('waiting', 'examining', 'result_recorded', 'prescribed', 'follow_up_required'))
 );
 
 CREATE TABLE medical_exam_field_values (
@@ -167,7 +207,7 @@ CREATE TABLE medicines (
     usage_note TEXT,
     unit_price NUMERIC(12,2) NOT NULL DEFAULT 0,
     medicine_status VARCHAR(20) NOT NULL DEFAULT 'active',
-    CONSTRAINT chk_medicines_unit CHECK (unit IN ('tablet', 'bottle', 'packet', 'tube', 'ml', 'dose', 'other')),
+    CONSTRAINT chk_medicines_unit CHECK (unit IN ('tablet', 'blister', 'packet', 'tube', 'bottle')),
     CONSTRAINT chk_medicines_unit_price CHECK (unit_price >= 0),
     CONSTRAINT chk_medicines_status CHECK (medicine_status IN ('active', 'inactive'))
 );
@@ -183,12 +223,13 @@ CREATE TABLE prescription_items (
     prescription_item_id VARCHAR(30) PRIMARY KEY,
     prescription_id VARCHAR(30) NOT NULL REFERENCES prescriptions(prescription_id) ON UPDATE CASCADE ON DELETE CASCADE,
     medicine_id VARCHAR(30) NOT NULL REFERENCES medicines(medicine_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    medicine_name VARCHAR(150) NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
     dosage VARCHAR(120) NOT NULL,
     frequency VARCHAR(120) NOT NULL,
     duration VARCHAR(120) NOT NULL,
     usage_instruction TEXT,
-    note TEXT
+    note TEXT,
+    CONSTRAINT chk_prescription_items_quantity CHECK (quantity > 0)
 );
 
 CREATE TABLE follow_up_instructions (
@@ -197,19 +238,14 @@ CREATE TABLE follow_up_instructions (
     follow_up_date DATE NOT NULL,
     reason TEXT NOT NULL,
     owner_note TEXT,
-    CONSTRAINT chk_follow_up_date CHECK (follow_up_date >= CURRENT_DATE)
-);
-
-CREATE TABLE service_price_rules (
-    price_rule_id VARCHAR(30) PRIMARY KEY,
-    service_id VARCHAR(30) NOT NULL REFERENCES services(service_id) ON UPDATE CASCADE ON DELETE CASCADE,
-    pricing_condition VARCHAR(150) NOT NULL,
-    price_amount NUMERIC(12,2) NOT NULL,
-    effective_from DATE NOT NULL,
-    price_status VARCHAR(20) NOT NULL DEFAULT 'active',
-    CONSTRAINT chk_service_price_amount CHECK (price_amount >= 0),
-    CONSTRAINT chk_service_price_status CHECK (price_status IN ('active', 'inactive')),
-    CONSTRAINT uq_service_price_rule UNIQUE (service_id, pricing_condition, effective_from)
+    follow_up_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    completed_at TIMESTAMPTZ,
+    CONSTRAINT chk_follow_up_date CHECK (follow_up_date >= CURRENT_DATE),
+    CONSTRAINT chk_follow_up_status CHECK (follow_up_status IN ('pending', 'completed', 'cancelled')),
+    CONSTRAINT chk_follow_up_completed_at CHECK (
+        (follow_up_status = 'completed' AND completed_at IS NOT NULL)
+        OR (follow_up_status <> 'completed' AND completed_at IS NULL)
+    )
 );
 
 CREATE TABLE grooming_tickets (
@@ -219,11 +255,13 @@ CREATE TABLE grooming_tickets (
     created_by_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     source_type VARCHAR(20) NOT NULL,
     scheduled_at TIMESTAMPTZ NOT NULL,
+    duration_minutes INTEGER NOT NULL,
     received_at TIMESTAMPTZ,
     special_request TEXT,
     estimated_total NUMERIC(12,2) NOT NULL DEFAULT 0,
     ticket_status VARCHAR(30) NOT NULL DEFAULT 'pending',
     CONSTRAINT chk_grooming_source_type CHECK (source_type IN ('online', 'counter')),
+    CONSTRAINT chk_grooming_duration CHECK (duration_minutes > 0),
     CONSTRAINT chk_grooming_total CHECK (estimated_total >= 0),
     CONSTRAINT chk_grooming_status CHECK (ticket_status IN ('pending_payment', 'pending', 'waiting', 'in_progress', 'completed', 'cancelled')),
     CONSTRAINT chk_grooming_received_at CHECK (received_at IS NULL OR received_at >= scheduled_at - INTERVAL '1 day')
@@ -258,16 +296,17 @@ CREATE TABLE boarding_records (
     pet_id VARCHAR(30) NOT NULL REFERENCES pets(pet_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     owner_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     room_type_id VARCHAR(30) NOT NULL REFERENCES room_types(room_type_id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    planned_check_in_date DATE NOT NULL,
-    planned_check_out_date DATE NOT NULL,
+    planned_check_in_at TIMESTAMPTZ NOT NULL,
+    planned_check_out_at TIMESTAMPTZ NOT NULL,
     actual_check_in_at TIMESTAMPTZ,
     actual_check_out_at TIMESTAMPTZ,
     care_request TEXT,
     estimated_total NUMERIC(12,2) NOT NULL DEFAULT 0,
     boarding_status VARCHAR(30) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     rejection_reason TEXT,
     handled_by_staff_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
-    CONSTRAINT chk_boarding_planned_dates CHECK (planned_check_out_date > planned_check_in_date),
+    CONSTRAINT chk_boarding_planned_times CHECK (planned_check_out_at > planned_check_in_at),
     CONSTRAINT chk_boarding_actual_dates CHECK (actual_check_out_at IS NULL OR actual_check_in_at IS NULL OR actual_check_out_at > actual_check_in_at),
     CONSTRAINT chk_boarding_total CHECK (estimated_total >= 0),
     CONSTRAINT chk_boarding_status CHECK (boarding_status IN ('pending_payment', 'pending', 'confirmed', 'staying', 'checked_out', 'rejected', 'cancelled')),
@@ -283,7 +322,7 @@ CREATE TABLE boarding_updates (
     created_by_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     update_note TEXT NOT NULL,
-    attachment_url TEXT,
+    attachment_url TEXT[],
     alert_level VARCHAR(20) NOT NULL DEFAULT 'normal',
     visibility_status VARCHAR(20) NOT NULL DEFAULT 'draft',
     CONSTRAINT chk_boarding_updates_alert CHECK (alert_level IN ('normal', 'attention', 'urgent')),
@@ -307,7 +346,7 @@ CREATE TABLE invoices (
     ),
     CONSTRAINT chk_invoices_total CHECK (total_amount = subtotal_amount - discount_amount + surcharge_amount),
     CONSTRAINT chk_invoices_payment_option CHECK (payment_option IN ('online', 'counter')),
-    CONSTRAINT chk_invoices_status CHECK (invoice_status IN ('draft', 'pending_payment', 'paid', 'cancelled', 'refunded'))
+    CONSTRAINT chk_invoices_status CHECK (invoice_status IN ('draft', 'pending_payment', 'paid', 'cancelled'))
 );
 
 CREATE TABLE invoice_lines (
@@ -331,17 +370,40 @@ CREATE TABLE payments (
     payment_id VARCHAR(30) PRIMARY KEY,
     invoice_id VARCHAR(30) NOT NULL REFERENCES invoices(invoice_id) ON UPDATE CASCADE ON DELETE RESTRICT,
     payment_method VARCHAR(30) NOT NULL,
-    payment_provider VARCHAR(80),
     transaction_code VARCHAR(100),
     paid_amount NUMERIC(12,2) NOT NULL,
     paid_at TIMESTAMPTZ,
     payment_status VARCHAR(20) NOT NULL,
     receipt_code VARCHAR(100) UNIQUE,
     receipt_url TEXT,
-    CONSTRAINT chk_payments_method CHECK (payment_method IN ('e_wallet', 'online_bank_card', 'cash_at_counter', 'card_at_counter')),
+    CONSTRAINT chk_payments_method CHECK (payment_method IN ('online', 'at_counter')),
     CONSTRAINT chk_payments_amount CHECK (paid_amount > 0),
     CONSTRAINT chk_payments_status CHECK (payment_status IN ('success', 'failed', 'cancelled')),
     CONSTRAINT chk_payments_success_paid_at CHECK ((payment_status = 'success' AND paid_at IS NOT NULL) OR payment_status <> 'success')
+);
+
+CREATE TABLE online_payment_attempts (
+    payment_attempt_id VARCHAR(30) PRIMARY KEY,
+    invoice_id VARCHAR(30) NOT NULL REFERENCES invoices(invoice_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    provider_txn_ref VARCHAR(100) NOT NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    attempt_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    payment_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    completed_at TIMESTAMPTZ,
+    provider_transaction_no VARCHAR(100),
+    response_code VARCHAR(20),
+    transaction_status VARCHAR(20),
+    raw_return_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    raw_ipn_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    CONSTRAINT chk_online_payment_attempts_amount CHECK (amount > 0),
+    CONSTRAINT chk_online_payment_attempts_status CHECK (attempt_status IN ('pending', 'success', 'failed', 'cancelled', 'expired')),
+    CONSTRAINT chk_online_payment_attempts_completed_at CHECK (
+        (attempt_status = 'pending' AND completed_at IS NULL)
+        OR (attempt_status IN ('success', 'failed', 'cancelled', 'expired') AND completed_at IS NOT NULL)
+    ),
+    CONSTRAINT chk_online_payment_attempts_expiry CHECK (expires_at > created_at)
 );
 
 CREATE TABLE notifications (
@@ -354,12 +416,92 @@ CREATE TABLE notifications (
     notification_status VARCHAR(20) NOT NULL DEFAULT 'unread',
     related_object_type VARCHAR(60),
     related_object_id VARCHAR(30),
-    CONSTRAINT chk_notifications_channel CHECK (delivery_channel IN ('app', 'email', 'sms')),
-    CONSTRAINT chk_notifications_status CHECK (notification_status IN ('unread', 'read', 'failed')),
+    notification_type VARCHAR(80),
+    read_at TIMESTAMPTZ,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    dedupe_key VARCHAR(180),
+    CONSTRAINT chk_notifications_channel CHECK (delivery_channel IN ('app', 'email')),
+    CONSTRAINT chk_notifications_status CHECK (notification_status IN ('unread', 'read')),
     CONSTRAINT chk_notifications_related CHECK (
         (related_object_type IS NULL AND related_object_id IS NULL)
         OR (related_object_type IS NOT NULL AND related_object_id IS NOT NULL)
     )
+);
+
+CREATE TABLE email_logs (
+    email_log_id VARCHAR(30) PRIMARY KEY,
+    receiver_user_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
+    receiver_email public.citext NOT NULL,
+    template_key VARCHAR(100) NOT NULL,
+    subject VARCHAR(200) NOT NULL,
+    related_object_type VARCHAR(60),
+    related_object_id VARCHAR(30),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    provider_message_id VARCHAR(150),
+    error_message TEXT,
+    sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    CONSTRAINT chk_email_logs_status CHECK (status IN ('pending', 'sent', 'failed')),
+    CONSTRAINT chk_email_logs_related CHECK (
+        (related_object_type IS NULL AND related_object_id IS NULL)
+        OR (related_object_type IS NOT NULL AND related_object_id IS NOT NULL)
+    )
+);
+
+CREATE TABLE notification_reminders (
+    reminder_id VARCHAR(30) PRIMARY KEY,
+    reminder_type VARCHAR(80) NOT NULL,
+    receiver_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    related_object_type VARCHAR(60) NOT NULL,
+    related_object_id VARCHAR(30) NOT NULL,
+    remind_at TIMESTAMPTZ NOT NULL,
+    sent_at TIMESTAMPTZ,
+    reminder_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    CONSTRAINT chk_notification_reminders_status CHECK (reminder_status IN ('pending', 'sent', 'failed', 'cancelled'))
+);
+
+CREATE TABLE pet_activity_logs (
+    activity_log_id VARCHAR(30) PRIMARY KEY,
+    pet_id VARCHAR(30) NOT NULL REFERENCES pets(pet_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    owner_user_id VARCHAR(30) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    actor_user_id VARCHAR(30) REFERENCES users(user_id) ON UPDATE CASCADE ON DELETE SET NULL,
+    activity_category VARCHAR(30) NOT NULL,
+    activity_type VARCHAR(60) NOT NULL,
+    activity_status VARCHAR(30) NOT NULL DEFAULT 'completed',
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    title VARCHAR(180) NOT NULL,
+    summary TEXT,
+    source_type VARCHAR(40) NOT NULL,
+    source_id VARCHAR(30) NOT NULL,
+    visibility_status VARCHAR(20) NOT NULL DEFAULT 'visible',
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_pet_activity_category CHECK (
+        activity_category IN ('medical', 'vaccination', 'grooming', 'boarding', 'invoice', 'payment', 'profile')
+    ),
+    CONSTRAINT chk_pet_activity_status CHECK (
+        activity_status IN ('scheduled', 'pending', 'confirmed', 'completed', 'cancelled', 'rejected', 'failed')
+    ),
+    CONSTRAINT chk_pet_activity_source CHECK (
+        source_type IN (
+            'medical_appointment',
+            'medical_exam',
+            'vaccination',
+            'prescription',
+            'follow_up_instruction',
+            'grooming_ticket',
+            'boarding_record',
+            'boarding_update',
+            'invoice',
+            'payment',
+            'pet'
+        )
+    ),
+    CONSTRAINT chk_pet_activity_visibility CHECK (visibility_status IN ('visible', 'hidden')),
+    CONSTRAINT uq_pet_activity_source UNIQUE (source_type, source_id, activity_type)
 );
 
 CREATE UNIQUE INDEX uq_payments_transaction_code
@@ -370,18 +512,31 @@ CREATE UNIQUE INDEX uq_invoice_success_payment
     ON payments(invoice_id)
     WHERE payment_status = 'success';
 
+CREATE UNIQUE INDEX uq_online_payment_attempts_txn_ref
+    ON online_payment_attempts(provider_txn_ref);
+
+CREATE UNIQUE INDEX uq_online_payment_attempts_pending_invoice
+    ON online_payment_attempts(invoice_id)
+    WHERE attempt_status = 'pending';
+
 CREATE INDEX idx_users_role_status ON users(role, account_status);
+CREATE INDEX idx_password_reset_user_created
+    ON password_reset_tokens(user_id, created_at DESC);
+CREATE INDEX idx_password_reset_expiry
+    ON password_reset_tokens(expires_at)
+    WHERE used_at IS NULL;
 CREATE INDEX idx_pets_owner ON pets(owner_user_id);
-CREATE INDEX idx_pets_species_status ON pets(species, pet_status);
+CREATE INDEX idx_pets_species ON pets(species);
 CREATE INDEX idx_health_profiles_pet ON pet_health_profiles(pet_id);
 CREATE INDEX idx_services_category_status ON services(service_category, service_status);
 CREATE INDEX idx_exam_types_service ON exam_types(service_id);
 CREATE INDEX idx_exam_fields_exam_type ON exam_field_definitions(exam_type_id, display_order);
 CREATE INDEX idx_medical_appointments_pet_time ON medical_appointments(pet_id, scheduled_at);
 CREATE INDEX idx_medical_appointments_owner_status ON medical_appointments(owner_user_id, appointment_status);
+CREATE INDEX idx_medical_appointments_exam_status ON medical_appointments(veterinarian_user_id, examination_status);
 CREATE INDEX idx_medical_appointments_vet_time ON medical_appointments(veterinarian_user_id, scheduled_at);
 CREATE INDEX idx_medical_appointments_staff ON medical_appointments(handled_by_staff_id);
-CREATE INDEX idx_medical_exams_type_date ON medical_exams(exam_type_id, exam_date);
+CREATE INDEX idx_medical_exams_exam_date ON medical_exams(exam_date);
 CREATE INDEX idx_medical_exams_vet_date ON medical_exams(examined_by_veterinarian_id, exam_date);
 CREATE INDEX idx_exam_values_exam ON medical_exam_field_values(exam_id);
 CREATE INDEX idx_exam_values_definition ON medical_exam_field_values(field_definition_id);
@@ -392,14 +547,14 @@ CREATE INDEX idx_prescriptions_exam ON prescriptions(exam_id);
 CREATE INDEX idx_prescription_items_prescription ON prescription_items(prescription_id);
 CREATE INDEX idx_prescription_items_medicine ON prescription_items(medicine_id);
 CREATE INDEX idx_follow_ups_date ON follow_up_instructions(follow_up_date);
-CREATE INDEX idx_service_price_rules_service ON service_price_rules(service_id, effective_from DESC);
+CREATE INDEX idx_follow_ups_status_date ON follow_up_instructions(follow_up_status, follow_up_date);
 CREATE INDEX idx_grooming_tickets_pet_time ON grooming_tickets(pet_id, scheduled_at);
 CREATE INDEX idx_grooming_tickets_owner_status ON grooming_tickets(owner_user_id, ticket_status);
 CREATE INDEX idx_grooming_tickets_schedule_status ON grooming_tickets(scheduled_at, ticket_status);
 CREATE INDEX idx_grooming_ticket_items_ticket ON grooming_ticket_items(grooming_ticket_id);
 CREATE INDEX idx_grooming_ticket_items_service ON grooming_ticket_items(service_id);
-CREATE INDEX idx_boarding_records_pet_dates ON boarding_records(pet_id, planned_check_in_date, planned_check_out_date);
-CREATE INDEX idx_boarding_records_room_dates ON boarding_records(room_type_id, planned_check_in_date, planned_check_out_date);
+CREATE INDEX idx_boarding_records_pet_dates ON boarding_records(pet_id, planned_check_in_at, planned_check_out_at);
+CREATE INDEX idx_boarding_records_room_dates ON boarding_records(room_type_id, planned_check_in_at, planned_check_out_at);
 CREATE INDEX idx_boarding_records_owner_status ON boarding_records(owner_user_id, boarding_status);
 CREATE INDEX idx_boarding_records_staff ON boarding_records(handled_by_staff_id);
 CREATE INDEX idx_boarding_updates_record_time ON boarding_updates(boarding_record_id, updated_at DESC);
@@ -411,7 +566,41 @@ CREATE INDEX idx_invoice_lines_service ON invoice_lines(service_id);
 CREATE INDEX idx_invoice_lines_source ON invoice_lines(source_type, source_id);
 CREATE INDEX idx_payments_invoice ON payments(invoice_id);
 CREATE INDEX idx_payments_status_paid_at ON payments(payment_status, paid_at DESC);
+CREATE INDEX idx_online_payment_attempts_invoice ON online_payment_attempts(invoice_id);
+CREATE INDEX idx_online_payment_attempts_status_expiry ON online_payment_attempts(attempt_status, expires_at);
 CREATE INDEX idx_notifications_receiver_status ON notifications(receiver_user_id, notification_status, created_at DESC);
 CREATE INDEX idx_notifications_related ON notifications(related_object_type, related_object_id);
+CREATE INDEX idx_pet_activity_logs_pet_time ON pet_activity_logs(pet_id, occurred_at DESC);
+CREATE INDEX idx_pet_activity_logs_owner_time ON pet_activity_logs(owner_user_id, occurred_at DESC);
+CREATE INDEX idx_pet_activity_logs_category_time ON pet_activity_logs(activity_category, occurred_at DESC);
+CREATE INDEX idx_pet_activity_logs_source ON pet_activity_logs(source_type, source_id);
+
+CREATE UNIQUE INDEX uq_notifications_dedupe_key
+    ON notifications(dedupe_key)
+    WHERE dedupe_key IS NOT NULL;
+
+CREATE INDEX idx_notifications_receiver_created
+    ON notifications(receiver_user_id, created_at DESC);
+
+CREATE INDEX idx_notifications_type_created
+    ON notifications(notification_type, created_at DESC);
+
+CREATE INDEX idx_email_logs_receiver_created
+    ON email_logs(receiver_user_id, created_at DESC);
+
+CREATE INDEX idx_email_logs_related
+    ON email_logs(related_object_type, related_object_id);
+
+CREATE INDEX idx_email_logs_status_created
+    ON email_logs(status, created_at DESC);
+
+CREATE UNIQUE INDEX uq_notification_reminders_dedupe
+    ON notification_reminders(reminder_type, receiver_user_id, related_object_type, related_object_id);
+
+CREATE INDEX idx_notification_reminders_due
+    ON notification_reminders(reminder_status, remind_at);
+
+CREATE INDEX idx_notification_reminders_receiver
+    ON notification_reminders(receiver_user_id, created_at DESC);
 
 COMMIT;

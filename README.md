@@ -16,7 +16,8 @@ Pet Center là dự án quản lý trung tâm chăm sóc thú cưng. Repository 
 ![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?logo=github)
 
 - Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS 4, ESLint
-- Backend: Express.js 5, TypeScript, tsx, dotenv, cors
+- Backend: Express.js 5, TypeScript, tsx, dotenv, cors, helmet, pino, zod
+- API docs/testing: Swagger UI, swagger-jsdoc
 - Database: Neon Postgres, package `pg`
 - Package manager: pnpm
 - Version control: Git/GitHub
@@ -24,11 +25,21 @@ Pet Center là dự án quản lý trung tâm chăm sóc thú cưng. Repository 
 ## Cấu Trúc Thư Mục
 
 ```txt
-pet_center/
+pet-center/
   frontend/              # Ứng dụng Next.js
   backend/               # Express.js API
-  database/              # Tài liệu database/ERD
-  spec/                  # Tài liệu đặc tả hiện có
+    docs/                # Tài liệu kiến trúc backend và API design
+    scripts/             # Script vận hành backend, ví dụ init database
+    src/
+      app.ts             # Tạo Express app, middleware, Swagger, routes
+      server.ts          # Khởi động HTTP server
+      config/            # env, cors, logger, swagger config
+      db/                # pg pool, query helper, transaction helper
+      middlewares/       # error handler, validation, auth/role middleware
+      modules/           # Module nghiệp vụ theo domain
+      routes/            # Mount API version /api/v1
+      shared/            # Error, response, type, utility dùng chung
+  database/              # SQL schema/ERD
   package.json           # Script chạy chung cho workspace
   pnpm-workspace.yaml    # Khai báo pnpm workspace
   pnpm-lock.yaml         # Lockfile dùng chung
@@ -37,11 +48,18 @@ pet_center/
   README.md
 ```
 
+Tài liệu backend:
+
+```txt
+backend/docs/PetCenter_BE_Express_Architecture_Guide.md
+backend/docs/PetCenter_BE_API_Design.md
+```
+
 ## Yêu Cầu Môi Trường
 
 Cần cài đặt trước:
 
-- Node.js 22 LTS, project đã có file `.nvmrc` để thống nhất version Node cho team
+- Node.js 22 LTS, project có file `.nvmrc` để thống nhất version Node cho team
 - pnpm, dùng để cài dependency và chạy scripts
 - Git
 - Tài khoản Neon để lấy Postgres connection string
@@ -54,17 +72,15 @@ pnpm -v
 git --version
 ```
 
-Nếu `node -v` đã là Node 22.x và `pnpm -v` chạy được, có thể bỏ qua bước cài môi trường và chuyển sang phần clone/cài dependencies.
+Nếu `node -v` đã là Node 22.x và `pnpm -v` chạy được, có thể bỏ qua bước cài môi trường.
 
-Corepack không bắt buộc nếu máy đã có pnpm và lệnh `pnpm -v` chạy được. Nếu máy chưa có pnpm, bật pnpm qua Corepack. Bước này chỉ cần làm một lần trên máy:
+Nếu máy chưa có pnpm, bật pnpm qua Corepack:
 
 ```bash
 corepack enable
 corepack prepare pnpm@latest --activate
 pnpm -v
 ```
-
-Nếu máy chưa có Node.js 22, hãy cài Node.js 22 LTS trước. Có thể dùng `nvm`, Homebrew hoặc installer chính thức của Node.js, tùy môi trường của từng thành viên.
 
 ## Clone Dự Án
 
@@ -90,10 +106,10 @@ pnpm install
 
 Repository này dùng pnpm workspace, nên không cần chạy `pnpm install` riêng trong `frontend` và `backend`.
 
-Nếu pnpm hỏi approve build scripts cho `sharp`, `unrs-resolver` hoặc `esbuild`, có thể approve vì đây là dependency hợp lệ của Next.js/tsx:
+Nếu pnpm hỏi approve build scripts cho dependency hợp lệ của project, chạy:
 
 ```bash
-pnpm approve-builds sharp unrs-resolver esbuild
+pnpm approve-builds
 pnpm install
 ```
 
@@ -101,17 +117,13 @@ pnpm install
 
 ### Frontend
 
-Tạo file:
+Frontend không cần tạo file `.env.local` để chạy local. Mặc định frontend gọi backend tại:
 
 ```txt
-frontend/.env.local
+http://localhost:8080/api/v1
 ```
 
-Nội dung:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
-```
+Chỉ cần cấu hình `NEXT_PUBLIC_API_URL` khi muốn trỏ frontend sang API khác với mặc định.
 
 ### Backend
 
@@ -126,7 +138,7 @@ Nội dung:
 ```env
 PORT=8080
 CORS_ORIGIN=http://localhost:3000
-DATABASE_URL=postgresql://USER:PASSWORD@HOST/DB?sslmode=require
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DB?sslmode=verify-full
 ```
 
 Lấy `DATABASE_URL` từ Neon Dashboard, mục Connect. Không commit file `.env` lên Git.
@@ -136,6 +148,28 @@ Có file mẫu:
 ```txt
 backend/.env.example
 ```
+
+## Khởi Tạo Database Neon
+
+Script SQL chính nằm tại:
+
+```txt
+database/init_db.sql
+```
+
+Chạy init database:
+
+```bash
+pnpm --filter backend run db:init
+```
+
+Lưu ý: script này có dòng:
+
+```sql
+DROP SCHEMA IF EXISTS pet_center CASCADE;
+```
+
+Nghĩa là khi chạy lại, toàn bộ schema `pet_center` hiện có sẽ bị xóa và tạo mới theo `database/init_db.sql`.
 
 ## Cách Chạy Dự Án
 
@@ -164,37 +198,59 @@ pnpm dev:backend
 ```txt
 Frontend: http://localhost:3000
 Backend:  http://localhost:8080
+Swagger:  http://localhost:8080/api-docs
 ```
 
 ## Kiểm Tra Hệ Thống
 
-Kiểm tra backend:
+Kiểm tra backend theo API prefix mới:
 
 ```txt
-http://localhost:8080/health
+http://localhost:8080/api/v1/health
 ```
 
 Kết quả mong muốn:
 
 ```json
 {
-  "status": "ok"
+  "success": true,
+  "data": {
+    "status": "ok"
+  },
+  "message": "OK"
 }
 ```
 
 Kiểm tra backend kết nối Neon Postgres:
 
 ```txt
-http://localhost:8080/db/health
+http://localhost:8080/api/v1/db/health
 ```
 
 Kết quả mong muốn:
 
 ```json
 {
-  "database": "connected",
-  "now": "..."
+  "success": true,
+  "data": {
+    "database": "connected",
+    "now": "..."
+  },
+  "message": "OK"
 }
+```
+
+Swagger UI:
+
+```txt
+http://localhost:8080/api-docs
+```
+
+Các endpoint cũ vẫn được giữ tạm để tương thích README/FE cũ:
+
+```txt
+http://localhost:8080/health
+http://localhost:8080/db/health
 ```
 
 Kiểm tra frontend:
@@ -235,36 +291,94 @@ pnpm dev
 pnpm build
 pnpm start
 pnpm lint
+pnpm db:init
+```
+
+## Backend Architecture
+
+Backend hiện được tổ chức theo domain module. Module chuẩn nên có:
+
+```txt
+module.routes.ts       # Khai báo endpoint và Swagger JSDoc
+module.controller.ts   # Nhận request, gọi service, trả response
+module.service.ts      # Xử lý nghiệp vụ
+module.repository.ts   # Truy vấn database
+module.schema.ts       # Validate request bằng Zod
+module.types.ts        # Type riêng của module
+```
+
+Các API mới nên đi theo prefix:
+
+```txt
+/api/v1
+```
+
+Response thành công dùng format:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "message": "OK"
+}
+```
+
+Response lỗi dùng format:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Resource not found"
+  }
+}
+```
+
+Chi tiết xem:
+
+```txt
+backend/docs/PetCenter_BE_Express_Architecture_Guide.md
+backend/docs/PetCenter_BE_API_Design.md
 ```
 
 ## Lưu Ý Khi Phát Triển
 
-- Sau khi sửa `.env` hoặc `.env.local`, cần restart dev server.
-- Frontend chỉ dùng `NEXT_PUBLIC_API_URL` để gọi backend.
+- Sau khi sửa `.env`, cần restart dev server backend.
+- Frontend mặc định gọi `http://localhost:8080/api/v1`; chỉ dùng `NEXT_PUBLIC_API_URL` khi cần đổi API base URL.
 - Không đưa `DATABASE_URL` vào frontend.
-- Không commit `node_modules`, `.env`, `.env.local`, `.next`, `dist`.
+- Không commit `node_modules`, `.env`, `.next`, `dist`.
 - Commit `pnpm-lock.yaml` để cả team dùng cùng dependency version.
+- API mới dùng prefix `/api/v1`.
+- API dùng cho frontend nên có Swagger JSDoc để test ở `/api-docs`.
+- SQL chỉ nên nằm trong repository layer.
+- Controller không viết SQL trực tiếp.
 
 ## Troubleshooting
 
-Nếu frontend báo lỗi:
+Nếu frontend không gọi được API, kiểm tra backend đang chạy tại:
 
 ```txt
-Failed to parse URL from undefined/health
+http://localhost:8080/api/v1/health
 ```
 
-Kiểm tra `frontend/.env.local` đã có:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
-```
-
-Sau đó restart frontend:
+Sau đó restart frontend nếu cần:
 
 ```bash
 pnpm dev:frontend
 ```
 
-Nếu backend trả 404 ở `/db/health`, kiểm tra file `backend/src/server.ts` đã có route `/db/health` và restart backend.
-
 Nếu backend báo thiếu `DATABASE_URL`, kiểm tra `backend/.env` đã có connection string Neon đúng định dạng.
+
+Nếu `/api/v1/db/health` trả `DATABASE_UNAVAILABLE`, kiểm tra:
+
+- `backend/.env` có đúng `DATABASE_URL`
+- Neon database đang active
+- Connection string dùng `sslmode=verify-full`
+- Mạng local có thể kết nối tới Neon
+
+Nếu Swagger không mở được, kiểm tra backend đang chạy tại:
+
+```txt
+http://localhost:8080
+```

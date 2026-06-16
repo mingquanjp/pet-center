@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Good Design Backend Refactor Plan - Pet Center</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f7f4;
+      --paper: #ffffff;
+      --ink: #1f2933;
+      --muted: #5f6b7a;
+      --line: #d9dee7;
+      --accent: #0f766e;
+      --accent-soft: #e8f4f2;
+      --danger: #b42318;
+      --warn: #a16207;
+      --ok: #166534;
+      --code-bg: #111827;
+      --code-ink: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.6;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 310px minmax(0, 1fr);
+      gap: 24px;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+
+    aside {
+      align-self: start;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      max-height: calc(100vh - 40px);
+      overflow: auto;
+      padding: 16px;
+      position: sticky;
+      top: 20px;
+    }
+
+    main {
+      min-width: 0;
+    }
+
+    header,
+    section {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 18px;
+      padding: 22px 26px;
+    }
+
+    header {
+      border-top: 4px solid var(--accent);
+    }
+
+    h1 {
+      font-size: 30px;
+      line-height: 1.2;
+      margin: 0 0 10px;
+    }
+
+    h2 {
+      border-left: 4px solid var(--accent);
+      font-size: 22px;
+      line-height: 1.35;
+      margin: 8px 0 14px;
+      padding-left: 10px;
+    }
+
+    h3 {
+      font-size: 18px;
+      margin: 22px 0 10px;
+    }
+
+    p {
+      margin: 8px 0;
+    }
+
+    a {
+      color: #0f5f8f;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    code {
+      background: #eef2f6;
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border-radius: 8px;
+      color: var(--code-ink);
+      overflow-x: auto;
+      padding: 14px 16px;
+      white-space: pre;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f1f5f9;
+      font-weight: 700;
+    }
+
+    ul,
+    ol {
+      margin: 8px 0 8px 22px;
+      padding: 0;
+    }
+
+    li + li {
+      margin-top: 4px;
+    }
+
+    .toc-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 10px;
+    }
+
+    .toc-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .toc-list li + li {
+      margin-top: 8px;
+    }
+
+    .toc-list a {
+      display: block;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .badge {
+      background: var(--accent-soft);
+      border: 1px solid #badbd7;
+      border-radius: 999px;
+      color: #0f5f58;
+      display: inline-block;
+      font-size: 13px;
+      padding: 3px 10px;
+      white-space: nowrap;
+    }
+
+    .note,
+    .warning,
+    .success {
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      margin: 12px 0;
+      padding: 10px 12px;
+    }
+
+    .note {
+      background: #f8fafc;
+    }
+
+    .warning {
+      background: #fff8e6;
+      border-left-color: var(--warn);
+    }
+
+    .success {
+      background: #effaf2;
+      border-left-color: var(--ok);
+    }
+
+    .priority-high {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .priority-medium {
+      color: var(--warn);
+      font-weight: 700;
+    }
+
+    .priority-low {
+      color: var(--ok);
+      font-weight: 700;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        display: block;
+        padding: 18px 12px 36px;
+      }
+
+      aside {
+        max-height: none;
+        margin-bottom: 16px;
+        position: static;
+      }
+
+      header,
+      section {
+        padding: 18px 14px;
+      }
+
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <p class="toc-title">Mục lục</p>
+      <ol class="toc-list">
+        <li><a href="#summary">1. Tóm tắt kết luận</a></li>
+        <li><a href="#assumptions">2. Giả định và phạm vi</a></li>
+        <li><a href="#current-architecture">3. Kiến trúc hiện tại</a></li>
+        <li><a href="#evidence">4. Bằng chứng từ code</a></li>
+        <li><a href="#principles">5. Mapping sang Good Design</a></li>
+        <li><a href="#priorities">6. Mức ưu tiên refactor</a></li>
+        <li><a href="#module-plan">7. Kế hoạch theo module</a></li>
+        <li><a href="#target-structure">8. Cấu trúc đích</a></li>
+        <li><a href="#implementation-guide">9. Hướng dẫn triển khai</a></li>
+        <li><a href="#code-templates">10. Mẫu code refactor</a></li>
+        <li><a href="#testing">11. Kiểm chứng sau refactor</a></li>
+        <li><a href="#handoff">12. Checklist bàn giao</a></li>
+      </ol>
+    </aside>
+
+    <main>
+      <header>
+        <h1>Good Design Backend Refactor Plan - Pet Center</h1>
+        <p class="meta">Tài liệu dành cho thành viên triển khai refactor backend theo High Cohesion, Low Coupling, SOLID và Design Patterns.</p>
+        <div class="badges">
+          <span class="badge">Backend: Express 5 + TypeScript</span>
+          <span class="badge">Database: PostgreSQL/pg</span>
+          <span class="badge">Scope: backend/src</span>
+          <span class="badge">Không đổi API contract nếu không có yêu cầu riêng</span>
+        </div>
+      </header>
+
+      <section id="summary">
+        <h2>1. Tóm tắt kết luận</h2>
+        <p>
+          Backend đã có nền tảng kiến trúc tương đối tốt: chia theo domain module, có route/controller/service/repository/schema/types,
+          có middleware validate, auth, role, error handler và response helper. Vì vậy refactor không nên viết lại toàn bộ.
+          Việc cần làm là tách những file đang quá lớn, giảm phụ thuộc trực tiếp giữa service với notification/mail/database detail,
+          đưa mapping DTO ra khỏi repository, chuẩn hóa controller và thay các nhánh trạng thái lặp lại bằng policy/strategy nhỏ.
+        </p>
+
+        <div class="warning">
+          <strong>Ưu tiên cao nhất:</strong> refactor module <code>boarding</code>, sau đó <code>grooming</code>,
+          <code>appointments</code>, <code>pets</code>, <code>reports</code>, <code>invoices</code>. Các module nhỏ hơn chỉ chỉnh những điểm
+          lệch chuẩn rõ ràng, tránh tạo abstraction không cần thiết.
+        </div>
+
+        <h3>Kết quả mong muốn</h3>
+        <ul>
+          <li>Mỗi file service chỉ phụ trách một nhóm use case gần nhau, không còn service 1.000+ dòng.</li>
+          <li>Controller chỉ đọc request, gọi service, trả response thống nhất.</li>
+          <li>Repository chỉ truy vấn database và trả row/data thô, không map DTO UI/API phức tạp.</li>
+          <li>Business rule về status/price/availability được tách thành policy/strategy/testable function.</li>
+          <li>Notification/email/hash/token được gọi qua service nhỏ hoặc port rõ trách nhiệm, giảm coupling.</li>
+          <li>Không đổi URL, response shape, schema validate, quyền truy cập và nghiệp vụ đang chạy.</li>
+        </ul>
+      </section>
+
+      <section id="assumptions">
+        <h2>2. Giả định và phạm vi</h2>
+        <h3>Giả định</h3>
+        <ul>
+          <li>Thành viên refactor backend sẽ làm trên code hiện tại trong <code>backend/src</code>.</li>
+          <li>Refactor phục vụ chương Good Design, không thêm nghiệp vụ mới.</li>
+          <li>API đang dùng bởi frontend không được đổi endpoint hoặc response nếu chưa thống nhất với frontend.</li>
+          <li>Database schema không đổi, trừ khi có migration riêng được duyệt.</li>
+          <li>Ưu tiên thay đổi có thể kiểm chứng bằng <code>pnpm --filter backend lint</code> và test hiện có.</li>
+        </ul>
+
+        <h3>Không nằm trong phạm vi refactor này</h3>
+        <ul>
+          <li>Không đổi framework backend.</li>
+          <li>Không chuyển sang ORM.</li>
+          <li>Không triển khai full DI container nếu chỉ để phục vụ một vài dependency đơn giản.</li>
+          <li>Không gom toàn bộ CRUD admin vào generic base service ngay ở bước đầu, vì có thể over-engineering.</li>
+        </ul>
+      </section>
+
+      <section id="current-architecture">
+        <h2>3. Kiến trúc hiện tại</h2>
+        <p>Quy ước kiến trúc đã có trong <code>backend/docs/PetCenter_BE_Express_Architecture_Guide.md</code>:</p>
+        <pre><code>Route       - khai báo endpoint và gắn middleware
+Controller  - nhận request, trả response
+Service     - xử lý nghiệp vụ
+Repository  - truy vấn database
+Schema      - validate params/query/body
+Types       - type riêng của module</code></pre>
+
+        <p>Quy tắc cần giữ:</p>
+        <pre><code>Route không xử lý nghiệp vụ.
+Controller không viết SQL.
+Service không biết Express response.
+Repository không trả HTTP response.</code></pre>
+
+        <div class="success">
+          Code hiện tại đã đi đúng hướng ở nhiều điểm: <code>app.ts</code> gắn middleware tập trung,
+          <code>routes/index.ts</code> mount module route, hầu hết route dùng <code>validateRequest</code>,
+          service không nhận <code>Response</code>, repository là nơi chủ yếu gọi <code>query</code>.
+        </div>
+      </section>
+
+      <section id="evidence">
+        <h2>4. Bằng chứng từ code</h2>
+
+        <h3>4.1. File quá lớn, nhiều trách nhiệm</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Số dòng xấp xỉ</th>
+              <th>Vấn đề Good Design</th>
+              <th>Hướng xử lý</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>backend/src/modules/boarding/boarding.service.ts</code></td>
+              <td>1.767</td>
+              <td>Low cohesion: owner booking, staff workflow, admin rooms, account provisioning, mapper, notification, password hashing nằm chung.</td>
+              <td>Tách theo role/use case: owner service, staff service, admin room service, mapper, policy, pricing, account provisioning.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/modules/boarding/boarding.repository.ts</code></td>
+              <td>1.719</td>
+              <td>Repository quá rộng: owner, staff, admin room, invoice, payment, update log, cron cùng file.</td>
+              <td>Tách repository theo subdomain: owner, staff, room, update-log, invoice/payment.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/modules/grooming/grooming.repository.ts</code></td>
+              <td>1.334</td>
+              <td>Repository chứa SQL, availability calculation, DTO mapping và status label.</td>
+              <td>Tách mapper/policy ra service layer; repository trả row.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/modules/pets/pets.repository.ts</code></td>
+              <td>1.332</td>
+              <td>Repository vừa query vừa map DTO, format label, age, status, activity log.</td>
+              <td>Tách <code>pets.mapper.ts</code>; repository chỉ trả row.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/modules/appointments/appointments.repository.ts</code></td>
+              <td>1.210</td>
+              <td>Doctor exam, staff appointment assignment, prescription, vaccination, follow-up chung một repository.</td>
+              <td>Tách doctor exam repository, staff appointment repository, examination field repository.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/modules/dashboard/dashboard.repository.ts</code></td>
+              <td>1.469</td>
+              <td>Repository tạo DTO dashboard trực tiếp và chứa mapper của owner/staff/doctor/admin.</td>
+              <td>Tách query repository và dashboard mapper/service theo role.</td>
+            </tr>
+            <tr>
+              <td><code>backend/src/modules/reports/reports.service.ts</code></td>
+              <td>535</td>
+              <td>Một hàm build toàn bộ report: period, compare, metrics, chart, status map, source map.</td>
+              <td>Tách period builder, metric builder, section builders và export strategy.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>4.2. Import ở giữa file</h3>
+        <p>
+          <code>boarding.service.ts</code> và <code>boarding.controller.ts</code> có import type ở giữa file sau phần owner function.
+          Đây là dấu hiệu file đã được nối thêm theo từng đợt thay vì chia module. Nên tách file hoặc gom import lên đầu.
+        </p>
+
+        <h3>4.3. Repository trả DTO API</h3>
+        <p>Các file có dấu hiệu mapper DTO nằm trong repository:</p>
+        <ul>
+          <li><code>pets.repository.ts</code>: <code>mapPet</code>, <code>mapStaffPet</code>, <code>mapPetDetail</code>, <code>mapPetMedicalExam</code>, <code>mapPetSpaHistory</code>.</li>
+          <li><code>grooming.repository.ts</code>: <code>mapBookingPet</code>, <code>mapGroomingServices</code>, <code>mapGroomingTicketListItem</code>, <code>mapStaffGroomingTicket</code>.</li>
+          <li><code>dashboard.repository.ts</code>: nhiều mapper owner/staff/doctor/admin dashboard.</li>
+        </ul>
+        <p>
+          Điều này làm database layer phụ thuộc vào API contract. Khi frontend đổi response field, repository phải đổi dù SQL không đổi.
+          Đây là coupling không cần thiết.
+        </p>
+
+        <h3>4.4. Service phụ thuộc trực tiếp vào notification/mail</h3>
+        <p>Các service gọi trực tiếp event/email:</p>
+        <ul>
+          <li><code>boarding.service.ts</code>: <code>notifyBoardingCreated</code>, <code>notifyBoardingConfirmed</code>, <code>notifyBoardingRejected</code>, <code>notifyBoardingCancelled</code>, <code>notifyBoardingCheckedIn</code>, <code>notifyBoardingUpdateCreated</code>, <code>mailService.sendOwnerAccountCreatedEmail</code>.</li>
+          <li><code>grooming.service.ts</code>: <code>notifyGroomingCreated</code>, <code>notifyGroomingAccepted</code>, <code>notifyGroomingCompleted</code>.</li>
+          <li><code>appointments.service.ts</code>: <code>notifyAppointmentConfirmed</code>, <code>notifyAppointmentRejected</code>, <code>notifyMedicalExamCompleted</code>.</li>
+          <li><code>invoices.service.ts</code>: <code>notifyPaymentSuccess</code>.</li>
+          <li><code>auth.service.ts</code>: <code>sendPasswordResetEmail</code>.</li>
+        </ul>
+        <p>
+          Đây không sai về chức năng, nhưng coupling cao. Service nghiệp vụ đang phải biết module notification/mail cụ thể.
+          Nên tách thành event publisher/notification port nhỏ để dễ test và dễ thay đổi.
+        </p>
+
+        <h3>4.5. <code>any</code> làm yếu contract</h3>
+        <p>Các ví dụ cần ưu tiên thay bằng DTO/type:</p>
+        <ul>
+          <li><code>boarding.service.ts</code>: mapper staff/admin nhận <code>any</code>, <code>mapDbBoardingStatusToDto</code> trả <code>any</code>.</li>
+          <li><code>boarding.repository.ts</code>: admin room payload/filter dùng <code>any</code>.</li>
+          <li><code>appointments.service.ts</code>: filters <code>any</code>, status/type cast <code>as any</code>.</li>
+          <li><code>invoices.service.ts</code>: filters <code>any</code>.</li>
+          <li><code>appointments.controller.ts</code>: dùng <code>(req as any).user.userId</code> dù đã có express auth type.</li>
+        </ul>
+
+        <h3>4.6. Error flow chưa thống nhất</h3>
+        <ul>
+          <li>Một số controller tự <code>try/catch(next)</code> dù route đã có thể dùng <code>asyncHandler</code>: <code>reports.controller.ts</code>, <code>medical-records.controller.ts</code>.</li>
+          <li>Một số repository ném <code>new Error("GROOMING_SLOT_FULL")</code>, service bắt theo message string.</li>
+          <li><code>notifications.service.ts</code> ném <code>new Error("Notification not found or access denied")</code>, không qua <code>AppError</code>.</li>
+        </ul>
+      </section>
+
+      <section id="principles">
+        <h2>5. Mapping sang Good Design</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nguyên lý</th>
+              <th>Vấn đề trong code hiện tại</th>
+              <th>Refactor chứng minh được</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>High Cohesion</td>
+              <td>Service/repository lớn chứa nhiều nhóm nghiệp vụ khác nhau.</td>
+              <td>Tách theo subdomain/use case: owner, staff, admin, mapper, policy, notification.</td>
+            </tr>
+            <tr>
+              <td>Low Coupling</td>
+              <td>Service gọi trực tiếp notification/mail; repository biết DTO API.</td>
+              <td>Service gọi event publisher; repository trả row; mapper nằm riêng.</td>
+            </tr>
+            <tr>
+              <td>SRP</td>
+              <td><code>boarding.service.ts</code> vừa xử lý lưu trú, vừa tạo owner account, vừa gửi mail, vừa map timeline.</td>
+              <td>Mỗi service/helper có một lý do thay đổi.</td>
+            </tr>
+            <tr>
+              <td>OCP</td>
+              <td>Logic status/price/payment dùng if/switch rải rác; thêm status mới phải sửa nhiều chỗ.</td>
+              <td>Tách status transition policy, pricing strategy, report/export strategy.</td>
+            </tr>
+            <tr>
+              <td>LSP</td>
+              <td>Hiện chưa có hierarchy lớn, nên không ép tạo class kế thừa.</td>
+              <td>Nếu dùng strategy/interface, mọi implementation phải cùng contract, không throw lỗi ngoài contract.</td>
+            </tr>
+            <tr>
+              <td>ISP</td>
+              <td>Các service import cả module repository lớn dù chỉ cần vài hàm.</td>
+              <td>Tách repository/service interface nhỏ theo use case.</td>
+            </tr>
+            <tr>
+              <td>DIP</td>
+              <td>Service phụ thuộc module cụ thể: mail, notification-events, repository object.</td>
+              <td>Phụ thuộc vào port/function contract nhỏ; implementation cụ thể đặt ở composition layer hoặc service wrapper.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="priorities">
+        <h2>6. Mức ưu tiên refactor</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Ưu tiên</th>
+              <th>Phạm vi</th>
+              <th>Lý do</th>
+              <th>Tiêu chí hoàn thành</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="priority-high">P0</td>
+              <td><code>boarding</code></td>
+              <td>File lớn nhất, nhiều trách nhiệm nhất, có import giữa file, nhiều <code>any</code>, notification/mail/password/transaction lẫn nhau.</td>
+              <td>Service/repository được tách theo owner/staff/admin; API và test không đổi.</td>
+            </tr>
+            <tr>
+              <td class="priority-high">P0</td>
+              <td>Repository DTO mapping</td>
+              <td>Coupling giữa database và response API cao.</td>
+              <td>Ít nhất pets/grooming/boarding/dashboard có mapper riêng hoặc bắt đầu tách ở module đang refactor.</td>
+            </tr>
+            <tr>
+              <td class="priority-medium">P1</td>
+              <td><code>grooming</code></td>
+              <td>Có pricing rule, availability, ticket status workflow và owner/staff flow trong một service.</td>
+              <td>Tách pricing policy, availability service, owner/staff services và status transition policy.</td>
+            </tr>
+            <tr>
+              <td class="priority-medium">P1</td>
+              <td><code>appointments</code></td>
+              <td>Doctor examination và staff appointment assignment là hai subdomain khác nhau.</td>
+              <td>Tách doctor examination service, staff appointment service, doctor assignment policy/strategy.</td>
+            </tr>
+            <tr>
+              <td class="priority-medium">P1</td>
+              <td><code>reports</code></td>
+              <td>Một hàm service build toàn bộ dashboard report, khó thêm export PDF/Excel.</td>
+              <td>Tách section builders; thêm export strategy skeleton cho PDF/Excel nếu cần chứng minh design pattern.</td>
+            </tr>
+            <tr>
+              <td class="priority-low">P2</td>
+              <td><code>auth</code>, <code>pets</code>, <code>invoices</code>, notifications</td>
+              <td>Có duplication và coupling nhưng ít rủi ro hơn boarding/grooming/appointments.</td>
+              <td>Tách password/token utility, invoice status mapper/payment policy, notification AppError.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="module-plan">
+        <h2>7. Kế hoạch theo module</h2>
+
+        <h3>7.1. Boarding - cần refactor đầu tiên</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Hiện tại</th>
+              <th>Vấn đề</th>
+              <th>Hướng sửa cụ thể</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>boarding.service.ts</code> chứa owner booking, staff workflow, admin room CRUD.</td>
+              <td>Vi phạm SRP, low cohesion.</td>
+              <td>Tách thành <code>owner-boarding.service.ts</code>, <code>staff-boarding.service.ts</code>, <code>admin-boarding-room.service.ts</code>.</td>
+            </tr>
+            <tr>
+              <td>Các mapper timeline/detail/list nằm trong service.</td>
+              <td>Service dài, khó test từng mapping.</td>
+              <td>Tách <code>boarding.mapper.ts</code>, <code>staff-boarding.mapper.ts</code>, <code>admin-boarding-room.mapper.ts</code>.</td>
+            </tr>
+            <tr>
+              <td>Logic status như confirm/reject/check-in/check-out viết lặp.</td>
+              <td>OCP yếu, thêm status mới phải sửa nhiều function.</td>
+              <td>Tạo <code>boarding-status.policy.ts</code> định nghĩa allowed transitions.</td>
+            </tr>
+            <tr>
+              <td>Service tạo owner account và gửi email.</td>
+              <td>Lẫn trách nhiệm auth/account/mail vào boarding.</td>
+              <td>Tách <code>owner-account-provisioning.service.ts</code> hoặc chuyển về module users/auth rồi boarding gọi function nhỏ.</td>
+            </tr>
+            <tr>
+              <td>Service tự hash password bằng <code>crypto/scrypt</code>.</td>
+              <td>Duplication với auth/pets.</td>
+              <td>Tạo shared <code>password.service.ts</code> dùng lại cho auth, pets, boarding.</td>
+            </tr>
+            <tr>
+              <td>Service gọi <code>notifyBoarding...</code> trực tiếp.</td>
+              <td>Coupling với notification implementation.</td>
+              <td>Tạo <code>boarding-notification.publisher.ts</code> hoặc shared <code>event-publisher.ts</code>.</td>
+            </tr>
+            <tr>
+              <td><code>boarding.repository.ts</code> chứa owner/staff/admin/invoice/payment/cron queries.</td>
+              <td>Repository quá lớn, ISP yếu.</td>
+              <td>Tách <code>owner-boarding.repository.ts</code>, <code>staff-boarding.repository.ts</code>, <code>boarding-room.repository.ts</code>, <code>boarding-update.repository.ts</code>, <code>boarding-invoice.repository.ts</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>7.2. Grooming</h3>
+        <ul>
+          <li>Tách <code>grooming-pricing.policy.ts</code> cho rule: dưới 5kg giá gốc, từ 5kg cộng phụ phí theo bước 3kg.</li>
+          <li>Tách <code>grooming-availability.service.ts</code> hoặc <code>grooming-availability.policy.ts</code> cho slot 08:00-17:30, step 30 phút, số nhân viên active.</li>
+          <li>Tách owner flow và staff flow: <code>owner-grooming.service.ts</code>, <code>staff-grooming.service.ts</code>.</li>
+          <li>Tách status transition policy: pending → waiting → in_progress → completed, cancel rule riêng.</li>
+          <li>Repository không map DTO; chuyển mapper sang <code>grooming.mapper.ts</code>.</li>
+        </ul>
+
+        <h3>7.3. Appointments / Medical examination</h3>
+        <ul>
+          <li>Tách <code>doctor-examination.service.ts</code> cho start/save draft/complete examination.</li>
+          <li>Tách <code>staff-appointment.service.ts</code> cho list/detail/confirm/reject appointment.</li>
+          <li>Tách <code>doctor-assignment.strategy.ts</code> cho thuật toán chọn bác sĩ ít bận nhất, ưu tiên preferred doctor nếu còn trống.</li>
+          <li>Tách mapper <code>appointment.mapper.ts</code>, <code>doctor-examination.mapper.ts</code>.</li>
+          <li>Thay <code>filters: any</code> bằng type từ schema/types.</li>
+        </ul>
+
+        <h3>7.4. Pets</h3>
+        <ul>
+          <li>Tách owner pet service và staff pet service nếu tiếp tục tăng chức năng.</li>
+          <li>Đưa <code>hashGeneratedPassword</code>, <code>createInternalOwnerEmail</code> ra khỏi pets nếu dùng chung với boarding.</li>
+          <li>Chuyển các mapper trong repository sang <code>pets.mapper.ts</code>.</li>
+          <li>Sửa các message lỗi đang bị lỗi encoding như <code>KhÃ´ng tÃ¬m tháº¥y...</code> để tài liệu/error response chuyên nghiệp hơn.</li>
+        </ul>
+
+        <h3>7.5. Reports</h3>
+        <ul>
+          <li>Tách <code>report-period.factory.ts</code>: build current/previous period.</li>
+          <li>Tách <code>report-trend.calculator.ts</code>: growth, direction, percent, compact VND.</li>
+          <li>Tách từng section builder: revenue, services, boarding, medical, customers.</li>
+          <li>Nếu cần minh họa Design Pattern rõ ràng, dùng Strategy cho export: <code>PdfReportExporter</code>, <code>ExcelReportExporter</code>.</li>
+        </ul>
+
+        <h3>7.6. Invoices</h3>
+        <ul>
+          <li>Tách <code>invoice-status.mapper.ts</code> và <code>invoice-service-type.mapper.ts</code>.</li>
+          <li>Tạo payment strategy nếu có thêm online/counter/refund: <code>CounterPaymentStrategy</code>, <code>OnlinePaymentStrategy</code>.</li>
+          <li>Thay error code chung chung <code>NOT_FOUND</code>, <code>CONFLICT</code>, <code>BAD_REQUEST</code> bằng code cụ thể: <code>INVOICE_NOT_FOUND</code>, <code>INVOICE_ALREADY_PAID</code>.</li>
+        </ul>
+
+        <h3>7.7. Notifications</h3>
+        <ul>
+          <li><code>notifications.service.ts</code> đang import <code>query</code> trực tiếp để notify role. Nên chuyển query này vào <code>notifications.repository.ts</code> hoặc <code>users.repository.ts</code>.</li>
+          <li><code>markAsRead</code> nên throw <code>AppError</code> thay vì <code>Error</code>.</li>
+          <li>Các event function trong <code>notification-events.ts</code> có thể giữ, nhưng service nghiệp vụ nên gọi qua publisher nhỏ để giảm coupling.</li>
+        </ul>
+
+        <h3>7.8. Medicines và service categories</h3>
+        <p>
+          Hai module này tương đối nhỏ. Có thể chuẩn hóa mapper row type và error handling, nhưng chưa cần generic CRUD abstraction nếu chỉ để "đẹp".
+          Theo CLAUDE.md, tránh abstraction cho single-use hoặc chưa chứng minh được lợi ích.
+        </p>
+      </section>
+
+      <section id="target-structure">
+        <h2>8. Cấu trúc đích</h2>
+        <p>Đề xuất bắt đầu với boarding vì đây là module lớn nhất:</p>
+        <pre><code>backend/src/modules/boarding/
+  boarding.routes.ts
+  boarding.schema.ts
+  boarding.types.ts
+
+  boarding.service.ts                 // facade/re-export để giữ import cũ nếu cần
+  owner-boarding.service.ts
+  staff-boarding.service.ts
+  admin-boarding-room.service.ts
+  owner-account-provisioning.service.ts
+
+  owner-boarding.repository.ts
+  staff-boarding.repository.ts
+  boarding-room.repository.ts
+  boarding-update.repository.ts
+  boarding-invoice.repository.ts
+  boarding.repository.ts              // facade/re-export tạm thời nếu cần migration dần
+
+  boarding.mapper.ts
+  staff-boarding.mapper.ts
+  admin-boarding-room.mapper.ts
+  boarding-status.policy.ts
+  boarding-pricing.policy.ts
+  boarding-notification.publisher.ts</code></pre>
+
+        <p>Sau khi boarding ổn, áp dụng cùng pattern vừa đủ cho grooming và appointments:</p>
+        <pre><code>backend/src/modules/grooming/
+  owner-grooming.service.ts
+  staff-grooming.service.ts
+  grooming-pricing.policy.ts
+  grooming-availability.policy.ts
+  grooming-status.policy.ts
+  grooming.mapper.ts
+
+backend/src/modules/appointments/
+  staff-appointment.service.ts
+  doctor-examination.service.ts
+  doctor-assignment.strategy.ts
+  appointment.mapper.ts
+  doctor-examination.mapper.ts</code></pre>
+
+        <p>Shared utilities nên đặt ở:</p>
+        <pre><code>backend/src/shared/security/password.service.ts
+backend/src/shared/security/token.service.ts       // nếu tách auth token
+backend/src/shared/events/event-publisher.ts       // nếu cần port chung
+backend/src/shared/mappers/date-money.mapper.ts    // chỉ nếu thực sự dùng lại nhiều module</code></pre>
+      </section>
+
+      <section id="implementation-guide">
+        <h2>9. Hướng dẫn triển khai</h2>
+
+        <h3>Bước 1: Tạo facade để refactor ít ảnh hưởng</h3>
+        <p>
+          Nếu controller đang import <code>* as boardingService from "./boarding.service.js"</code>, có thể giữ file
+          <code>boarding.service.ts</code> làm facade re-export. Như vậy route/controller chưa cần đổi nhiều.
+        </p>
+
+        <pre><code>// boarding.service.ts sau refactor giai đoạn đầu
+export * from "./owner-boarding.service.js";
+export * from "./staff-boarding.service.js";
+export * from "./admin-boarding-room.service.js";</code></pre>
+
+        <h3>Bước 2: Tách mapper trước khi tách nghiệp vụ lớn</h3>
+        <p>
+          Tách mapper là bước ít rủi ro vì không đổi business rule. Chuyển các hàm <code>map...</code>,
+          <code>format...</code>, <code>get...Label</code> ra file mapper/policy tương ứng, export và import lại.
+        </p>
+
+        <h3>Bước 3: Tách service theo role/use case</h3>
+        <p>
+          Với boarding, copy nguyên nhóm hàm owner sang <code>owner-boarding.service.ts</code>, staff sang
+          <code>staff-boarding.service.ts</code>, admin room sang <code>admin-boarding-room.service.ts</code>.
+          Sau mỗi lần tách, chạy TypeScript check.
+        </p>
+
+        <h3>Bước 4: Tách repository theo query ownership</h3>
+        <p>
+          Repository có thể tách sau service. Không nên vừa đổi query vừa đổi mapper cùng lúc. Mỗi repository mới chỉ chứa query phục vụ service tương ứng.
+        </p>
+
+        <h3>Bước 5: Tách policy/strategy cho rule thay đổi</h3>
+        <p>
+          Chỉ tạo Strategy/Factory cho rule có nhiều biến thể hoặc khả năng mở rộng rõ ràng: payment method, report export format,
+          pricing, status transition, doctor assignment. Không tạo interface cho mọi service chỉ để có interface.
+        </p>
+
+        <h3>Bước 6: Chuẩn hóa controller</h3>
+        <ul>
+          <li>Controller không tự parse Zod nếu route đã <code>validateRequest</code>.</li>
+          <li>Controller dùng <code>asyncHandler</code> ở route, không cần try/catch lặp lại.</li>
+          <li>Controller dùng <code>sendSuccess</code>/<code>sendPaginated</code> nếu response đơn giản.</li>
+          <li>Không dùng <code>(req as any).user</code>; dùng <code>req.user!</code> theo shared express type.</li>
+        </ul>
+      </section>
+
+      <section id="code-templates">
+        <h2>10. Mẫu code refactor</h2>
+        <div class="warning">
+          <strong>Lưu ý khi dùng mẫu code:</strong> các snippet dưới đây là khung triển khai để tách trách nhiệm.
+          Khi áp dụng vào code thật, phải giữ nguyên endpoint, status code và DTO shape hiện có. Đặc biệt với mapper,
+          không được bỏ field đang được frontend sử dụng.
+        </div>
+
+        <h3>10.1. Mapper tách khỏi repository</h3>
+        <pre><code>// boarding.mapper.ts
+import { AppError } from "../../shared/errors/app-error.js";
+import { httpStatus } from "../../shared/errors/http-status.js";
+import type {
+  BoardingAlertLevel,
+  BoardingInvoiceStatus,
+  BoardingPaymentOption,
+  BoardingRecordListItemDto,
+  BoardingRecordListRow
+} from "./boarding.types.js";
+
+const boardingStatusLabels: Record&lt;BoardingRecordListRow["boarding_status"], string&gt; = {
+  pending: "Chờ xác nhận",
+  confirmed: "Chờ check-in",
+  staying: "Đang lưu trú",
+  checked_out: "Hoàn tất",
+  cancelled: "Đã hủy",
+  rejected: "Từ chối"
+};
+
+function getPaymentMethodLabel(paymentOption: BoardingPaymentOption | null): string {
+  if (paymentOption === "online") return "Thanh toán online";
+  if (paymentOption === "counter") return "Thanh toán tại quầy";
+  return "Chưa cập nhật";
+}
+
+function getPaymentStatus(
+  invoiceStatus: BoardingInvoiceStatus | null,
+  hasSuccessPayment: boolean
+): BoardingRecordListItemDto["payment"]["paymentStatus"] {
+  if (invoiceStatus === "paid" || hasSuccessPayment) return "paid";
+  if (invoiceStatus === "refunded") return "refunded";
+  if (invoiceStatus === "cancelled") return "cancelled";
+  return "unpaid";
+}
+
+function getPaymentStatusLabel(paymentStatus: BoardingRecordListItemDto["payment"]["paymentStatus"]): string {
+  const labels: Record&lt;BoardingRecordListItemDto["payment"]["paymentStatus"], string&gt; = {
+    paid: "Đã thanh toán",
+    unpaid: "Chưa thanh toán",
+    refunded: "Đã hoàn tiền",
+    cancelled: "Đã hủy"
+  };
+  return labels[paymentStatus];
+}
+
+function getHealthStatusLabel(healthStatus: BoardingAlertLevel | "unknown"): string {
+  const labels: Record&lt;BoardingAlertLevel | "unknown", string&gt; = {
+    normal: "Bình thường",
+    attention: "Cần chú ý",
+    urgent: "Cần xử lý",
+    unknown: "Chưa cập nhật"
+  };
+  return labels[healthStatus];
+}
+
+function normalizeTimestamp(value: unknown): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString();
+  return new Date(String(value)).toISOString();
+}
+
+function requireTimestamp(value: unknown): string {
+  const normalized = normalizeTimestamp(value);
+  if (!normalized) {
+    throw new AppError("Dữ liệu thời gian lưu trú không hợp lệ", "INVALID_BOARDING_TIME", httpStatus.INTERNAL_SERVER_ERROR);
+  }
+  return normalized;
+}
+
+export function mapBoardingRecordListItem(row: BoardingRecordListRow): BoardingRecordListItemDto {
+  const paymentStatus = getPaymentStatus(row.invoice_status, row.has_success_payment);
+  const healthStatus: BoardingAlertLevel | "unknown" = row.alert_level ?? "unknown";
+  const activeCare =
+    row.boarding_status === "staying"
+      ? {
+        healthStatus,
+        healthStatusLabel: getHealthStatusLabel(healthStatus),
+        lastUpdatedAt: normalizeTimestamp(row.last_update_at)
+      }
+      : undefined;
+
+  return {
+    boardingRecordId: row.boarding_record_id,
+    boardingCode: row.boarding_record_id,
+    pet: {
+      petId: row.pet_id,
+      petName: row.pet_name,
+      profileImageUrl: row.profile_image_url
+    },
+    room: {
+      roomTypeId: row.room_type_id,
+      roomTypeName: row.room_type_name
+    },
+    status: row.boarding_status,
+    statusLabel: boardingStatusLabels[row.boarding_status],
+    plannedCheckInAt: requireTimestamp(row.planned_check_in_at),
+    plannedCheckOutAt: requireTimestamp(row.planned_check_out_at),
+    plannedCheckInDate: row.planned_check_in_date,
+    plannedCheckOutDate: row.planned_check_out_date,
+    plannedDateRangeText: row.planned_date_range_text,
+    stayDays: Number(row.stay_days),
+    payment: {
+      paymentOption: row.payment_option,
+      paymentMethodLabel: getPaymentMethodLabel(row.payment_option),
+      paymentStatus,
+      paymentStatusLabel: getPaymentStatusLabel(paymentStatus)
+    },
+    estimatedTotal: Number(row.estimated_total),
+    ...(activeCare ? { activeCare } : {})
+  };
+}</code></pre>
+
+        <h3>10.2. Status transition policy</h3>
+        <pre><code>// boarding-status.policy.ts
+import { AppError } from "../../shared/errors/app-error.js";
+import { httpStatus } from "../../shared/errors/http-status.js";
+import type { BoardingRecordStatus } from "./boarding.types.js";
+
+const allowedTransitions: Record&lt;BoardingRecordStatus, BoardingRecordStatus[]&gt; = {
+  pending: ["confirmed", "rejected", "cancelled"],
+  confirmed: ["staying", "cancelled"],
+  staying: ["checked_out"],
+  checked_out: [],
+  cancelled: [],
+  rejected: []
+};
+
+export function assertBoardingTransition(
+  currentStatus: BoardingRecordStatus,
+  nextStatus: BoardingRecordStatus
+): void {
+  if (!allowedTransitions[currentStatus]?.includes(nextStatus)) {
+    throw new AppError(
+      "Trạng thái phiếu lưu trú không hợp lệ",
+      "INVALID_BOARDING_STATUS",
+      httpStatus.BAD_REQUEST
+    );
+  }
+}</code></pre>
+
+        <h3>10.3. Owner boarding service sau khi tách</h3>
+        <pre><code>// owner-boarding.service.ts
+import { AppError } from "../../shared/errors/app-error.js";
+import { httpStatus } from "../../shared/errors/http-status.js";
+import type { AuthUser } from "../../shared/types/auth.js";
+import { createPagination, normalizePagination } from "../../shared/utils/pagination.js";
+import type { ListBoardingRecordsQuery } from "./boarding.schema.js";
+import * as ownerBoardingRepository from "./owner-boarding.repository.js";
+import { mapBoardingRecordListItem } from "./boarding.mapper.js";
+
+function assertOwner(authUser: AuthUser): void {
+  if (authUser.role !== "OWNER") {
+    throw new AppError("Bạn không có quyền thao tác với lưu trú", "FORBIDDEN", httpStatus.FORBIDDEN);
+  }
+}
+
+export async function listOwnerBoardingRecords(authUser: AuthUser, query: ListBoardingRecordsQuery) {
+  assertOwner(authUser);
+
+  const paginationInput = normalizePagination(query.page, query.limit);
+  const result = await ownerBoardingRepository.findOwnerBoardingRecords({
+    ownerUserId: authUser.userId,
+    search: query.search,
+    status: query.status,
+    roomTypeId: query.roomTypeId,
+    timeRange: query.timeRange,
+    limit: paginationInput.limit,
+    offset: paginationInput.offset
+  });
+
+  return {
+    records: result.rows.map(mapBoardingRecordListItem),
+    pagination: createPagination(paginationInput.page, paginationInput.limit, result.total)
+  };
+}</code></pre>
+
+        <h3>10.4. Notification publisher để giảm coupling</h3>
+        <pre><code>// boarding-notification.publisher.ts
+import {
+  notifyBoardingCreated,
+  notifyBoardingConfirmed,
+  notifyBoardingRejected,
+  notifyBoardingCancelled,
+  notifyBoardingCheckedIn,
+  notifyBoardingUpdateCreated
+} from "../notifications/notification-events.js";
+
+export const boardingNotificationPublisher = {
+  boardingCreated: notifyBoardingCreated,
+  boardingConfirmed: notifyBoardingConfirmed,
+  boardingRejected: notifyBoardingRejected,
+  boardingCancelled: notifyBoardingCancelled,
+  boardingCheckedIn: notifyBoardingCheckedIn,
+  boardingUpdateCreated: notifyBoardingUpdateCreated
+};</code></pre>
+
+        <p>
+          Service chỉ import publisher này. Khi test, có thể mock publisher thay vì mock trực tiếp nhiều function notification.
+        </p>
+
+        <h3>10.5. Pricing policy cho Grooming</h3>
+        <pre><code>// grooming-pricing.policy.ts
+const largePetThresholdKg = 5;
+const largePetSurchargeStepKg = 3;
+const largePetSurchargeAmount = 50000;
+
+export function calculateGroomingPrice(basePrice: number, weightKg: number): number {
+  if (weightKg &lt; largePetThresholdKg) return basePrice;
+
+  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg);
+  return basePrice + surchargeSteps * largePetSurchargeAmount;
+}
+
+export function getAppliedPricingConditionLabel(weightKg: number): string {
+  if (weightKg &lt; largePetThresholdKg) return "Dưới 5kg";
+
+  const surchargeSteps = Math.floor((weightKg - largePetThresholdKg) / largePetSurchargeStepKg);
+  return surchargeSteps === 0 ? "Từ 5kg trở lên" : `Từ 5kg trở lên (+${surchargeSteps * largePetSurchargeAmount} VND)`;
+}</code></pre>
+
+        <h3>10.6. Doctor assignment strategy</h3>
+        <pre><code>// doctor-assignment.strategy.ts
+import type { AvailableDoctorRow } from "./appointments.types.js";
+
+export interface DoctorAssignmentStrategy {
+  selectDoctor(
+    availableDoctors: AvailableDoctorRow[],
+    excludedDoctorIds?: Set&lt;string&gt;,
+    preferredDoctorId?: string | null
+  ): AvailableDoctorRow | null;
+}
+
+export class LeastBusyDoctorAssignmentStrategy implements DoctorAssignmentStrategy {
+  selectDoctor(
+    availableDoctors: AvailableDoctorRow[],
+    excludedDoctorIds = new Set&lt;string&gt;(),
+    preferredDoctorId?: string | null
+  ): AvailableDoctorRow | null {
+    const candidates = availableDoctors.filter((doctor) => !excludedDoctorIds.has(doctor.user_id));
+    if (preferredDoctorId) {
+      const preferred = candidates.find((doctor) => doctor.user_id === preferredDoctorId);
+      if (preferred) return preferred;
+    }
+    if (candidates.length === 0) return null;
+
+    const minCount = Math.min(...candidates.map((doctor) => Number(doctor.confirmed_count_in_day)));
+    return candidates.find((doctor) => Number(doctor.confirmed_count_in_day) === minCount) ?? null;
+  }
+}</code></pre>
+
+        <h3>10.7. Report export strategy</h3>
+        <pre><code>// report-export.strategy.ts
+import { AppError } from "../../shared/errors/app-error.js";
+import { httpStatus } from "../../shared/errors/http-status.js";
+import type { AdminReportsDataDto } from "./reports.types.js";
+
+export interface ReportExporter {
+  export(data: AdminReportsDataDto): Promise&lt;{ fileName: string; contentType: string; buffer: Buffer }&gt;;
+}
+
+export class PdfReportExporter implements ReportExporter {
+  async export(_data: AdminReportsDataDto) {
+    throw new AppError("Chức năng xuất PDF chưa được triển khai", "REPORT_PDF_EXPORT_NOT_IMPLEMENTED", httpStatus.SERVICE_UNAVAILABLE);
+  }
+}
+
+export class ExcelReportExporter implements ReportExporter {
+  async export(_data: AdminReportsDataDto) {
+    throw new AppError("Chức năng xuất Excel chưa được triển khai", "REPORT_EXCEL_EXPORT_NOT_IMPLEMENTED", httpStatus.SERVICE_UNAVAILABLE);
+  }
+}
+
+export function createReportExporter(format: "pdf" | "excel"): ReportExporter {
+  if (format === "pdf") return new PdfReportExporter();
+  return new ExcelReportExporter();
+}</code></pre>
+
+        <h3>10.8. Shared password service</h3>
+        <pre><code>// shared/security/password.service.ts
+import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
+
+const scrypt = promisify(scryptCallback);
+
+export async function hashPassword(password: string): Promise&lt;string&gt; {
+  const salt = randomBytes(16).toString("base64url");
+  const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
+  return `scrypt$${salt}$${derivedKey.toString("base64url")}`;
+}
+
+export async function verifyPassword(password: string, passwordHash: string): Promise&lt;boolean&gt; {
+  const [algorithm, salt, storedKey] = passwordHash.split("$");
+  if (algorithm !== "scrypt" || !salt || !storedKey) return false;
+
+  const derivedKey = (await scrypt(password, salt, 64)) as Buffer;
+  const storedBuffer = Buffer.from(storedKey, "base64url");
+  return storedBuffer.length === derivedKey.length &amp;&amp; timingSafeEqual(storedBuffer, derivedKey);
+}
+
+export function generateTemporaryPassword(length = 10): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const random = randomBytes(length);
+  return Array.from(random, (byte) =&gt; alphabet[byte % alphabet.length]).join("");
+}</code></pre>
+      </section>
+
+      <section id="testing">
+        <h2>11. Kiểm chứng sau refactor</h2>
+        <p>Do đây là refactor, tiêu chí chính là hành vi không đổi.</p>
+
+        <h3>Lệnh bắt buộc chạy</h3>
+        <pre><code>pnpm --filter backend lint
+pnpm --filter backend test</code></pre>
+
+        <h3>Test nên bổ sung nếu có thời gian</h3>
+        <ul>
+          <li>Unit test cho <code>boarding-status.policy.ts</code>: pending → confirmed hợp lệ, checked_out → staying không hợp lệ.</li>
+          <li>Unit test cho <code>grooming-pricing.policy.ts</code>: dưới 5kg, đúng 5kg, 8kg, 11kg.</li>
+          <li>Unit test cho <code>doctor-assignment.strategy.ts</code>: preferred doctor, least busy doctor, excluded doctor.</li>
+          <li>Unit test cho mapper: row sample → DTO đúng shape.</li>
+          <li>Integration test hiện có của auth/appointments vẫn pass.</li>
+        </ul>
+
+        <h3>Checklist review code sau refactor</h3>
+        <ul>
+          <li>Không có controller nào gọi repository hoặc database trực tiếp.</li>
+          <li>Không có service nào nhận <code>Request</code>/<code>Response</code>.</li>
+          <li>Không có repository nào trả HTTP response hoặc phụ thuộc Express.</li>
+          <li>Repository mới không chứa label/format/DTO mapping nếu không bắt buộc.</li>
+          <li>Không tăng số lượng <code>any</code>; các <code>any</code> ở module được refactor phải giảm.</li>
+          <li>Không đổi URL route, status code và response shape hiện có.</li>
+          <li>Không tạo abstraction chỉ dùng một lần nếu không phục vụ Good Design rõ ràng.</li>
+        </ul>
+      </section>
+
+      <section id="handoff">
+        <h2>12. Checklist bàn giao cho thành viên refactor BE</h2>
+
+        <h3>Thứ tự làm khuyến nghị</h3>
+        <ol>
+          <li>Chạy test/lint hiện tại để có baseline.</li>
+          <li>Refactor <code>boarding.service.ts</code> bằng facade/re-export, chưa đổi route.</li>
+          <li>Tách mapper/policy của boarding.</li>
+          <li>Tách <code>boarding.repository.ts</code> theo owner/staff/admin-room/update/invoice.</li>
+          <li>Chạy lint/test, sửa lỗi import/type.</li>
+          <li>Refactor grooming pricing/status/availability.</li>
+          <li>Refactor appointments doctor/staff flow và doctor assignment strategy.</li>
+          <li>Refactor reports section builders/export strategy nếu cần minh họa Design Pattern.</li>
+          <li>Sửa các lỗi nhỏ: <code>any</code>, <code>new Error</code>, controller try/catch lặp, direct query trong notifications service.</li>
+          <li>Cập nhật tài liệu GoodDesign với ảnh/code trước-sau sau khi code đã refactor xong.</li>
+        </ol>
+
+        <h3>Nội dung nên đưa vào báo cáo GoodDesign sau khi refactor</h3>
+        <ul>
+          <li>Ảnh/chụp code trước refactor: service/repository lớn, service gọi notification trực tiếp, repository map DTO.</li>
+          <li>Ảnh/chụp code sau refactor: file service nhỏ, mapper riêng, policy/strategy riêng.</li>
+          <li>Bảng phân tích Coupling/Cohesion trước và sau.</li>
+          <li>Bảng mapping SOLID: SRP, OCP, ISP, DIP được cải thiện ở file nào.</li>
+          <li>Mô tả Design Pattern dùng thật: Strategy cho pricing/doctor assignment/export, Factory cho report exporter nếu triển khai.</li>
+          <li>Kết quả chạy lint/test.</li>
+        </ul>
+
+        <div class="note">
+          <strong>Lưu ý quan trọng:</strong> tài liệu này là kế hoạch refactor. Khi triển khai, không nên refactor toàn bộ backend trong một commit lớn.
+          Hãy làm từng module, mỗi bước nhỏ có thể chạy lint/test, đúng tinh thần CLAUDE.md: surgical changes và goal-driven execution.
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

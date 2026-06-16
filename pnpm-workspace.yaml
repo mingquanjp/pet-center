@@ -2,7 +2,9 @@ packages:
   - "frontend"
   - "backend"
 allowBuilds:
+  '@scarf/scarf': false
+  core-js: true
   esbuild: true
+  msw: false
   sharp: true
   unrs-resolver: true
-

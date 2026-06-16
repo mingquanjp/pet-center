@@ -1,26 +1,178 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "../styles/theme.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* Font */
+  --font-sans: var(--font-inter), Inter, system-ui, sans-serif;
+
+  /* PetCenter colors */
+  --color-petcenter-background: #f7f6ea;
+  --color-petcenter-sidebar: #f1efe2;
+  --color-petcenter-card: #ffffff;
+  --color-petcenter-filter: #fbfaf2;
+
+  --color-petcenter-text: #1f261f;
+  --color-petcenter-text-secondary: #52605c;
+  --color-petcenter-text-muted: #7a837f;
+
+  --color-petcenter-primary: #00796b;
+  --color-petcenter-primary-hover: #00695c;
+  --color-petcenter-primary-active: #00574d;
+
+  --color-petcenter-cta: #f59e0b;
+  --color-petcenter-cta-hover: #d97706;
+  --color-petcenter-cta-active: #b45309;
+
+  --color-petcenter-border: #e6e8dd;
+  --color-petcenter-border-strong: #d3dad6;
+
+  --color-petcenter-success-bg: #dff3e3;
+  --color-petcenter-success-text: #2e7d32;
+
+  --color-petcenter-warning-bg: #fff3d8;
+  --color-petcenter-warning-text: #b45309;
+
+  --color-petcenter-info-bg: #e0f2fe;
+  --color-petcenter-info-text: #0369a1;
+
+  --color-petcenter-danger-bg: #fde2e2;
+  --color-petcenter-danger-text: #b91c1c;
+
+  /* Radius */
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
+  --radius-pill: 9999px;
+
+  /* Shadow */
+  --shadow-card: 0 4px 16px rgba(31, 38, 31, 0.05);
+  --shadow-modal: 0 16px 40px rgba(31, 38, 31, 0.12);
+
+  /* Spacing */
+  --spacing-gutter: 16px;
+  --spacing-section: 32px;
+  --spacing-large: 48px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /*
+      shadcn/ui variables.
+      Các biến này để component shadcn dùng class như:
+      bg-background, text-foreground, bg-primary, border-border...
+    */
+    --background: 55 47% 96%;
+    --foreground: 120 10% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 120 10% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 120 10% 14%;
+
+    --primary: 173 100% 24%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 38 92% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 54 29% 92%;
+    --muted-foreground: 160 8% 40%;
+
+    --accent: 168 50% 90%;
+    --accent-foreground: 173 100% 24%;
+
+    --destructive: 0 75% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 70 20% 88%;
+    --input: 150 14% 84%;
+    --ring: 173 100% 24%;
+
+    --radius: 0.75rem;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background: var(--color-petcenter-background);
+    color: var(--color-petcenter-text);
+    font-family: var(--font-sans);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .heading-lg {
+    font-size: 32px;
+    line-height: 40px;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .heading-md {
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .heading-sm {
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  .title-md {
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 600;
+  }
+
+  .body-lg {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 400;
+  }
+
+  .body-md {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+  }
+
+  .body-sm {
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 400;
+  }
+
+  .label-md {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+  }
+
+  .label-sm {
+    font-size: 11px;
+    line-height: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+}
+
+@keyframes search-progress {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  50% {
+    transform: translateX(140%);
+  }
+
+  100% {
+    transform: translateX(340%);
+  }
 }
