@@ -159,7 +159,7 @@ export function OwnerDashboardPage() {
       iconClassName: "bg-petcenter-primary/10 text-petcenter-primary",
     },
     {
-      label: "Lịch hẹn sắp tới",
+      label: "Lịch khám sắp tới",
       value: dashboard.summary.upcomingAppointmentCount,
       icon: CalendarDays,
       iconClassName: "bg-petcenter-cta/15 text-petcenter-cta-hover",
@@ -184,7 +184,7 @@ export function OwnerDashboardPage() {
         <div className="max-w-3xl">
           <h1 className="heading-lg text-petcenter-primary">Chào buổi sáng, {dashboard.ownerName}!</h1>
           <p className="body-md mt-2 text-petcenter-text-secondary">
-            Dưới đây là tổng quan về thú cưng, lịch hẹn và dịch vụ của bạn hôm nay.
+            Dưới đây là tổng quan về thú cưng, lịch khám và dịch vụ của bạn hôm nay.
           </p>
         </div>
 
@@ -280,7 +280,7 @@ export function OwnerDashboardPage() {
         <div className="flex flex-col gap-section">
           <section className="flex min-h-[340px] flex-col rounded-card border border-petcenter-border bg-white p-5 shadow-card sm:p-6 xl:h-[390px]">
             <div className="mb-5 flex items-center justify-between gap-4">
-              <h2 className="heading-sm text-petcenter-text">Lịch hẹn sắp tới</h2>
+              <h2 className="heading-sm text-petcenter-text">Lịch khám sắp tới</h2>
               <Link className="label-md font-semibold text-petcenter-primary hover:underline" href="/owner/appointments">
                 Chi tiết
               </Link>
@@ -295,7 +295,7 @@ export function OwnerDashboardPage() {
             ) : (
               <EmptyPanel
                 icon={CalendarDays}
-                title="Không có lịch hẹn sắp tới"
+                title="Không có lịch khám sắp tới"
                 description="Bạn có thể đặt thêm lịch khám khi cần."
               />
             )}

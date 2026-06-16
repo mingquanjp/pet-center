@@ -25,7 +25,7 @@ export function StaffAppointmentHeader({ appointment, mode }: Props) {
           <BreadcrumbList className="text-base text-petcenter-text-secondary">
             <BreadcrumbItem>
               <BreadcrumbLink asChild className="hover:text-petcenter-primary transition-colors">
-                <Link href="/staff/appointments">Lịch hẹn</Link>
+                <Link href="/staff/appointments">Khám bệnh</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
@@ -40,15 +40,15 @@ export function StaffAppointmentHeader({ appointment, mode }: Props) {
 
       <div className="flex items-center gap-4">
         <h1 className="text-3xl font-bold text-petcenter-text tracking-tight">
-          {isProcess ? "Xử lý lịch hẹn" : "Chi tiết lịch hẹn"}
+          {isProcess ? "Xử lý lịch khám" : "Chi tiết lịch khám"}
         </h1>
         <StaffAppointmentStatusBadge status={appointment.status} />
       </div>
 
       <p className="text-base font-normal text-petcenter-text-secondary">
         {isProcess
-          ? "Kiểm tra thông tin, xác nhận hoặc từ chối lịch hẹn của chủ nuôi."
-          : "Xem thông tin chi tiết lịch hẹn và bác sĩ phụ trách."}
+          ? "Kiểm tra thông tin, xác nhận hoặc từ chối lịch khám của chủ nuôi."
+          : "Xem thông tin chi tiết lịch khám và bác sĩ phụ trách."}
       </p>
     </div>
   );

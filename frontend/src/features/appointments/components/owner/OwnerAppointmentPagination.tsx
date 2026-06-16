@@ -20,7 +20,7 @@ export function OwnerAppointmentPagination({
   return (
     <nav
       className="flex justify-center pt-2 pb-8"
-      aria-label="Phân trang lịch hẹn"
+      aria-label="Phân trang lịch khám"
     >
       <div className="flex items-center gap-1">
         <PaginationButton

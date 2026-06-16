@@ -52,7 +52,7 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
       <div className="flex-1 flex items-center justify-center min-h-100">
         <LoadingState 
           title="Đang tải dữ liệu..." 
-          description="Vui lòng đợi giây lát trong khi hệ thống truy xuất thông tin lịch hẹn."
+          description="Vui lòng đợi giây lát trong khi hệ thống truy xuất thông tin lịch khám."
         />
       </div>
     );
@@ -65,9 +65,9 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
           <div className="w-12 h-12 rounded-full bg-petcenter-danger-bg flex items-center justify-center text-petcenter-danger-text mb-2">
             <AlertCircle className="w-6 h-6" />
           </div>
-          <h2 className="heading-sm text-petcenter-text">Không tìm thấy lịch hẹn</h2>
+          <h2 className="heading-sm text-petcenter-text">Không tìm thấy lịch khám</h2>
           <p className="text-petcenter-text-secondary">
-            Lịch hẹn không tồn tại hoặc bạn không có quyền truy cập.
+            Lịch khám không tồn tại hoặc bạn không có quyền truy cập.
           </p>
           <div className="flex gap-4 mt-4">
             <Button variant="outline" className="border-petcenter-border" onClick={() => refetch()}>Thử lại</Button>
@@ -98,11 +98,11 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
       internalNote: "", // Not implemented in UI yet
     }, {
       onSuccess: () => {
-        toast.success("Đã xác nhận lịch hẹn thành công.");
+        toast.success("Đã xác nhận lịch khám thành công.");
         refetch();
       },
       onError: (error) => {
-        toast.error(getErrorMessage(error, "Không thể xác nhận lịch hẹn."));
+        toast.error(getErrorMessage(error, "Không thể xác nhận lịch khám."));
       },
     });
   };
@@ -121,13 +121,13 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
       internalNote: "",
     }, {
       onSuccess: () => {
-        toast.success("Đã từ chối lịch hẹn thành công.");
+        toast.success("Đã từ chối lịch khám thành công.");
         setIsRejectModalOpen(false);
         setRejectionReason("");
         refetch();
       },
       onError: (error) => {
-        toast.error(getErrorMessage(error, "Không thể từ chối lịch hẹn."));
+        toast.error(getErrorMessage(error, "Không thể từ chối lịch khám."));
       },
     });
   };
@@ -205,12 +205,12 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
             )}
             {confirmMutation.isError && (
                <div className="text-petcenter-danger-text text-sm text-center font-medium mt-2">
-                 {getErrorMessage(confirmMutation.error, "Trạng thái lịch hẹn không còn hợp lệ. Vui lòng tải lại.")}
+                 {getErrorMessage(confirmMutation.error, "Trạng thái lịch khám không còn hợp lệ. Vui lòng tải lại.")}
                </div>
             )}
             {rejectMutation.isError && (
                <div className="text-petcenter-danger-text text-sm text-center font-medium mt-2">
-                 {getErrorMessage(rejectMutation.error, "Trạng thái lịch hẹn không còn hợp lệ. Vui lòng tải lại.")}
+                 {getErrorMessage(rejectMutation.error, "Trạng thái lịch khám không còn hợp lệ. Vui lòng tải lại.")}
                </div>
             )}
           </div>
@@ -220,7 +220,7 @@ export function StaffAppointmentDetailPage({ appointmentId }: Props) {
       <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
         <DialogContent className="sm:max-w-120 bg-white rounded-3xl p-0 overflow-hidden border-0! shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] outline-none">
           <DialogHeader className="px-7 pt-7 pb-2">
-            <DialogTitle className="text-xl font-bold tracking-tight text-[#111827]">Từ chối lịch hẹn</DialogTitle>
+            <DialogTitle className="text-xl font-bold tracking-tight text-[#111827]">Từ chối lịch khám</DialogTitle>
             <DialogDescription className="text-[15px] leading-relaxed text-[#4B5563] mt-2">
               Vui lòng cung cấp lý do từ chối. Lời nhắn này sẽ được gửi trực tiếp đến chủ nuôi.
             </DialogDescription>

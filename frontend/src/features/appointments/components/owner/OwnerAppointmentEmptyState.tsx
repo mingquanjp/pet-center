@@ -12,7 +12,7 @@ export function OwnerAppointmentEmptyState({ onResetFilters }: OwnerAppointmentE
       <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-petcenter-background text-petcenter-primary">
         <CalendarSearch className="size-6" aria-hidden="true" />
       </div>
-      <h3 className="title-md text-petcenter-text">Không tìm thấy lịch hẹn phù hợp</h3>
+      <h3 className="title-md text-petcenter-text">Không tìm thấy lịch khám phù hợp</h3>
       <p className="body-md mx-auto mt-2 max-w-md text-petcenter-text-secondary">
         Hãy thử thay đổi bộ lọc hoặc đặt lại bộ lọc.
       </p>

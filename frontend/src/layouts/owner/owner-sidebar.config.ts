@@ -12,7 +12,7 @@ export const ownerSidebarConfig = [
     icon: PawPrint,
   },
   {
-    title: "Lịch hẹn",
+    title: "Khám bệnh",
     href: "/owner/appointments",
     icon: Calendar,
   },

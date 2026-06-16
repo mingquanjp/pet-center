@@ -45,7 +45,7 @@ export function OwnerAppointmentSummaryCard({
     <aside className="lg:sticky lg:top-8 lg:self-start">
       <div className="rounded-2xl border border-petcenter-border bg-petcenter-card p-6 shadow-card">
         <h2 className="heading-sm mb-4 border-b border-petcenter-border pb-4 text-petcenter-text">
-          Tóm tắt lịch hẹn
+          Tóm tắt lịch khám
         </h2>
 
         <div className="mb-8 flex flex-col gap-4">
@@ -77,7 +77,7 @@ export function OwnerAppointmentSummaryCard({
             onClick={onSubmit}
           >
             <CheckCircle className="h-5 w-5" aria-hidden="true" />
-            {isSubmitting ? "Đang tạo lịch..." : "Xác nhận tạo lịch"}
+            {isSubmitting ? "Đang đặt lịch..." : "Xác nhận đặt lịch"}
           </Button>
           <Button
             asChild

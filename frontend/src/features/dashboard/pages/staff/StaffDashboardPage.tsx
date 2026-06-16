@@ -197,7 +197,7 @@ export function StaffDashboardPage() {
       <section className="w-full overflow-hidden rounded-[16px] border border-[#e6e8dd] bg-white shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]">
         <div className="flex w-full items-center justify-between border-b border-[rgba(189,201,197,0.3)] bg-white px-6 pb-[17px] pt-4">
           <h2 className="whitespace-nowrap text-xl font-semibold leading-7 tracking-[-0.2px] text-[#1b1c15]">
-            Lịch hẹn cần xử lý
+            Lịch khám cần xử lý
           </h2>
           <Button
             asChild
@@ -322,7 +322,7 @@ export function StaffDashboardPage() {
               {!isLoading && !errorMessage && appointmentTasks.length === 0 ? (
                 <tr className="h-[81px] bg-white">
                   <td className="px-6 py-6 text-sm leading-5 text-[#3e4946]" colSpan={7}>
-                    Chưa có lịch hẹn cần xử lý.
+                    Chưa có lịch khám cần xử lý.
                   </td>
                 </tr>
               ) : null}

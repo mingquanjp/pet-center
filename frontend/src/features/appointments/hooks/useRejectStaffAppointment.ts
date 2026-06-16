@@ -17,7 +17,7 @@ export function useRejectStaffAppointment() {
       await appointmentsApi.rejectStaffAppointment(appointmentId, { rejectionReason, internalNote });
       options?.onSuccess?.();
     } catch (err) {
-      console.error("Lỗi từ chối lịch hẹn:", err);
+      console.error("Lỗi từ chối lịch khám:", err);
       setIsError(true);
       setError(err);
       options?.onError?.(err);

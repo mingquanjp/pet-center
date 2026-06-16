@@ -45,7 +45,7 @@ export function OwnerAppointmentsPage({
     <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="heading-lg text-petcenter-text tracking-tight">Lịch hẹn của tôi</h1>
+          <h1 className="heading-lg text-petcenter-text tracking-tight">Lịch khám của tôi</h1>
           <p className="body-md mt-1 text-petcenter-text-secondary">
             Theo dõi và quản lý các lịch khám của thú cưng.
           </p>
@@ -57,7 +57,7 @@ export function OwnerAppointmentsPage({
         >
           <Link href="/owner/appointments/create">
             <Plus className="size-5" aria-hidden="true" />
-            Tạo lịch hẹn
+            Đặt lịch khám
           </Link>
         </Button>
       </div>
@@ -75,11 +75,11 @@ export function OwnerAppointmentsPage({
         <div className="relative">
           {isLoading ? (
             <div className="p-8 body-md text-petcenter-text-secondary">
-              Đang tải lịch hẹn...
+              Đang tải lịch khám...
             </div>
           ) : isError ? (
             <div className="p-8 body-md text-petcenter-danger-text">
-              Không thể tải danh sách lịch hẹn.
+              Không thể tải danh sách lịch khám.
             </div>
           ) : data.length > 0 ? (
             <>

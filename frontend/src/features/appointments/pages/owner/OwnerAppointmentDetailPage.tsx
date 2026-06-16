@@ -34,7 +34,7 @@ export function OwnerAppointmentDetailPage({
     return (
       <div className="w-full">
         <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-text-secondary">
-          Đang tải chi tiết lịch hẹn...
+          Đang tải chi tiết lịch khám...
         </Card>
       </div>
     );
@@ -44,7 +44,7 @@ export function OwnerAppointmentDetailPage({
     return (
       <div className="w-full">
         <Card className="items-center rounded-2xl border-petcenter-border bg-petcenter-card p-8 text-center shadow-card ring-0">
-          <h1 className="title-md text-petcenter-text">Không tìm thấy lịch hẹn</h1>
+          <h1 className="title-md text-petcenter-text">Không tìm thấy lịch khám</h1>
           <Button
             asChild
             className="mt-4 h-10 rounded-[0.75rem] bg-petcenter-primary px-4 text-white hover:bg-petcenter-primary-hover"
@@ -64,7 +64,7 @@ export function OwnerAppointmentDetailPage({
       await cancelAppointment({ appointmentId: appointment.id, reason });
       setLocalStatus("CANCELLED");
       setIsCancelModalOpen(false);
-      toast.success("Hủy lịch hẹn thành công");
+      toast.success("Hủy lịch khám thành công");
       void refetch();
     } catch {
       setIsCancelModalOpen(false);
@@ -76,11 +76,11 @@ export function OwnerAppointmentDetailPage({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <nav className="label-md flex flex-wrap items-center gap-2 text-petcenter-text-secondary">
           <Link className="transition-colors hover:text-petcenter-primary" href="/owner/appointments">
-            Lịch hẹn
+            Khám bệnh
           </Link>
           <ChevronRight className="h-4 w-4" />
           <Link className="transition-colors hover:text-petcenter-primary" href="/owner/appointments">
-            Danh sách lịch hẹn
+            Danh sách lịch khám
           </Link>
           <ChevronRight className="h-4 w-4" />
           <span className="font-semibold text-petcenter-text">{appointment.appointmentCode}</span>
@@ -94,7 +94,7 @@ export function OwnerAppointmentDetailPage({
               className="h-10 rounded-[0.75rem] border-petcenter-border bg-petcenter-card px-4 body-md font-semibold text-petcenter-danger-text hover:bg-petcenter-danger-bg"
               onClick={() => setIsCancelModalOpen(true)}
             >
-              Hủy lịch hẹn
+              Hủy lịch khám
             </Button>
           ) : null}
         <Button
@@ -112,7 +112,7 @@ export function OwnerAppointmentDetailPage({
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <h1 className="heading-lg text-petcenter-text">
-          Chi tiết lịch hẹn: {appointment.appointmentCode}
+          Chi tiết lịch khám: {appointment.appointmentCode}
         </h1>
         <AppointmentStatusBadge status={appointment.status} />
       </div>

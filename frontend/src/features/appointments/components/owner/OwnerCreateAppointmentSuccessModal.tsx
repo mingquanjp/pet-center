@@ -42,16 +42,16 @@ export function OwnerCreateAppointmentSuccessModal({
             <Check className="h-9 w-9 stroke-[3]" aria-hidden="true" />
           </div>
           <DialogTitle className="heading-md text-petcenter-text">
-            Tạo lịch hẹn thành công
+            Đặt lịch khám thành công
           </DialogTitle>
           <DialogDescription className="body-md max-w-md text-petcenter-text-secondary">
-            Lịch hẹn của bạn đã được tạo và đang chờ trung tâm xác nhận.
+            Lịch khám của bạn đã được tạo và đang chờ trung tâm xác nhận.
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-2 rounded-[0.75rem] border border-petcenter-border bg-petcenter-background p-5 text-left">
           <div className="grid gap-3">
-            <InfoLine label="Mã lịch hẹn:" value={appointment.appointmentCode} />
+            <InfoLine label="Mã lịch khám:" value={appointment.appointmentCode} />
             <InfoLine label="Thú cưng:" value={appointment.petName} />
             <InfoLine label="Loại hình khám:" value={appointment.examTypeName} />
             <InfoLine
@@ -70,7 +70,7 @@ export function OwnerCreateAppointmentSuccessModal({
         </div>
 
         <p className="body-sm mx-auto max-w-lg text-petcenter-text-secondary">
-          Trung tâm sẽ kiểm tra và xác nhận lịch hẹn của bạn. Bạn sẽ nhận được thông báo khi lịch hẹn được xác nhận.
+          Trung tâm sẽ kiểm tra và xác nhận lịch khám của bạn. Bạn sẽ nhận được thông báo khi lịch khám được xác nhận.
         </p>
 
         <DialogFooter className="-mx-6 -mb-6 grid gap-3 rounded-b-2xl border-t border-petcenter-border bg-petcenter-card p-6 sm:grid-cols-2 md:-mx-8 md:-mb-8 md:px-8">
@@ -86,7 +86,7 @@ export function OwnerCreateAppointmentSuccessModal({
             className="h-12 rounded-[0.75rem] bg-petcenter-primary title-md text-white shadow-card hover:bg-petcenter-primary-hover"
           >
             <Link href={`/owner/appointments?createdAppointmentId=${encodeURIComponent(appointment.id)}`}>
-              Xem lịch hẹn
+              Xem lịch khám
             </Link>
           </Button>
         </DialogFooter>

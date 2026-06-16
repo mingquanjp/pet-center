@@ -13,9 +13,9 @@ export function StaffAppointmentEmptyState({ onReset }: Props) {
           <PawPrint className="w-4 h-4 text-petcenter-text-muted" />
         </div>
       </div>
-      <h3 className="heading-sm text-petcenter-text mb-2">Không tìm thấy lịch hẹn phù hợp</h3>
+      <h3 className="heading-sm text-petcenter-text mb-2">Không tìm thấy lịch khám phù hợp</h3>
       <p className="body-md text-petcenter-text-secondary mb-6">
-        Hãy thử thay đổi bộ lọc hoặc đặt lại bộ lọc để xem các lịch hẹn khác.
+        Hãy thử thay đổi bộ lọc hoặc đặt lại bộ lọc để xem các lịch khám khác.
       </p>
       <button 
         onClick={onReset}
