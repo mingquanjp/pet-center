@@ -135,7 +135,7 @@ export function OwnerPetSelection({
         </div>
       ) : (
         <p className="body-md text-petcenter-text-secondary">
-          Bạn chưa có hồ sơ thú cưng khả dụng để tạo lịch hẹn.
+          Bạn chưa có hồ sơ thú cưng khả dụng để đặt lịch khám.
         </p>
       )}
     </fieldset>

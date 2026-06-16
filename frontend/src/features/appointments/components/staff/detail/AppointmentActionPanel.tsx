@@ -30,7 +30,7 @@ export function AppointmentActionPanel({ selectedAction, onActionChange, assignm
                 Xác nhận lịch
               </div>
               <p className="text-base text-petcenter-text-secondary leading-relaxed">
-                Lịch hẹn hợp lệ và có thể tiếp nhận.
+                Lịch khám hợp lệ và có thể tiếp nhận.
               </p>
               {assignmentStatus === "NO_AVAILABLE_DOCTOR" && (
                 <p className="text-sm text-petcenter-danger-text mt-2 font-medium">

@@ -304,26 +304,25 @@ async function buildTimeSlots(date: string, examTypeId?: string): Promise<OwnerA
   });
   const now = new Date();
 
-  return FIXED_TIME_SLOTS.map((slot) => {
+  return FIXED_TIME_SLOTS.flatMap((slot) => {
     const slotStartsAt = buildVietnamSlotDate(date, slot);
     const slotEndsAt = new Date(slotStartsAt.getTime() + durationMinutes * 60 * 1000);
+    if (slotEndsAt > dayEnd) {
+      return [];
+    }
+
     const isCutoffPassed = slotStartsAt.getTime() - now.getTime() <= MIN_BOOKING_LEAD_TIME_MS;
-    const isAfterClosing = slotEndsAt > dayEnd;
     const bookedUnits = getMaxConcurrentIntervals(intervals, slotStartsAt, slotEndsAt);
     const availableUnits = isCutoffPassed
       ? 0
-      : isAfterClosing
-        ? 0
-        : Math.max(doctorCount - bookedUnits, 0);
+      : Math.max(doctorCount - bookedUnits, 0);
     const disabledReason = isCutoffPassed
       ? "cutoff"
-      : isAfterClosing
-        ? "outside_working_hours"
       : availableUnits <= 0
         ? "full"
         : undefined;
 
-    return {
+    return [{
       value: slot,
       label: `${slot} - ${getVietnamTimeLabel(slotEndsAt)}`,
       startAt: slotStartsAt.toISOString(),
@@ -332,7 +331,7 @@ async function buildTimeSlots(date: string, examTypeId?: string): Promise<OwnerA
       disabled: Boolean(disabledReason),
       disabledReason,
       availableUnits,
-    };
+    }];
   });
 }
 

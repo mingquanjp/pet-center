@@ -48,6 +48,7 @@ export type OwnerDashboardDto = {
     upcomingAppointmentCount: number;
     unpaidInvoiceCount: number;
     unreadNotificationCount: number;
+    pendingServiceCount: number;
   };
   pets: OwnerDashboardPet[];
   upcomingAppointments: OwnerDashboardAppointment[];

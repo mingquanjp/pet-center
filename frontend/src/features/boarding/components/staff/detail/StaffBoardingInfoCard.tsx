@@ -45,7 +45,7 @@ export function StaffBoardingInfoCard({ detail, className }: Props) {
             <span className="text-petcenter-text-secondary text-sm font-medium flex items-center gap-2">
               <Calendar className="w-4 h-4 text-petcenter-text-muted" /> Thời gian ({detail.totalDays} ngày)
             </span>
-            <div className="font-semibold text-petcenter-text text-base pl-6">
+            <div className="whitespace-pre-line font-semibold text-petcenter-text text-base leading-6 pl-6">
               {formatBoardingDateRange(detail.checkInDate, detail.checkOutDate)}
             </div>
           </div>

@@ -68,7 +68,8 @@ export async function findOwnerBoardingRecords(filters: BoardingRecordListFilter
       br.planned_check_out_at,
       to_char(br.planned_check_in_at::date, 'YYYY-MM-DD') AS planned_check_in_date,
       to_char(br.planned_check_out_at::date, 'YYYY-MM-DD') AS planned_check_out_date,
-      to_char(br.planned_check_in_at::date, 'DD/MM/YYYY') || ' - ' || to_char(br.planned_check_out_at::date, 'DD/MM/YYYY') AS planned_date_range_text,
+      to_char(br.planned_check_in_at, 'DD/MM/YYYY') || ' - ' || to_char(br.planned_check_out_at, 'DD/MM/YYYY') || chr(10) ||
+        to_char(br.planned_check_in_at, 'HH24:MI') || ' - ' || to_char(br.planned_check_out_at, 'HH24:MI') AS planned_date_range_text,
       (br.planned_check_out_at::date - br.planned_check_in_at::date)::int AS stay_days,
       br.boarding_status,
       br.estimated_total,
@@ -159,7 +160,8 @@ export async function findOwnerBoardingRecordDetail(
         br.care_request,
         to_char(br.planned_check_in_at::date, 'YYYY-MM-DD') AS planned_check_in_date,
         to_char(br.planned_check_out_at::date, 'YYYY-MM-DD') AS planned_check_out_date,
-        to_char(br.planned_check_in_at::date, 'DD/MM/YYYY') || ' - ' || to_char(br.planned_check_out_at::date, 'DD/MM/YYYY') AS planned_date_range_text,
+        to_char(br.planned_check_in_at, 'DD/MM/YYYY') || ' - ' || to_char(br.planned_check_out_at, 'DD/MM/YYYY') || chr(10) ||
+          to_char(br.planned_check_in_at, 'HH24:MI') || ' - ' || to_char(br.planned_check_out_at, 'HH24:MI') AS planned_date_range_text,
         (br.planned_check_out_at::date - br.planned_check_in_at::date)::int AS stay_days,
         br.boarding_status,
         br.estimated_total,

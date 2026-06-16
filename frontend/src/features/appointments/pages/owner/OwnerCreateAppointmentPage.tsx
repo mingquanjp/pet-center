@@ -65,7 +65,7 @@ function OwnerCreateAppointmentLoading() {
   return (
     <div className="w-full">
       <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-text-secondary">
-        Đang tải dữ liệu tạo lịch hẹn...
+        Đang tải dữ liệu đặt lịch khám...
       </Card>
     </div>
   );
@@ -212,11 +212,11 @@ function OwnerCreateAppointmentContent() {
 
       setCreatedAppointment(result);
       setIsSuccessModalOpen(true);
-      toast.success("Tạo lịch hẹn khám thành công");
+      toast.success("Đặt lịch khám thành công");
     } catch (error) {
       const message = error instanceof ApiError || error instanceof Error
         ? error.message
-        : "Không thể tạo lịch hẹn. Vui lòng thử lại sau.";
+        : "Không thể đặt lịch khám. Vui lòng thử lại sau.";
       toast.error(message);
       setValidationMessage(message);
     }
@@ -226,7 +226,7 @@ function OwnerCreateAppointmentContent() {
     return (
       <div className="w-full">
         <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-text-secondary">
-          Đang tải dữ liệu tạo lịch hẹn...
+          Đang tải dữ liệu đặt lịch khám...
         </Card>
       </div>
     );
@@ -236,7 +236,7 @@ function OwnerCreateAppointmentContent() {
     return (
       <div className="w-full">
         <Card className="rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0 body-md text-petcenter-danger-text">
-          Không thể tải dữ liệu tạo lịch hẹn.
+          Không thể tải dữ liệu đặt lịch khám.
         </Card>
       </div>
     );
@@ -245,7 +245,7 @@ function OwnerCreateAppointmentContent() {
   return (
     <div className="w-full">
       <div className="mb-8">
-        <h1 className="heading-lg text-petcenter-text">Tạo lịch hẹn khám</h1>
+        <h1 className="heading-lg text-petcenter-text">Đặt lịch khám</h1>
         <p className="body-lg mt-2 text-petcenter-text-secondary">
           Chọn thú cưng, loại hình khám và thời gian phù hợp.
         </p>

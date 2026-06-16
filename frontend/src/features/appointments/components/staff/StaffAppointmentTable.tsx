@@ -138,7 +138,7 @@ export function StaffAppointmentTable({ appointments, pagination, onPageChange, 
           <p className="text-sm text-petcenter-text-secondary">
             Hiển thị <span className="font-medium text-petcenter-text">{(pagination.currentPage - 1) * pagination.limit + 1}</span>-
             <span className="font-medium text-petcenter-text">{Math.min(pagination.currentPage * pagination.limit, pagination.total)}</span> của{" "}
-            <span className="font-medium text-petcenter-text">{pagination.total}</span> lịch hẹn
+            <span className="font-medium text-petcenter-text">{pagination.total}</span> lịch khám
           </p>
           <nav className="flex items-center gap-2" aria-label="Phân trang">
             <button

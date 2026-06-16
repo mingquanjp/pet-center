@@ -76,9 +76,9 @@ export function StaffAppointmentsPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="heading-lg text-petcenter-text tracking-tight">Lịch hẹn</h2>
+          <h2 className="heading-lg text-petcenter-text tracking-tight">Khám bệnh</h2>
           <p className="body-md text-petcenter-text-secondary mt-1">
-            Tiếp nhận, xác nhận và xử lý các lịch hẹn của chủ nuôi.
+            Tiếp nhận, xác nhận và xử lý các lịch khám bệnh của chủ nuôi.
           </p>
         </div>
         <Button
@@ -132,7 +132,7 @@ export function StaffAppointmentsPage() {
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <AlertCircle className="h-12 w-12 text-petcenter-danger-text" />
               <p className="text-petcenter-text-secondary font-medium">
-                Không thể tải danh sách lịch hẹn
+                Không thể tải danh sách lịch khám
               </p>
               <Button
                 variant="outline"

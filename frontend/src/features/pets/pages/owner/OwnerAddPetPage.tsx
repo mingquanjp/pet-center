@@ -350,7 +350,7 @@ export function OwnerAddPetPage() {
               name="weightKg"
               onChange={(value) => updateField("weightKg", value)}
               placeholder="VD: 12.5"
-              step="0.1"
+              step="0.01"
               suffix="kg"
               value={form.weightKg}
             />

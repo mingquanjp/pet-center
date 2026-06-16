@@ -613,7 +613,7 @@ export function StaffPetCreatePage() {
                             className="h-11 rounded-[10px] border-petcenter-border pr-12 focus-visible:border-petcenter-primary focus-visible:ring-petcenter-primary/20"
                             min="0"
                             placeholder="VD: 12.5"
-                            step="0.1"
+                            step="0.01"
                             type="number"
                             value={form.weightKg}
                             onChange={(event) => updateField("weightKg", event.target.value)}

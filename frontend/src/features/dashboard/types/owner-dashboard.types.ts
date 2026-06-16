@@ -48,6 +48,7 @@ export type OwnerDashboard = {
     upcomingAppointmentCount: number;
     unpaidInvoiceCount: number;
     unreadNotificationCount: number;
+    pendingServiceCount: number;
   };
   pets: OwnerDashboardPet[];
   upcomingAppointments: OwnerDashboardAppointment[];

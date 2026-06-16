@@ -20,29 +20,25 @@ const statCards = [
     key: "pendingAppointments",
     label: "Lịch chờ xác nhận",
     icon: CalendarClock,
-    bg: "#fef3c7",
-    iconColor: "#f59e0b",
+    iconClassName: "bg-petcenter-warning-bg text-petcenter-warning-text",
   },
   {
     key: "pendingGroomingTickets",
     label: "Dịch vụ spa cần xác nhận",
     icon: Leaf,
-    bg: "#ccfbf1",
-    iconColor: "#0f8f88",
+    iconClassName: "bg-petcenter-primary/10 text-petcenter-primary",
   },
   {
     key: "availableRooms",
     label: "Phòng trống",
     icon: BedDouble,
-    bg: "#d1fae5",
-    iconColor: "#00796b",
+    iconClassName: "bg-petcenter-success-bg text-petcenter-success-text",
   },
   {
     key: "todayInvoices",
     label: "Hóa đơn hôm nay",
     icon: ReceiptText,
-    bg: "#fef9c3",
-    iconColor: "#d97706",
+    iconClassName: "bg-petcenter-sidebar text-petcenter-text-secondary",
   },
 ] as const
 
@@ -173,33 +169,26 @@ export function StaffDashboardPage() {
         </p>
       </section>
 
-      <section className="grid w-full grid-cols-1 gap-4 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-gutter sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((item) => {
           const Icon = item.icon
 
           return (
             <article
               key={item.label}
-              className="relative flex h-[100px] items-center gap-4 overflow-hidden rounded-[16px] bg-white p-5 shadow-[0px_4px_20px_rgba(0,0,0,0.05)]"
+              className="flex h-32 flex-col justify-between rounded-card border border-petcenter-border bg-white p-4 shadow-card"
             >
-              <div
-                className="absolute bottom-[-24px] right-[-24px] size-24 rounded-full opacity-30"
-                style={{ backgroundColor: item.bg }}
-              />
-              <div
-                className="relative flex size-14 shrink-0 items-center justify-center rounded-[16px]"
-                style={{ backgroundColor: item.bg }}
-              >
-                <Icon className="size-[25px]" style={{ color: item.iconColor }} />
-              </div>
-              <div className="relative flex min-w-0 flex-col gap-1">
-                <p className="whitespace-nowrap text-[13px] font-medium leading-5 text-[#3e4946]">
+              <div className="flex items-start justify-between gap-3">
+                <p className="label-md text-petcenter-text-secondary">
                   {item.label}
                 </p>
-                <p className="whitespace-nowrap text-2xl font-bold leading-8 text-[#1b1c15]">
-                  {isLoading ? "..." : formatStatValue(item.key, overview?.stats)}
-                </p>
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control ${item.iconClassName}`}>
+                  <Icon className="h-5 w-5" />
+                </span>
               </div>
+              <p className="heading-lg text-petcenter-text">
+                {isLoading ? "..." : formatStatValue(item.key, overview?.stats)}
+              </p>
             </article>
           )
         })}
@@ -208,7 +197,7 @@ export function StaffDashboardPage() {
       <section className="w-full overflow-hidden rounded-[16px] border border-[#e6e8dd] bg-white shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]">
         <div className="flex w-full items-center justify-between border-b border-[rgba(189,201,197,0.3)] bg-white px-6 pb-[17px] pt-4">
           <h2 className="whitespace-nowrap text-xl font-semibold leading-7 tracking-[-0.2px] text-[#1b1c15]">
-            Lịch hẹn cần xử lý
+            Lịch khám cần xử lý
           </h2>
           <Button
             asChild
@@ -333,7 +322,7 @@ export function StaffDashboardPage() {
               {!isLoading && !errorMessage && appointmentTasks.length === 0 ? (
                 <tr className="h-[81px] bg-white">
                   <td className="px-6 py-6 text-sm leading-5 text-[#3e4946]" colSpan={7}>
-                    Chưa có lịch hẹn cần xử lý.
+                    Chưa có lịch khám cần xử lý.
                   </td>
                 </tr>
               ) : null}

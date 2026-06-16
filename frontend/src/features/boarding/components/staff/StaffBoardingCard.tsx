@@ -82,7 +82,7 @@ export function StaffBoardingCard({
           <p className="text-[12px] text-petcenter-text-secondary mb-1">
             Thời gian ({record.totalDays} ngày)
           </p>
-          <p className="text-[14px] text-petcenter-text font-medium">
+          <p className="whitespace-pre-line text-[14px] text-petcenter-text font-medium leading-5">
             {formatBoardingDateRange(record.checkInDate, record.checkOutDate)}
           </p>
         </div>

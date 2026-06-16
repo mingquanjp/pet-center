@@ -20,7 +20,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { StaffBoardingDetail, StaffBoardingTimelineItem } from "../../../types/boarding.types";
 import { StaffBoardingStatusBadge } from "../StaffBoardingStatusBadge";
 import {
-  formatBoardingDate,
   formatBoardingDateTime,
   formatBoardingMoney,
   getBoardingPaymentMethodLabel,
@@ -146,10 +145,10 @@ function StayInfoCard({ detail }: { detail: StaffBoardingDetail }) {
       <div className="space-y-3">
         <InfoRow label="Mã lưu trú" value={detail.boardingCode} />
         <InfoRow label="Phòng" value={<span className="rounded-md bg-petcenter-background px-2 py-1">{getRoomLabel(detail)}</span>} />
-        <InfoRow label="Check-in" value={detail.actualCheckInAt ? formatBoardingDate(detail.actualCheckInAt) : formatBoardingDate(detail.checkInDate)} />
+        <InfoRow label="Check-in" value={detail.actualCheckInAt ? formatBoardingDateTime(detail.actualCheckInAt) : formatBoardingDateTime(detail.checkInDate)} />
         <InfoRow
           label={detail.status === "CHECKED_OUT" ? "Check-out thực tế" : "Dự kiến check-out"}
-          value={detail.actualCheckOutAt ? formatBoardingDate(detail.actualCheckOutAt) : formatBoardingDate(detail.checkOutDate)}
+          value={detail.actualCheckOutAt ? formatBoardingDateTime(detail.actualCheckOutAt) : formatBoardingDateTime(detail.checkOutDate)}
         />
         <InfoRow label="Thời gian thực tế" value={getActualDayLabel(detail)} accent />
         <InfoRow label={detail.status === "CHECKED_OUT" ? "Chi phí cuối cùng" : "Chi phí tạm tính"} value={formatBoardingMoney(detail.finalAmount || detail.estimatedAmount)} />

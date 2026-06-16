@@ -55,6 +55,7 @@ export function OwnerBoardingBookingPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [successRecord, setSuccessRecord] = React.useState<BoardingRecordCreated | null>(null)
+  const minCheckInAt = React.useMemo(() => toDateTimeInputValue(new Date()), [])
 
   React.useEffect(() => {
     const abortController = new AbortController()
@@ -64,6 +65,20 @@ export function OwnerBoardingBookingPage() {
         const message = "Vui lòng chọn đầy đủ thời gian nhận phòng và trả phòng"
         setErrorMessage(message)
         toast.error(message)
+        setIsLoadingOptions(false)
+        return
+      }
+
+      if (!isFutureDateTimeInput(checkInAt)) {
+        setRoomOptions([])
+        setErrorMessage("Thời gian nhận phòng phải ở tương lai")
+        setIsLoadingOptions(false)
+        return
+      }
+
+      if (!isAfterDateTimeInput(checkOutAt, checkInAt)) {
+        setRoomOptions([])
+        setErrorMessage("Thời gian trả phòng phải sau thời gian nhận phòng")
         setIsLoadingOptions(false)
         return
       }
@@ -133,7 +148,12 @@ export function OwnerBoardingBookingPage() {
 
   const nights = selectedRoom?.nights ?? calculateNights(checkInAt, checkOutAt)
   const totalAmount = selectedRoom?.estimatedTotal ?? 0
-  const canSubmit = Boolean(selectedPet && selectedRoom?.available && !isSubmitting)
+  const hasValidBoardingTimeRange =
+    isValidDateTimeInput(checkInAt) &&
+    isValidDateTimeInput(checkOutAt) &&
+    isFutureDateTimeInput(checkInAt) &&
+    isAfterDateTimeInput(checkOutAt, checkInAt)
+  const canSubmit = Boolean(selectedPet && selectedRoom?.available && hasValidBoardingTimeRange && !isSubmitting)
 
   async function handleSubmit() {
     if (!selectedPet || !selectedRoom) {
@@ -145,6 +165,20 @@ export function OwnerBoardingBookingPage() {
 
     if (!isValidDateTimeInput(checkInAt) || !isValidDateTimeInput(checkOutAt)) {
       const message = "Vui lòng chọn đầy đủ thời gian nhận phòng và trả phòng"
+      setErrorMessage(message)
+      toast.error(message)
+      return
+    }
+
+    if (!isFutureDateTimeInput(checkInAt)) {
+      const message = "Thời gian nhận phòng phải ở tương lai"
+      setErrorMessage(message)
+      toast.error(message)
+      return
+    }
+
+    if (!isAfterDateTimeInput(checkOutAt, checkInAt)) {
+      const message = "Thời gian trả phòng phải sau thời gian nhận phòng"
       setErrorMessage(message)
       toast.error(message)
       return
@@ -320,8 +354,13 @@ export function OwnerBoardingBookingPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <DateTimeField label="Nhận phòng" value={checkInAt} onChange={setCheckInAt} />
-              <DateTimeField label="Trả phòng" value={checkOutAt} onChange={setCheckOutAt} min={checkInAt} />
+              <DateTimeField label="Nhận phòng" value={checkInAt} onChange={setCheckInAt} min={minCheckInAt} />
+              <DateTimeField
+                label="Trả phòng"
+                value={checkOutAt}
+                onChange={setCheckOutAt}
+                min={maxDateTimeInputValue(checkInAt, minCheckInAt)}
+              />
             </div>
 
             <div className="space-y-3">
@@ -713,6 +752,25 @@ function toApiDateTime(value: string) {
 
 function isValidDateTimeInput(value: string) {
   return value.trim() !== "" && !Number.isNaN(new Date(value).getTime())
+}
+
+function isFutureDateTimeInput(value: string) {
+  return isValidDateTimeInput(value) && new Date(value).getTime() > Date.now()
+}
+
+function isAfterDateTimeInput(value: string, compareTo: string) {
+  return (
+    isValidDateTimeInput(value) &&
+    isValidDateTimeInput(compareTo) &&
+    new Date(value).getTime() > new Date(compareTo).getTime()
+  )
+}
+
+function maxDateTimeInputValue(first: string, second: string) {
+  if (!isValidDateTimeInput(first)) return second
+  if (!isValidDateTimeInput(second)) return first
+
+  return new Date(first).getTime() > new Date(second).getTime() ? first : second
 }
 
 function formatWeight(value: number | null) {

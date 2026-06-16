@@ -389,7 +389,7 @@ export function StaffSpaCreatePage() {
           const selectedSlot = data.slots.find((slot) => slot.time === currentTime)
           const firstAvailableSlot = data.slots.find((slot) => slot.available)
 
-          return selectedSlot?.available ? currentTime : firstAvailableSlot?.time ?? ""
+          return selectedSlot?.available ? currentTime : firstAvailableSlot?.time ?? data.slots[0]?.time ?? ""
         })
       })
       .catch((error) => {
@@ -427,8 +427,7 @@ export function StaffSpaCreatePage() {
   const selectedService = options?.services.find((service) => service.serviceId === selectedServiceId) ?? null
   const selectedSlot = availability.find((slot) => slot.time === selectedTime) ?? null
   const formattedDate = formatDisplayDate(selectedDate)
-  const availableSlots = availability.filter((slot) => slot.available)
-  const canSubmit = Boolean(selectedPet && selectedService && selectedTime && !isSubmitting)
+  const canSubmit = Boolean(selectedPet && selectedService && selectedSlot?.available && !isSubmitting)
 
   function handleDateChange(value: string) {
     setIsAvailabilityLoading(true)
@@ -437,8 +436,8 @@ export function StaffSpaCreatePage() {
   }
 
   async function handleCreateRequest() {
-    if (!selectedPet || !selectedService || !selectedTime) {
-      const message = "Vui lòng chọn đủ thú cưng, dịch vụ và khung giờ."
+    if (!selectedPet || !selectedService || !selectedSlot?.available) {
+      const message = "Vui lòng chọn đủ thú cưng, dịch vụ và khung giờ còn trống."
       setErrorMessage(message)
       toast.error(message)
       return
@@ -602,6 +601,7 @@ export function StaffSpaCreatePage() {
                     <CalendarDays className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-[#3e4946]" />
                     <Input
                       type="date"
+                      min={toDateInputValue(new Date())}
                       value={selectedDate}
                       onChange={(event) => handleDateChange(event.target.value)}
                       className="h-12 rounded-[12px] border-[#bdc9c5] bg-[#fbfaee] pl-12 text-base text-[#1b1c15] shadow-none focus-visible:ring-[#005e53]"
@@ -615,16 +615,16 @@ export function StaffSpaCreatePage() {
                     <button
                       type="button"
                       id="spa-time-slot"
-                      disabled={isAvailabilityLoading || availableSlots.length === 0}
+                      disabled={isAvailabilityLoading || availability.length === 0}
                       onClick={() => setTimeDropdownOpen((open) => !open)}
                       className="flex h-12 w-full items-center justify-between rounded-[12px] border border-[#bdc9c5] bg-[#fbfaee] pl-12 pr-4 text-left text-base text-[#1b1c15] shadow-none outline-none transition-colors focus:border-[#005e53] focus:ring-2 focus:ring-[#005e53]/20 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <span>
                         {isAvailabilityLoading
                           ? "Đang tải khung giờ..."
-                          : availableSlots.length > 0 && selectedTime
-                            ? selectedSlot?.label ?? selectedTime
-                            : "Không có khung giờ trống"}
+                          : availability.length > 0
+                            ? selectedSlot?.label ?? availability[0]?.label ?? selectedTime
+                            : "Không có khung giờ"}
                       </span>
                       <ChevronDown className="size-4 text-[#3e4946]" aria-hidden="true" />
                     </button>
@@ -633,6 +633,12 @@ export function StaffSpaCreatePage() {
                       <div className="absolute left-0 top-[56px] z-20 max-h-[260px] w-full overflow-y-auto rounded-xl border border-[#bdc9c5] bg-white p-1 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),0_4px_6px_-4px_rgba(0,0,0,0.1)]">
                         {availability.map((slot) => {
                           const selected = slot.time === selectedTime
+                          const slotStatus =
+                            slot.disabledReason === "cutoff"
+                              ? "Quá hạn đặt"
+                              : slot.available
+                                ? `Còn ${slot.availableUnits}`
+                                : "Đầy"
 
                           return (
                             <button
@@ -650,7 +656,7 @@ export function StaffSpaCreatePage() {
                             >
                               <span>{slot.label}</span>
                               <span className="flex items-center gap-2 text-xs text-[#3e4946]">
-                                {slot.available ? `Còn ${slot.availableUnits}` : "Đầy"}
+                                {slotStatus}
                                 {selected ? <Check className="size-4 text-[#005e53]" aria-hidden="true" /> : null}
                               </span>
                             </button>

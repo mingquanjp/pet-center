@@ -16,7 +16,7 @@ export function AppointmentInfoCard({ appointment }: Props) {
           <div className="w-10 h-10 rounded-full bg-petcenter-primary/10 flex items-center justify-center shadow-sm">
             <Calendar className="w-5 h-5 text-petcenter-primary" />
           </div>
-          <CardTitle className="text-xl font-semibold text-petcenter-text tracking-tight">Thông tin lịch hẹn</CardTitle>
+          <CardTitle className="text-xl font-semibold text-petcenter-text tracking-tight">Thông tin lịch khám</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="pt-6">

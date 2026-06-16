@@ -21,9 +21,14 @@ export function formatBoardingDateTime(dateString: string) {
 
 export function formatBoardingDateRange(start: string, end: string) {
   try {
-    const d1 = format(new Date(start), "dd/MM", { locale: vi });
-    const d2 = format(new Date(end), "dd/MM", { locale: vi });
-    return `${d1} - ${d2}`;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const d1 = format(startDate, "dd/MM", { locale: vi });
+    const d2 = format(endDate, "dd/MM", { locale: vi });
+    const t1 = format(startDate, "HH:mm", { locale: vi });
+    const t2 = format(endDate, "HH:mm", { locale: vi });
+
+    return `${d1} - ${d2}\n${t1} - ${t2}`;
   } catch {
     return `${start} - ${end}`;
   }

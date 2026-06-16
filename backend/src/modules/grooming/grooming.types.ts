@@ -68,6 +68,7 @@ export type GroomingAvailabilitySlotDto = {
   bookedUnits: number;
   availableUnits: number;
   available: boolean;
+  disabledReason?: "cutoff" | "full";
 };
 
 export type GroomingAvailabilityDto = {

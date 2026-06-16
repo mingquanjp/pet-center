@@ -7,7 +7,7 @@ export const staffSidebarConfig = [
     icon: LayoutDashboard,
   },
   {
-    title: "Lịch hẹn",
+    title: "Khám bệnh",
     href: "/staff/appointments",
     icon: Calendar,
   },

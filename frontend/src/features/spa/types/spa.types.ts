@@ -81,6 +81,7 @@ export interface GroomingAvailabilitySlot {
   bookedUnits: number
   availableUnits: number
   available: boolean
+  disabledReason?: "cutoff" | "full"
 }
 
 export interface GroomingAvailability {

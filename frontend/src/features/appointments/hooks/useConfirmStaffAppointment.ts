@@ -17,7 +17,7 @@ export function useConfirmStaffAppointment() {
       await appointmentsApi.confirmStaffAppointment(appointmentId, { doctorUserId, internalNote });
       options?.onSuccess?.();
     } catch (err) {
-      console.error("Lỗi xác nhận lịch hẹn:", err);
+      console.error("Lỗi xác nhận lịch khám:", err);
       setIsError(true);
       setError(err);
       options?.onError?.(err);

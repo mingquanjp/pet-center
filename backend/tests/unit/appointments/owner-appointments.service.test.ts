@@ -157,7 +157,7 @@ describe("getOwnerAvailableSlots", () => {
   it("returns 30-minute start intervals with service-specific end times", async () => {
     const slots = await getOwnerAvailableSlots("2099-06-16", "exam_general");
 
-    expect(slots).toHaveLength(18);
+    expect(slots).toHaveLength(17);
     expect(slots[0]).toMatchObject({
       value: "08:00",
       label: "08:00 - 08:45",
@@ -169,10 +169,10 @@ describe("getOwnerAvailableSlots", () => {
       label: "08:30 - 09:15",
     });
     expect(slots.at(-1)).toMatchObject({
-      value: "16:30",
-      label: "16:30 - 17:15",
-      disabled: true,
-      disabledReason: "outside_working_hours",
+      value: "16:00",
+      label: "16:00 - 16:45",
+      disabled: false,
     });
+    expect(slots.some((slot) => slot.disabledReason === "outside_working_hours")).toBe(false);
   });
 });

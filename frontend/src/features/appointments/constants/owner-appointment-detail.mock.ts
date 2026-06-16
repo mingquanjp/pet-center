@@ -42,7 +42,7 @@ export const MOCK_OWNER_APPOINTMENT_DETAILS: OwnerAppointmentDetail[] = [
         key: "pending",
         label: "Chờ trung tâm xác nhận",
         description:
-          "Hệ thống đang chờ nhân viên phòng khám tiếp nhận và xác nhận lịch hẹn của bạn.",
+          "Hệ thống đang chờ nhân viên phòng khám tiếp nhận và xác nhận lịch khám của bạn.",
         status: "CURRENT",
       },
       {

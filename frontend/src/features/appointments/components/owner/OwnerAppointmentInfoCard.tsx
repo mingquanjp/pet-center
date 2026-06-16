@@ -14,9 +14,9 @@ interface OwnerAppointmentInfoCardProps {
 export function OwnerAppointmentInfoCard({ appointment }: OwnerAppointmentInfoCardProps) {
   return (
     <Card className="gap-0 rounded-2xl border-petcenter-border bg-petcenter-card p-6 shadow-card ring-0">
-      <h2 className="title-md mb-4 text-petcenter-text">Thông tin lịch hẹn</h2>
+      <h2 className="title-md mb-4 text-petcenter-text">Thông tin lịch khám</h2>
       <div className="divide-y divide-petcenter-border">
-        <InfoRow label="Mã lịch hẹn" value={appointment.appointmentCode} strong />
+        <InfoRow label="Mã lịch khám" value={appointment.appointmentCode} strong />
         <InfoRow label="Loại dịch vụ" value={appointment.serviceName} />
         <InfoRow
           icon={<Calendar className="h-4 w-4" aria-hidden="true" />}
