@@ -18,6 +18,7 @@ export interface StaffInvoiceDetailRow {
   paid_at: Date | null;
   pet_id: string;
   pet_name: string;
+  pet_image_url: string | null;
   owner_id: string;
   owner_name: string;
   subtotal_amount: number;
@@ -31,6 +32,7 @@ export interface StaffInvoiceListItemRow {
   invoice_code: string;
   pet_id: string;
   pet_name: string;
+  pet_image_url: string | null;
   owner_id: string;
   owner_name: string;
   issued_at: Date;
@@ -48,6 +50,7 @@ export interface OwnerInvoiceListItemRow {
   invoice_code: string;
   pet_id: string;
   pet_name: string;
+  pet_image_url: string | null;
   issued_at: Date;
   payment_option: string;
   invoice_status: string;

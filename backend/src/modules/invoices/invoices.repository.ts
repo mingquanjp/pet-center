@@ -23,6 +23,7 @@ export async function getStaffInvoicesList(filters: any) {
       i.total_amount,
       p.pet_id,
       p.pet_name,
+      p.profile_image_url AS pet_image_url,
       u.user_id AS owner_id,
       u.full_name AS owner_name,
       (
@@ -260,6 +261,7 @@ export async function getOwnerInvoicesList(
         i.total_amount,
         p.pet_id,
         p.pet_name,
+        p.profile_image_url AS pet_image_url,
         (
           SELECT paid_at
           FROM pet_center.payments pay
@@ -310,6 +312,7 @@ export async function getOwnerInvoiceDetail(invoiceId: string, ownerUserId: stri
       i.total_amount,
       p.pet_id,
       p.pet_name,
+      p.profile_image_url AS pet_image_url,
       u.user_id AS owner_id,
       u.full_name AS owner_name,
       pay.paid_at
@@ -346,6 +349,7 @@ export async function getInvoiceDetail(invoiceId: string) {
       i.total_amount,
       p.pet_id,
       p.pet_name,
+      p.profile_image_url AS pet_image_url,
       u.user_id AS owner_id,
       u.full_name AS owner_name,
       pay.paid_at

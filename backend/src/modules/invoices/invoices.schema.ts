@@ -16,7 +16,7 @@ export const listOwnerInvoicesQuerySchema = z.object({
   serviceType: z.enum(["MEDICAL", "GROOMING", "BOARDING", "PRESCRIPTION"]).optional(),
   date: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(4),
+  limit: z.coerce.number().int().min(1).max(50).default(6),
 });
 
 export const invoiceParamsSchema = z.object({

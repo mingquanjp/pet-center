@@ -5,6 +5,7 @@ import { createId } from "../../../shared/utils/id.js";
 import { getMaxConcurrentIntervals } from "../../../shared/utils/interval-capacity.js";
 import * as repo from "./owner-appointments.repository.js";
 import { notifyAppointmentCreated } from "../../notifications/notification-events.js";
+import { upsertPetActivityLog } from "../../pet-activity-logs/pet-activity-logs.repository.js";
 import type {
   CancelOwnerAppointmentBody,
   CreateOwnerAppointmentBody,
@@ -457,6 +458,25 @@ export async function createOwnerAppointment(
       client,
     );
     await repo.insertOwnerMedicalExam(await createId("mex", client), appointmentId, client);
+    const isVaccination = examType.type_code === "vaccination";
+    await upsertPetActivityLog({
+      petId: body.petId,
+      ownerUserId,
+      actorUserId: ownerUserId,
+      activityCategory: isVaccination ? "vaccination" : "medical",
+      activityType: "appointment_created",
+      activityStatus: "pending",
+      title: isVaccination ? "Đã đặt lịch tiêm phòng" : "Đã đặt lịch khám",
+      summary: `${pet.pet_name} có lịch ${examType.type_name}.`,
+      sourceType: "medical_appointment",
+      sourceId: appointmentId,
+      metadata: {
+        scheduledAt: scheduledAt.toISOString(),
+        examTypeId: body.examTypeId,
+        examTypeName: examType.type_name,
+        symptomDescription: body.symptomDescription ?? null
+      }
+    }, client);
 
     return {
       id: appointmentId,
@@ -491,6 +511,22 @@ export async function cancelOwnerAppointment(
     }
 
     await repo.cancelOwnerAppointment(appointmentId, ownerUserId, client);
+    await upsertPetActivityLog({
+      petId: row.pet_id,
+      ownerUserId,
+      actorUserId: ownerUserId,
+      activityCategory: row.type_code === "vaccination" ? "vaccination" : "medical",
+      activityType: "appointment_cancelled",
+      activityStatus: "cancelled",
+      title: "Đã hủy lịch hẹn",
+      summary: `${row.pet_name} đã được hủy lịch ${row.type_name}.`,
+      sourceType: "medical_appointment",
+      sourceId: appointmentId,
+      metadata: {
+        scheduledAt: new Date(row.scheduled_at).toISOString(),
+        examTypeName: row.type_name
+      }
+    }, client);
   });
 
   return getOwnerAppointmentDetail(ownerUserId, appointmentId);

@@ -339,11 +339,16 @@ export async function findDoctorExaminationForUpdate(
     SELECT
       ma.appointment_id,
       ma.pet_id,
+      ma.owner_user_id AS owner_id,
       ma.exam_type_id,
       ma.veterinarian_user_id,
       ma.appointment_status,
+      p.pet_name,
+      et.type_name,
       me.exam_id
     FROM pet_center.medical_appointments ma
+    JOIN pet_center.pets p ON p.pet_id = ma.pet_id
+    JOIN pet_center.exam_types et ON et.exam_type_id = ma.exam_type_id
     LEFT JOIN pet_center.medical_exams me ON ma.appointment_id = me.appointment_id
     WHERE ma.appointment_id = $1
       AND ma.veterinarian_user_id = $2
@@ -354,9 +359,12 @@ export async function findDoctorExaminationForUpdate(
   const result = await client.query<{
     appointment_id: string;
     pet_id: string;
+    owner_id: string;
     exam_type_id: string;
     veterinarian_user_id: string;
     appointment_status: string;
+    pet_name: string;
+    type_name: string;
     exam_id: string | null;
   }>(sql, [appointmentId, doctorUserId]);
 

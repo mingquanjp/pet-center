@@ -17,6 +17,7 @@ import type {
   UpdatePetPayload
 } from "./pets.schema.js";
 import * as petsRepository from "./pets.repository.js";
+import { upsertPetActivityLog } from "../pet-activity-logs/pet-activity-logs.repository.js";
 
 
 function normalizePhoneNumber(phoneNumber: string): string {
@@ -132,6 +133,22 @@ export async function createStaffPet(authUser: AuthUser, payload: StaffCreatePet
   }
 
   const createdPet = await petsRepository.createPet(payload.ownerUserId, payload);
+  await upsertPetActivityLog({
+    petId: createdPet.petId,
+    ownerUserId: payload.ownerUserId,
+    actorUserId: authUser.userId,
+    activityCategory: "profile",
+    activityType: "pet_profile_created",
+    activityStatus: "completed",
+    title: "Đã tạo hồ sơ thú cưng",
+    summary: `${payload.petName.trim()} đã được thêm vào hồ sơ thú cưng.`,
+    sourceType: "pet",
+    sourceId: createdPet.petId,
+    metadata: {
+      species: payload.species,
+      createdByRole: authUser.role
+    }
+  });
   const staffPet = await petsRepository.findStaffPetById(createdPet.petId);
 
   if (!staffPet) {
@@ -155,6 +172,23 @@ export async function updateStaffPet(authUser: AuthUser, petId: string, payload:
   if (!updatedPet) {
     throw new AppError("Không tìm thấy hồ sơ thú cưng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
+
+  await upsertPetActivityLog({
+    petId,
+    ownerUserId: existingPet.owner.userId,
+    actorUserId: authUser.userId,
+    activityCategory: "profile",
+    activityType: "pet_profile_updated",
+    activityStatus: "completed",
+    title: "Đã cập nhật hồ sơ thú cưng",
+    summary: `Hồ sơ của ${existingPet.petName} vừa được cập nhật.`,
+    sourceType: "pet",
+    sourceId: petId,
+    metadata: {
+      updatedFields: Object.keys(payload),
+      updatedByRole: authUser.role
+    }
+  });
 
   const staffPet = await petsRepository.findStaffPetById(petId);
 
@@ -268,7 +302,25 @@ export async function listOwnerPetSpaHistory(authUser: AuthUser, petId: string, 
 export async function createOwnerPet(authUser: AuthUser, payload: CreatePetPayload) {
   assertOwner(authUser);
 
-  return petsRepository.createPet(authUser.userId, payload);
+  const pet = await petsRepository.createPet(authUser.userId, payload);
+  await upsertPetActivityLog({
+    petId: pet.petId,
+    ownerUserId: authUser.userId,
+    actorUserId: authUser.userId,
+    activityCategory: "profile",
+    activityType: "pet_profile_created",
+    activityStatus: "completed",
+    title: "Đã tạo hồ sơ thú cưng",
+    summary: `${payload.petName.trim()} đã được thêm vào hồ sơ thú cưng.`,
+    sourceType: "pet",
+    sourceId: pet.petId,
+    metadata: {
+      species: payload.species,
+      createdByRole: authUser.role
+    }
+  });
+
+  return pet;
 }
 
 export async function updateOwnerPet(authUser: AuthUser, petId: string, payload: UpdatePetPayload) {
@@ -279,6 +331,23 @@ export async function updateOwnerPet(authUser: AuthUser, petId: string, payload:
   if (!pet) {
     throw new AppError("Không tìm thấy hồ sơ thú cưng", "PET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
+
+  await upsertPetActivityLog({
+    petId,
+    ownerUserId: authUser.userId,
+    actorUserId: authUser.userId,
+    activityCategory: "profile",
+    activityType: "pet_profile_updated",
+    activityStatus: "completed",
+    title: "Đã cập nhật hồ sơ thú cưng",
+    summary: `Hồ sơ của ${pet.petName} vừa được cập nhật.`,
+    sourceType: "pet",
+    sourceId: petId,
+    metadata: {
+      updatedFields: Object.keys(payload),
+      updatedByRole: authUser.role
+    }
+  });
 
   return pet;
 }
