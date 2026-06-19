@@ -60,7 +60,7 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       type: "text",
       required: false,
       placeholder: "Ghi nhận tình trạng da, lông, vết thương ngoài da nếu có...",
-      fullWidth: true,
+      fullWidth: false,
     },
     {
       name: "eyesEarsNoseMouth",
@@ -68,7 +68,7 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       type: "text",
       required: false,
       placeholder: "Ghi nhận tình trạng mắt, tai, mũi, miệng...",
-      fullWidth: true,
+      fullWidth: false,
     },
     {
       name: "cardioRespiratory",
@@ -76,7 +76,7 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       type: "text",
       required: false,
       placeholder: "Ghi nhận nhịp thở, tim phổi, dấu hiệu bất thường...",
-      fullWidth: true,
+      fullWidth: false,
     },
     {
       name: "digestiveCondition",
@@ -84,7 +84,7 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       type: "text",
       required: false,
       placeholder: "Ghi nhận ăn uống, nôn, tiêu chảy, đại tiện...",
-      fullWidth: true,
+      fullWidth: false,
     },
     {
       name: "suggestedLabTest",
@@ -143,14 +143,14 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       type: "text",
       required: false,
       placeholder: "Ghi nhận phản ứng sau tiêm nếu có...",
-      fullWidth: true,
+      fullWidth: false,
     },
     {
       name: "vaccinationNote",
       label: "Ghi chú sau tiêm",
       type: "text",
       required: false,
-      fullWidth: true,
+      fullWidth: false,
     },
   ],
   LAB_TEST: [
@@ -178,14 +178,14 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       label: "Kết quả ghi nhận",
       type: "text",
       required: false,
-      fullWidth: true,
+      fullWidth: false,
     },
     {
       name: "labDoctorComment",
       label: "Nhận xét của bác sĩ",
       type: "text",
       required: false,
-      fullWidth: true,
+      fullWidth: false,
     },
     {
       name: "labResultFile",
@@ -222,7 +222,7 @@ export const examTypeFieldConfig: Record<DoctorExaminationType, DoctorExamFieldC
       type: "text",
       required: true,
       placeholder: "Nhập hướng điều trị hoặc theo dõi tiếp theo...",
-      fullWidth: true,
+      fullWidth: false,
     },
   ],
 }
