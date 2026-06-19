@@ -146,6 +146,7 @@ export interface CompleteDoctorExaminationPayload extends SaveDraftDoctorExamina
   diagnosis: string
   conclusion: string
   prescriptionItems?: DoctorPrescriptionItem[]
+  dispenseMedicine?: boolean
   vaccination?: DoctorVaccination
   followUp?: DoctorFollowUpInstruction
 }
