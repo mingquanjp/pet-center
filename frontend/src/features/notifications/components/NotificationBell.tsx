@@ -5,6 +5,7 @@ import { vi } from "date-fns/locale";
 
 import { useNotifications } from "../hooks/useNotifications";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
@@ -75,12 +76,20 @@ export function NotificationBell() {
                   <button
                     key={notification.id}
                     onClick={() => handleNotificationClick(notification)}
-                    className={`flex flex-col gap-1 border-b px-4 py-3 text-left transition-colors hover:bg-muted/50 focus-visible:ring-0 focus:ring-0 ring-0 outline-none ${
-                      isUnread ? "bg-primary/5" : ""
-                    }`}
+                    className={cn(
+                      "flex flex-col gap-1 border-b px-4 py-3 text-left transition-colors focus-visible:ring-0 focus:ring-0 ring-0 outline-none",
+                      isUnread
+                        ? "bg-primary/5 hover:bg-primary/10"
+                        : "bg-white opacity-60 hover:bg-muted/40 hover:opacity-80"
+                    )}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-medium text-sm leading-tight">
+                      <span
+                        className={cn(
+                          "text-sm leading-tight",
+                          isUnread ? "font-semibold text-petcenter-text" : "font-medium text-petcenter-text-secondary"
+                        )}
+                      >
                         {notification.title}
                       </span>
                       {isUnread && (
