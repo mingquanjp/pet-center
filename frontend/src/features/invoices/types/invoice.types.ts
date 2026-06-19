@@ -23,6 +23,7 @@ export interface StaffInvoice {
   pet: {
     id: string;
     name: string;
+    imageUrl?: string;
   };
   owner: {
     id: string;
@@ -81,6 +82,7 @@ export interface OwnerInvoice {
   pet: {
     id: string;
     name: string;
+    imageUrl?: string;
   };
   serviceType: InvoiceServiceType;
   serviceName: string;
@@ -101,6 +103,7 @@ export interface OwnerInvoiceDetail {
   pet: {
     id: string;
     name: string;
+    imageUrl?: string;
   };
   issuedAt: string;
   paymentOption: InvoicePaymentOption;

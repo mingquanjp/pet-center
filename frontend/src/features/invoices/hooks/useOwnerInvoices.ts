@@ -3,7 +3,7 @@ import * as React from "react";
 import { ownerInvoicesApi } from "../api/invoices.api";
 import { OwnerInvoice, OwnerInvoiceFilters } from "../types/invoice.types";
 
-const OWNER_INVOICE_PAGE_SIZE = 4;
+const OWNER_INVOICE_PAGE_SIZE = 6;
 
 export function mapOwnerInvoiceFiltersToQuery(filters: OwnerInvoiceFilters) {
   return {

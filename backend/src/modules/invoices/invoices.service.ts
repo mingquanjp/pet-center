@@ -29,6 +29,7 @@ export async function listStaffInvoices(filters: any) {
     pet: {
       id: row.pet_id,
       name: row.pet_name,
+      imageUrl: row.pet_image_url ?? undefined,
     },
     owner: {
       id: row.owner_id,
@@ -57,7 +58,7 @@ export async function listStaffInvoices(filters: any) {
 
 export async function listOwnerInvoices(ownerUserId: string, filters: any) {
   const page = filters.page ? Number(filters.page) : 1;
-  const limit = filters.limit ? Number(filters.limit) : 4;
+  const limit = filters.limit ? Number(filters.limit) : 6;
 
   const { rows, total } = await repo.getOwnerInvoicesList(ownerUserId, {
     ...filters,
@@ -79,6 +80,7 @@ export async function listOwnerInvoices(ownerUserId: string, filters: any) {
       pet: {
         id: row.pet_id,
         name: row.pet_name,
+        imageUrl: row.pet_image_url ?? undefined,
       },
       serviceType: mapServiceType(row.first_line_source),
       serviceName: mapServiceName(row.first_line_source),
@@ -121,6 +123,7 @@ export async function getOwnerInvoiceDetail(invoiceId: string, ownerUserId: stri
     pet: {
       id: row.pet_id,
       name: row.pet_name,
+      imageUrl: row.pet_image_url ?? undefined,
     },
     issuedAt: new Date(row.issued_at).toISOString().split("T")[0],
     paymentOption: mapPaymentOption(row.payment_option),
@@ -158,6 +161,7 @@ export async function getStaffInvoiceDetail(invoiceId: string) {
     pet: {
       id: row.pet_id,
       name: row.pet_name,
+      imageUrl: row.pet_image_url ?? undefined,
     },
     owner: {
       id: row.owner_id,
