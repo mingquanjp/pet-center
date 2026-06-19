@@ -104,11 +104,13 @@ function formatMedicineUnit(unit?: string | null) {
 }
 
 type PrescriptionDurationUnit = "ngày" | "tuần" | "tháng" | "năm"
+type PrescriptionFrequencyUnit = "lần/ngày" | "lần/tuần" | "lần/tháng" | "lần/năm"
 
 type PrescriptionDraftValues = {
   quantity: string
   dosage: string
   frequency: string
+  frequencyUnit: PrescriptionFrequencyUnit
   duration: string
   durationUnit: PrescriptionDurationUnit
 }
@@ -118,6 +120,7 @@ function emptyPrescriptionDraftValues(): PrescriptionDraftValues {
     quantity: "1",
     dosage: "",
     frequency: "",
+    frequencyUnit: "lần/ngày",
     duration: "",
     durationUnit: "ngày",
   }
@@ -140,6 +143,13 @@ function parsePrescriptionDraftValues(item: DoctorPrescriptionItem): Prescriptio
     quantity: item.quantity === undefined || item.quantity === null ? "" : String(item.quantity),
     dosage: parseNumericValue(item.dosage),
     frequency: parseNumericValue(item.frequency),
+    frequencyUnit: item.frequency.toLowerCase().includes("năm")
+      ? "lần/năm"
+      : item.frequency.toLowerCase().includes("tháng")
+        ? "lần/tháng"
+        : item.frequency.toLowerCase().includes("tuần")
+          ? "lần/tuần"
+          : "lần/ngày",
     duration: parseNumericValue(item.duration),
     durationUnit: item.duration.toLowerCase().includes("năm")
       ? "năm"
@@ -151,12 +161,12 @@ function parsePrescriptionDraftValues(item: DoctorPrescriptionItem): Prescriptio
   }
 }
 
-function buildDosage(value: string, unit?: string | null) {
-  return `${value} ${getDosageSuffix(unit)}`
+function buildDosage(value: string, _unit?: string | null) {
+  return value.trim()
 }
 
-function buildFrequency(value: string) {
-  return `${value} lần/ngày`
+function buildFrequency(value: string, unit: PrescriptionFrequencyUnit) {
+  return `${value} ${unit}`
 }
 
 function buildDuration(value: string, unit: PrescriptionDurationUnit) {
@@ -780,7 +790,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     if (!Number.isInteger(Number(prescriptionDraftValues.quantity)) || Number(prescriptionDraftValues.quantity) <= 0) {
       nextErrors.quantity = "Số lượng phải là số nguyên lớn hơn 0"
     }
-    if (!Number(prescriptionDraftValues.dosage) || Number(prescriptionDraftValues.dosage) <= 0) nextErrors.dosage = "Nhập liều dùng"
+    if (!prescriptionDraftValues.dosage.trim()) nextErrors.dosage = "Nhập liều dùng"
     if (!Number.isInteger(Number(prescriptionDraftValues.frequency)) || Number(prescriptionDraftValues.frequency) <= 0) {
       nextErrors.frequency = "Tần suất phải là số nguyên lớn hơn 0"
     }
@@ -815,7 +825,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
       medicineUnit: medicine?.unit,
       quantity: Number(prescriptionDraftValues.quantity),
       dosage: buildDosage(prescriptionDraftValues.dosage, medicine?.unit),
-      frequency: buildFrequency(prescriptionDraftValues.frequency),
+      frequency: buildFrequency(prescriptionDraftValues.frequency, prescriptionDraftValues.frequencyUnit),
       duration: buildDuration(prescriptionDraftValues.duration, prescriptionDraftValues.durationUnit),
       note: prescriptionDraft.note?.trim() || undefined,
     }
@@ -1320,9 +1330,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
               }
             }}
           >
-            <DialogContent className="max-w-3xl rounded-2xl bg-white p-6 text-petcenter-text">
+            <DialogContent className="sm:max-w-[500px] rounded-2xl bg-white p-6 text-petcenter-text w-[calc(100%-2rem)]">
               <DialogHeader>
-                <DialogTitle className="title-md text-petcenter-text">
+                <DialogTitle className="text-xl font-bold text-petcenter-text">
                   {editingPrescriptionIndex === null ? "Thêm dòng thuốc" : "Sửa dòng thuốc"}
                 </DialogTitle>
                 <DialogDescription className="body-sm text-petcenter-text-secondary">
@@ -1332,7 +1342,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label className="md:col-span-2">
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Thuốc <span className="text-petcenter-danger-text">*</span>
                   </span>
                   <select
@@ -1350,8 +1360,12 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                   >
                     <option value="" disabled hidden>Chọn thuốc...</option>
                     {detail.medicines.map((medicine) => (
-                      <option key={medicine.id} value={medicine.id}>
-                        {medicine.name} ({formatMedicineUnit(medicine.unit)})
+                      <option
+                        key={medicine.id}
+                        value={medicine.id}
+                        disabled={medicine.stockQuantity <= 0}
+                      >
+                        {medicine.name} ({formatMedicineUnit(medicine.unit)}) - Tồn kho: {medicine.stockQuantity}
                       </option>
                     ))}
                   </select>
@@ -1361,7 +1375,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                 </label>
 
                 <label>
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Số lượng <span className="text-petcenter-danger-text">*</span>
                   </span>
                   <input
@@ -1370,6 +1384,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                     onChange={(event) =>
                       setPrescriptionDraftValues((current) => ({ ...current, quantity: event.target.value }))
                     }
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault()
+                    }}
                     type="number"
                     value={prescriptionDraftValues.quantity}
                   />
@@ -1379,45 +1396,53 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                 </label>
 
                 <label>
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Liều dùng <span className="text-petcenter-danger-text">*</span>
                   </span>
-                  <div className="flex overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
-                    <input
-                      className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none"
-                      min="0.1"
-                      onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, dosage: event.target.value }))}
-                      placeholder="Nhập số"
-                      step="0.1"
-                      type="number"
-                      value={prescriptionDraftValues.dosage}
-                    />
-                    <span className="flex items-center border-l border-petcenter-border bg-petcenter-background px-3 text-sm font-medium text-petcenter-text-secondary">
-                      {getDosageSuffix(detail.medicines.find((medicine) => medicine.id === prescriptionDraft.medicineId)?.unit)}
-                    </span>
-                  </div>
+                  <input
+                    className={fieldInputClass}
+                    onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, dosage: event.target.value }))}
+                    placeholder="VD: 1 viên/ lần, bôi mỏng..."
+                    type="text"
+                    value={prescriptionDraftValues.dosage}
+                  />
                   {prescriptionDraftErrors.dosage ? (
                     <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{prescriptionDraftErrors.dosage}</p>
                   ) : null}
                 </label>
 
                 <label>
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Tần suất <span className="text-petcenter-danger-text">*</span>
                   </span>
-                  <div className="flex overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
+                  <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
                     <input
-                      className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none"
+                      className="min-w-0 bg-transparent px-3 py-2 text-sm outline-none"
                       min="1"
                       onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, frequency: event.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault()
+                      }}
                       placeholder="Nhập số"
                       step="1"
                       type="number"
                       value={prescriptionDraftValues.frequency}
                     />
-                    <span className="flex items-center border-l border-petcenter-border bg-petcenter-background px-3 text-sm font-medium text-petcenter-text-secondary">
-                      lần/ngày
-                    </span>
+                    <select
+                      className="border-l border-petcenter-border bg-petcenter-background px-3 py-2 text-sm font-medium text-petcenter-text-secondary outline-none focus-within:text-petcenter-text"
+                      onChange={(event) =>
+                        setPrescriptionDraftValues((current) => ({
+                          ...current,
+                          frequencyUnit: event.target.value as PrescriptionFrequencyUnit,
+                        }))
+                      }
+                      value={prescriptionDraftValues.frequencyUnit}
+                    >
+                      <option value="lần/ngày">lần/ngày</option>
+                      <option value="lần/tuần">lần/tuần</option>
+                      <option value="lần/tháng">lần/tháng</option>
+                      <option value="lần/năm">lần/năm</option>
+                    </select>
                   </div>
                   {prescriptionDraftErrors.frequency ? (
                     <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{prescriptionDraftErrors.frequency}</p>
@@ -1425,7 +1450,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                 </label>
 
                 <label>
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Thời gian <span className="text-petcenter-danger-text">*</span>
                   </span>
                   <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
@@ -1433,6 +1458,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                       className="min-w-0 bg-transparent px-3 py-2 text-sm outline-none"
                       min="1"
                       onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, duration: event.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault()
+                      }}
                       placeholder="Nhập số"
                       step="1"
                       type="number"
@@ -1464,7 +1492,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                   ["note", "Ghi chú", "Ghi chú thêm nếu có"],
                 ].map(([key, label, placeholder]) => (
                   <label key={key} className="md:col-span-2">
-                    <span className="label-md mb-1 block font-medium text-petcenter-text">
+                    <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                       {label} {key !== "note" ? <span className="text-petcenter-danger-text">*</span> : null}
                     </span>
                     <input

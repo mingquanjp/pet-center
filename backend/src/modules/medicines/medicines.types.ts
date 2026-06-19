@@ -26,6 +26,7 @@ export interface AdminMedicineDto {
   description: string | null;
   usageNote: string | null;
   unitPrice: number;
+  stockQuantity: number;
   medicineStatus: MedicineStatus;
   prescriptionUsageCount: number;
 }
@@ -53,6 +54,7 @@ export interface CreateAdminMedicineBody {
   description?: string | null;
   usageNote?: string | null;
   unitPrice: number;
+  stockQuantity?: number;
   medicineStatus?: MedicineStatus;
 }
 
@@ -62,6 +64,7 @@ export interface UpdateAdminMedicineBody {
   description?: string | null;
   usageNote?: string | null;
   unitPrice?: number;
+  stockQuantity?: number;
   medicineStatus?: MedicineStatus;
 }
 

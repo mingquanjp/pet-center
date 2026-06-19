@@ -95,6 +95,7 @@ export async function mapDoctorExaminationDetail(row: DoctorExaminationDetailRow
       id: medicine.medicine_id,
       name: medicine.medicine_name,
       unit: medicine.unit,
+      stockQuantity: Number(medicine.stock_quantity ?? 0),
       status: medicine.medicine_status,
     })),
     prescription: prescription

@@ -72,4 +72,9 @@ export const adminMedicinesApi = {
     })
     return response.data
   },
+
+  getMedicineUnits: async (): Promise<string[]> => {
+    const response = await apiRequest<string[]>("/admin/medicines-units")
+    return response.data
+  },
 }

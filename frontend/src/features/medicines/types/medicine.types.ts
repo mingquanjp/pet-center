@@ -1,13 +1,8 @@
-export type MedicineUnit =
-  | "tablet"
-  | "blister"
-  | "bottle"
-  | "packet"
-  | "tube"
+export type MedicineUnit = string
 
 export type MedicineStatus = "active" | "inactive"
 
-export type MedicineUnitFilter = "ALL" | MedicineUnit
+export type MedicineUnitFilter = string
 export type MedicineStatusFilter = "ALL" | MedicineStatus
 
 export interface AdminMedicine {
@@ -18,6 +13,7 @@ export interface AdminMedicine {
   description?: string | null
   usageNote?: string | null
   unitPrice: number
+  stockQuantity: number
   medicineStatus: MedicineStatus
   prescriptionUsageCount?: number
 }
@@ -47,6 +43,7 @@ export interface CreateAdminMedicinePayload {
   description?: string | null
   usageNote?: string | null
   unitPrice: number
+  stockQuantity?: number
   medicineStatus: MedicineStatus
 }
 

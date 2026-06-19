@@ -84,6 +84,7 @@ export interface DoctorMedicineOption {
   id: string
   name: string
   unit: string
+  stockQuantity: number
   status: string
 }
 

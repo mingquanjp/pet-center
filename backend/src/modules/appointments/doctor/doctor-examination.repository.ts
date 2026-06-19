@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 import { query } from "../../../db/query.js";
+import { AppError } from "../../../shared/errors/app-error.js";
 import { createId } from "../../../shared/utils/id.js";
 import type {
   AvailableDoctorRow,
@@ -599,7 +600,7 @@ export async function getDoctorExaminationHistory(petId: string, currentAppointm
 export async function getActiveMedicineOptions() {
   const result = await query<DoctorMedicineOptionRow>(
     `
-      SELECT medicine_id, medicine_name, unit, medicine_status
+      SELECT medicine_id, medicine_name, unit, stock_quantity, medicine_status
       FROM pet_center.medicines
       WHERE medicine_status = 'active'
       ORDER BY medicine_name ASC, medicine_id ASC
@@ -729,6 +730,19 @@ export async function replacePrescription(
   items: DoctorPrescriptionItemBody[] | undefined,
   client: PoolClient
 ) {
+  const oldItemsResult = await client.query(
+    `SELECT pi.medicine_id, pi.quantity FROM pet_center.prescription_items pi 
+     JOIN pet_center.prescriptions p ON p.prescription_id = pi.prescription_id 
+     WHERE p.exam_id = $1`, [examId]
+  );
+
+  for (const row of oldItemsResult.rows) {
+    await client.query(
+      `UPDATE pet_center.medicines SET stock_quantity = stock_quantity + $1 WHERE medicine_id = $2`,
+      [row.quantity, row.medicine_id]
+    );
+  }
+
   await client.query("DELETE FROM pet_center.prescriptions WHERE exam_id = $1", [examId]);
 
   const validItems = (items ?? []).filter((item) => item.medicineId);
@@ -775,6 +789,19 @@ export async function replacePrescription(
         item.note ?? null,
       ]
     );
+
+    const qty = item.quantity ?? 1;
+    const stockUpdate = await client.query(
+      `UPDATE pet_center.medicines 
+       SET stock_quantity = stock_quantity - $1 
+       WHERE medicine_id = $2 AND stock_quantity >= $1
+       RETURNING medicine_name`,
+      [qty, item.medicineId]
+    );
+
+    if (stockUpdate.rowCount === 0) {
+      throw new AppError("Không đủ số lượng tồn kho để kê đơn", "INSUFFICIENT_STOCK", 400);
+    }
   }
 
   return true;
