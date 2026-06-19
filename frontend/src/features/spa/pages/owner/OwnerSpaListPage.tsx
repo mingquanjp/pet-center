@@ -655,9 +655,11 @@ function HistoryServicesTab({
 
   return (
     <>
-      {requests.map((request) => (
-        <OwnerSpaRequestCard key={request.id} request={request} />
-      ))}
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+        {requests.map((request) => (
+          <OwnerSpaRequestCard key={request.id} request={request} />
+        ))}
+      </section>
       <AppPagination
         ariaLabel="Phân trang lịch sử dịch vụ"
         className="pb-8 pt-2"
