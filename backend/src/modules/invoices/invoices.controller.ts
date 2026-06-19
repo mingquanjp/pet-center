@@ -30,7 +30,7 @@ export async function getStaffInvoiceDetail(req: Request, res: Response) {
 
 export async function confirmPayment(req: Request, res: Response) {
   const invoiceId = req.params.invoiceId as string;
-  const data = await invoicesService.confirmStaffInvoicePayment(invoiceId, req.body);
+  const data = await invoicesService.confirmStaffInvoicePayment(invoiceId, req.body, req.user!.userId);
   sendSuccess(res, data, "Xác nhận thanh toán thành công");
 }
 

@@ -4,6 +4,7 @@ import { query } from "../../db/query.js";
 import { withTransaction } from "../../db/transactions.js";
 import { createId } from "../../shared/utils/id.js";
 import { buildVnpayPaymentUrl } from "./vnpay.service.js";
+import { upsertPetActivityLog } from "../pet-activity-logs/pet-activity-logs.repository.js";
 
 export type CreatePendingVnpayAttemptInput = {
   invoiceId: string;
@@ -163,16 +164,92 @@ export async function applyVnpayIpnUpdate(input: VnpayIpnUpdateInput): Promise<V
       await markAttemptFailed(client, attempt.payment_attempt_id, input);
       await markInvoiceCancelled(client, attempt.invoice_id);
       await markSourceBookingCancelled(client, attempt);
+      const context = await findInvoiceActivityContextForClient(client, attempt.invoice_id);
+      if (context) {
+        await upsertPetActivityLog({
+          petId: context.pet_id,
+          ownerUserId: context.owner_user_id,
+          actorUserId: null,
+          activityCategory: "payment",
+          activityType: "payment_failed",
+          activityStatus: "failed",
+          title: "Thanh toán online thất bại",
+          summary: `Thanh toán online cho hóa đơn ${attempt.invoice_id} không thành công.`,
+          sourceType: "invoice",
+          sourceId: attempt.invoice_id,
+          metadata: {
+            paymentAttemptId: attempt.payment_attempt_id,
+            providerTxnRef: input.providerTxnRef,
+            responseCode: input.responseCode,
+            transactionStatus: input.transactionStatus
+          }
+        }, client);
+      }
       return { outcome: "updated", attempt, status: "failed" };
     }
 
     await markAttemptSuccessful(client, attempt.payment_attempt_id, input);
     await markInvoicePaid(client, attempt.invoice_id);
-    await createSuccessfulOnlinePayment(client, attempt, input);
+    const paymentId = await createSuccessfulOnlinePayment(client, attempt, input);
     await markSourceBookingConfirmed(client, attempt);
+    const context = await findInvoiceActivityContextForClient(client, attempt.invoice_id);
+    if (context) {
+      await upsertPetActivityLog({
+        petId: context.pet_id,
+        ownerUserId: context.owner_user_id,
+        actorUserId: null,
+        activityCategory: "payment",
+        activityType: "payment_confirmed",
+        activityStatus: "completed",
+        title: "Đã thanh toán online",
+        summary: `Hóa đơn ${attempt.invoice_id} đã được thanh toán online.`,
+        sourceType: "payment",
+        sourceId: paymentId,
+        metadata: {
+          invoiceId: attempt.invoice_id,
+          paymentAttemptId: attempt.payment_attempt_id,
+          providerTxnRef: input.providerTxnRef,
+          providerTransactionNo: input.providerTransactionNo,
+          amount: Number(attempt.amount)
+        }
+      }, client);
+      await upsertPetActivityLog({
+        petId: context.pet_id,
+        ownerUserId: context.owner_user_id,
+        actorUserId: null,
+        activityCategory: "invoice",
+        activityType: "invoice_paid",
+        activityStatus: "completed",
+        title: "Hóa đơn đã được thanh toán",
+        summary: `Hóa đơn ${attempt.invoice_id} đã chuyển sang trạng thái đã thanh toán.`,
+        sourceType: "invoice",
+        sourceId: attempt.invoice_id,
+        metadata: {
+          paymentId,
+          paymentAttemptId: attempt.payment_attempt_id,
+          paymentMethod: "online",
+          amount: Number(attempt.amount)
+        }
+      }, client);
+    }
 
     return { outcome: "updated", attempt, status: "success" };
   });
+}
+
+async function findInvoiceActivityContextForClient(
+  client: PoolClient,
+  invoiceId: string
+): Promise<{ pet_id: string; owner_user_id: string } | null> {
+  const result = await client.query<{ pet_id: string; owner_user_id: string }>(
+    `SELECT pet_id, owner_user_id
+     FROM pet_center.invoices
+     WHERE invoice_id = $1
+     LIMIT 1`,
+    [invoiceId]
+  );
+
+  return result.rows[0] ?? null;
 }
 
 async function findVnpayAttemptByTxnRefForUpdate(
@@ -265,7 +342,7 @@ async function createSuccessfulOnlinePayment(
   client: PoolClient,
   attempt: VnpayAttemptRow,
   input: VnpayIpnUpdateInput
-): Promise<void> {
+): Promise<string> {
   const paymentId = await createId("pay", client);
   const transactionCode = input.providerTransactionNo ?? input.providerTxnRef;
   const receiptCode = `RCPT-${input.providerTxnRef}`;
@@ -279,6 +356,8 @@ async function createSuccessfulOnlinePayment(
      ON CONFLICT DO NOTHING`,
     [paymentId, attempt.invoice_id, transactionCode, Number(attempt.amount), receiptCode]
   );
+
+  return paymentId;
 }
 
 async function markSourceBookingConfirmed(client: PoolClient, attempt: VnpayAttemptRow): Promise<void> {

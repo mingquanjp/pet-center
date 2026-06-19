@@ -3,6 +3,7 @@ import { httpStatus } from "../../../shared/errors/http-status.js";
 import type { AuthUser } from "../../../shared/types/auth.js";
 import { createPagination, normalizePagination } from "../../../shared/utils/pagination.js";
 import { boardingNotificationPublisher } from "../boarding-notification.publisher.js";
+import { upsertPetActivityLog } from "../../pet-activity-logs/pet-activity-logs.repository.js";
 import * as ownerBoardingRepository from "./owner-boarding.repository.js";
 import * as boardingRoomRepository from "../boarding-room.repository.js";
 import * as boardingUpdateRepository from "../boarding-update.repository.js";
@@ -116,6 +117,43 @@ export async function createBoardingRecord(
       paymentOption: payload.paymentOption,
       clientIp
     });
+    await upsertPetActivityLog({
+      petId: petRow.pet_id,
+      ownerUserId: authUser.userId,
+      actorUserId: authUser.userId,
+      activityCategory: "boarding",
+      activityType: "boarding_booked",
+      activityStatus: record.boardingStatus === "pending_payment" ? "pending" : "scheduled",
+      title: "Đã đặt lịch lưu trú",
+      summary: `${petRow.pet_name} có lịch lưu trú tại ${selectedRoomType.roomTypeName}.`,
+      sourceType: "boarding_record",
+      sourceId: record.boardingRecordId,
+      metadata: {
+        plannedCheckInAt: payload.plannedCheckInAt.toISOString(),
+        plannedCheckOutAt: payload.plannedCheckOutAt.toISOString(),
+        roomTypeId: payload.roomTypeId,
+        roomTypeName: selectedRoomType.roomTypeName,
+        paymentOption: payload.paymentOption,
+        status: record.boardingStatus
+      }
+    });
+    await upsertPetActivityLog({
+      petId: petRow.pet_id,
+      ownerUserId: authUser.userId,
+      actorUserId: authUser.userId,
+      activityCategory: "invoice",
+      activityType: "invoice_issued",
+      activityStatus: "pending",
+      title: "Đã tạo hóa đơn lưu trú",
+      summary: `Hóa đơn lưu trú của ${petRow.pet_name} đã được tạo.`,
+      sourceType: "invoice",
+      sourceId: record.invoiceId,
+      metadata: {
+        boardingRecordId: record.boardingRecordId,
+        amount: record.totalAmount,
+        paymentOption: payload.paymentOption
+      }
+    });
     boardingNotificationPublisher.boardingCreated(record.boardingRecordId).catch(console.error);
     return record;
   } catch (error) {
@@ -179,6 +217,22 @@ export async function cancelOwnerBoardingRecord(
   }
 
   await ownerBoardingRepository.updateBoardingRecordStatus(params.boardingRecordId, "cancelled");
+  await upsertPetActivityLog({
+    petId: record.pet_id,
+    ownerUserId: authUser.userId,
+    actorUserId: authUser.userId,
+    activityCategory: "boarding",
+    activityType: "boarding_cancelled",
+    activityStatus: "cancelled",
+    title: "Đã hủy lịch lưu trú",
+    summary: `${record.pet_name} đã được hủy lịch lưu trú.`,
+    sourceType: "boarding_record",
+    sourceId: params.boardingRecordId,
+    metadata: {
+      plannedCheckInAt: new Date(record.planned_check_in_at).toISOString(),
+      plannedCheckOutAt: new Date(record.planned_check_out_at).toISOString()
+    }
+  });
   boardingNotificationPublisher.boardingCancelled(params.boardingRecordId).catch(console.error);
 }
 

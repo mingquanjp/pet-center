@@ -5,6 +5,10 @@ import type { AuthUser } from '../../../shared/types/auth.js';
 import { createPagination, normalizePagination } from '../../../shared/utils/pagination.js';
 import { createId } from '../../../shared/utils/id.js';
 import { withTransaction } from '../../../db/transactions.js';
+import {
+  upsertPetActivityLog,
+  type PetActivityStatus
+} from '../../pet-activity-logs/pet-activity-logs.repository.js';
 import * as mailService from '../../mail/mail.service.js';
 import {
   notifyBoardingCreated,
@@ -117,6 +121,30 @@ function assertStaff(authUser: AuthUser): void {
   }
 }
 
+async function logStaffBoardingActivity(params: {
+  record: any;
+  actorUserId: string;
+  activityType: string;
+  activityStatus: PetActivityStatus;
+  title: string;
+  summary: (petName: string) => string;
+  metadata?: Record<string, unknown>;
+}) {
+  await upsertPetActivityLog({
+    petId: params.record.pet_id,
+    ownerUserId: params.record.owner_user_id,
+    actorUserId: params.actorUserId,
+    activityCategory: "boarding",
+    activityType: params.activityType,
+    activityStatus: params.activityStatus,
+    title: params.title,
+    summary: params.summary(params.record.pet_name),
+    sourceType: "boarding_record",
+    sourceId: params.record.boarding_record_id,
+    metadata: params.metadata
+  });
+}
+
 export async function listStaffBoardingRecords(authUser: AuthUser, query: ListStaffBoardingRecordsQuery): Promise<StaffBoardingListResponseDto> {
   assertStaff(authUser);
   const paginationInput = normalizePagination(query.page, query.limit);
@@ -227,6 +255,23 @@ export async function updateStaffBoardingLog(authUser: AuthUser, boardingId: str
   }
 
   if (visibilityStatus === "published" && updateId) {
+    await upsertPetActivityLog({
+      petId: record.pet_id,
+      ownerUserId: record.owner_user_id,
+      actorUserId: authUser.userId,
+      activityCategory: "boarding",
+      activityType: "boarding_update_published",
+      activityStatus: "completed",
+      title: "Có nhật ký lưu trú mới",
+      summary: `${record.pet_name} có cập nhật lưu trú mới từ trung tâm.`,
+      sourceType: "boarding_update",
+      sourceId: updateId,
+      metadata: {
+        boardingRecordId: boardingId,
+        alertLevel: payload.alertLevel,
+        description: payload.description
+      }
+    });
     notifyBoardingUpdateCreated(updateId).catch(console.error);
   }
 
@@ -252,6 +297,14 @@ export async function confirmStaffBoarding(authUser: AuthUser, boardingId: strin
     visibilityStatus: "published",
     attachmentUrls: null
   });
+  await logStaffBoardingActivity({
+    record,
+    actorUserId: authUser.userId,
+    activityType: "boarding_confirmed",
+    activityStatus: "confirmed",
+    title: "Lịch lưu trú đã được xác nhận",
+    summary: (petName) => `${petName} đã được xác nhận lịch lưu trú.`
+  });
   notifyBoardingConfirmed(boardingId).catch(console.error);
   return getStaffBoardingDetail(authUser, boardingId);
 }
@@ -269,6 +322,17 @@ export async function rejectStaffBoarding(authUser: AuthUser, boardingId: string
     alertLevel: "normal",
     visibilityStatus: "published",
     attachmentUrls: null
+  });
+  await logStaffBoardingActivity({
+    record,
+    actorUserId: authUser.userId,
+    activityType: "boarding_rejected",
+    activityStatus: "rejected",
+    title: "Lịch lưu trú đã bị từ chối",
+    summary: (petName) => `${petName} không thể tiếp nhận lịch lưu trú.`,
+    metadata: {
+      rejectionReason: payload.rejectionReason
+    }
   });
   notifyBoardingRejected(boardingId).catch(console.error);
   return getStaffBoardingDetail(authUser, boardingId);
@@ -300,6 +364,14 @@ export async function checkInStaffBoarding(authUser: AuthUser, boardingId: strin
       attachmentUrls: null
     });
   }
+  await logStaffBoardingActivity({
+    record,
+    actorUserId: authUser.userId,
+    activityType: "boarding_checked_in",
+    activityStatus: "confirmed",
+    title: "Đã nhận thú cưng lưu trú",
+    summary: (petName) => `${petName} đã bắt đầu lưu trú tại trung tâm.`
+  });
   notifyBoardingCheckedIn(boardingId).catch(console.error);
   return getStaffBoardingDetail(authUser, boardingId);
 }
@@ -332,6 +404,14 @@ export async function checkOutStaffBoarding(authUser: AuthUser, boardingId: stri
         attachmentUrls: null
       });
     }
+    await logStaffBoardingActivity({
+      record,
+      actorUserId: authUser.userId,
+      activityType: "boarding_checked_out",
+      activityStatus: "completed",
+      title: "Đã trả thú cưng",
+      summary: (petName) => `${petName} đã hoàn tất lưu trú và được trả cho chủ nuôi.`
+    });
     return getStaffBoardingDetail(authUser, boardingId);
   } catch (error) {
     console.error("[checkOutStaffBoarding] ERROR:", error);
@@ -482,7 +562,7 @@ export async function createStaffBoardingPet(
       throw new AppError("Chủ nuôi không tồn tại", "OWNER_NOT_FOUND", httpStatus.NOT_FOUND);
     }
 
-    return boardingRepository.createStaffBoardingPet({
+    const pet = await boardingRepository.createStaffBoardingPet({
       petId: await createId("pet", client),
       ownerId: params.ownerId,
       petName: payload.petName.trim(),
@@ -496,6 +576,25 @@ export async function createStaffBoardingPet(
       profileImageUrl: normalizeOptionalText(payload.profileImageUrl),
       identifyingMarks: normalizeOptionalText(payload.identifyingMarks)
     }, client);
+    await upsertPetActivityLog({
+      petId: pet.petId,
+      ownerUserId: params.ownerId,
+      actorUserId: authUser.userId,
+      activityCategory: "profile",
+      activityType: "pet_profile_created",
+      activityStatus: "completed",
+      title: "Đã tạo hồ sơ thú cưng",
+      summary: `${payload.petName.trim()} đã được thêm vào hồ sơ thú cưng.`,
+      sourceType: "pet",
+      sourceId: pet.petId,
+      metadata: {
+        species: payload.species,
+        createdByRole: authUser.role,
+        source: "staff_boarding"
+      }
+    }, client);
+
+    return pet;
   });
 }
 
@@ -633,6 +732,59 @@ export async function createStaffBoardingAtCounter(
       boardingRecordId,
       createdByUserId: authUser.userId,
       updateNote: `[SYSTEM_CHECKIN] Thú cưng đã được nhận tại quầy.${note}`
+    }, client);
+    await upsertPetActivityLog({
+      petId: payload.petId,
+      ownerUserId: payload.ownerId,
+      actorUserId: authUser.userId,
+      activityCategory: "boarding",
+      activityType: "boarding_checked_in_at_counter",
+      activityStatus: "confirmed",
+      title: "Đã nhận thú cưng lưu trú tại quầy",
+      summary: "Thú cưng đã được nhận tại trung tâm và bắt đầu lưu trú.",
+      sourceType: "boarding_record",
+      sourceId: boardingRecordId,
+      metadata: {
+        plannedCheckInAt: plannedCheckInAt.toISOString(),
+        plannedCheckOutAt: plannedCheckOutAt.toISOString(),
+        roomTypeId: payload.roomTypeId,
+        stayDays,
+        totalAmount
+      }
+    }, client);
+    await upsertPetActivityLog({
+      petId: payload.petId,
+      ownerUserId: payload.ownerId,
+      actorUserId: authUser.userId,
+      activityCategory: "invoice",
+      activityType: "invoice_issued",
+      activityStatus: "completed",
+      title: "Đã tạo hóa đơn lưu trú",
+      summary: "Hóa đơn lưu trú đã được tạo tại quầy.",
+      sourceType: "invoice",
+      sourceId: invoiceId,
+      metadata: {
+        boardingRecordId,
+        amount: totalAmount,
+        paymentOption: "counter"
+      }
+    }, client);
+    await upsertPetActivityLog({
+      petId: payload.petId,
+      ownerUserId: payload.ownerId,
+      actorUserId: authUser.userId,
+      activityCategory: "payment",
+      activityType: "payment_confirmed",
+      activityStatus: "completed",
+      title: "Đã thanh toán hóa đơn lưu trú",
+      summary: "Hóa đơn lưu trú đã được thanh toán tại quầy.",
+      sourceType: "payment",
+      sourceId: paymentId,
+      metadata: {
+        invoiceId,
+        amount: totalAmount,
+        paymentMethod: "cash"
+      }
     }, client);
 
     return {
