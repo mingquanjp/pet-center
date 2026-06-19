@@ -83,4 +83,5 @@ export const completeDoctorExaminationSchema = z.object({
   prescriptionItems: z.array(doctorPrescriptionItemSchema).optional(),
   vaccination: doctorVaccinationSchema.optional(),
   followUp: doctorFollowUpSchema.optional(),
+  dispenseMedicine: z.boolean().default(true).optional(),
 });

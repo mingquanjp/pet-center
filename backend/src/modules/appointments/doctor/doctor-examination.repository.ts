@@ -851,3 +851,102 @@ export async function updateAppointmentExaminationStatus(
     [examinationStatus, appointmentId]
   );
 }
+
+export async function processExaminationBilling(
+  appointmentId: string,
+  examId: string,
+  petId: string,
+  ownerId: string,
+  examTypeId: string,
+  prescriptionItems: DoctorPrescriptionItemBody[] | undefined,
+  dispenseMedicine: boolean,
+  client: PoolClient
+) {
+  // 1. Check if an invoice line for this medical_exam already exists
+  const existingLineResult = await client.query(
+    "SELECT invoice_id FROM pet_center.invoice_lines WHERE source_type = 'medical_exam' AND source_id = $1",
+    [examId]
+  );
+  const examFeePaid = existingLineResult.rowCount !== null && existingLineResult.rowCount > 0;
+
+  // 2. Fetch the exam type base price (from services)
+  const examTypeResult = await client.query(
+    `SELECT s.base_price 
+     FROM pet_center.exam_types et
+     JOIN pet_center.services s ON s.service_id = et.service_id
+     WHERE et.exam_type_id = $1`,
+    [examTypeId]
+  );
+  const examBasePrice = examTypeResult.rows[0]?.base_price ? Number(examTypeResult.rows[0].base_price) : 0;
+
+  // 3. Calculate prescription total price
+  let prescriptionTotal = 0;
+  const validItems = (prescriptionItems ?? []).filter((item) => item.medicineId);
+  
+  if (dispenseMedicine && validItems.length > 0) {
+    const medicineIds = validItems.map((item) => item.medicineId);
+    const medicinesResult = await client.query(
+      "SELECT medicine_id, unit_price FROM pet_center.medicines WHERE medicine_id = ANY($1::varchar[])",
+      [medicineIds]
+    );
+    
+    const medicineMap = new Map();
+    medicinesResult.rows.forEach((row) => medicineMap.set(row.medicine_id, row));
+    
+    for (const item of validItems) {
+      const medicine = medicineMap.get(item.medicineId);
+      if (medicine) {
+        const qty = item.quantity || 1;
+        const unitPrice = Number(medicine.unit_price) || 0;
+        prescriptionTotal += qty * unitPrice;
+      }
+    }
+  }
+
+  const shouldInvoiceExam = !examFeePaid;
+  const shouldInvoicePrescription = dispenseMedicine && validItems.length > 0 && prescriptionTotal > 0;
+
+  if (!shouldInvoiceExam && !shouldInvoicePrescription) {
+    return;
+  }
+
+  const invoiceId = await createId("inv", client);
+  const subtotal = (shouldInvoiceExam ? examBasePrice : 0) + (shouldInvoicePrescription ? prescriptionTotal : 0);
+  
+  await client.query(
+    `INSERT INTO pet_center.invoices (
+      invoice_id, pet_id, owner_user_id, payment_option, invoice_status,
+      subtotal_amount, discount_amount, surcharge_amount, total_amount, issued_at
+    ) VALUES ($1, $2, $3, 'counter', 'pending_payment', $4, 0, 0, $4, NOW())`,
+    [invoiceId, petId, ownerId, subtotal]
+  );
+
+  if (shouldInvoiceExam) {
+    await client.query(
+      `INSERT INTO pet_center.invoice_lines (
+        invoice_line_id, invoice_id, description, source_type, source_id,
+        quantity, unit_price, line_discount_amount, line_amount
+      ) VALUES ($1, $2, $3, 'medical_exam', $4, 1, $5, 0, $5)`,
+      [await createId("inl", client), invoiceId, "Phí khám bệnh", examId, examBasePrice]
+    );
+  }
+
+  if (shouldInvoicePrescription) {
+    const rxResult = await client.query(
+      "SELECT prescription_id FROM pet_center.prescriptions WHERE exam_id = $1 LIMIT 1",
+      [examId]
+    );
+    const prescriptionId = rxResult.rows[0]?.prescription_id;
+
+    if (prescriptionId) {
+      await client.query(
+        `INSERT INTO pet_center.invoice_lines (
+          invoice_line_id, invoice_id, description, source_type, source_id,
+          quantity, unit_price, line_discount_amount, line_amount
+        ) VALUES ($1, $2, $3, 'prescription', $4, 1, $5, 0, $5)`,
+        [await createId("inl", client), invoiceId, "Tiền thuốc theo đơn", prescriptionId, prescriptionTotal]
+      );
+    }
+  }
+}
+

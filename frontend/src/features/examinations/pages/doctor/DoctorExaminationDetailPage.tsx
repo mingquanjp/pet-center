@@ -561,6 +561,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
   const [followUpDate, setFollowUpDate] = useState("")
   const [followUpReason, setFollowUpReason] = useState("")
   const [followUpOwnerNote, setFollowUpOwnerNote] = useState("")
+  const [dispenseMedicine, setDispenseMedicine] = useState(true)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [isPrescriptionDialogOpen, setIsPrescriptionDialogOpen] = useState(false)
   const [prescriptionDraft, setPrescriptionDraft] = useState<DoctorPrescriptionItem>(emptyPrescriptionItem())
@@ -683,6 +684,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
       prescriptionItems: includeCompletionData
         ? prescriptionItems.filter((item) => item.medicineId && item.dosage && item.frequency && item.duration && item.usageInstruction)
         : undefined,
+      dispenseMedicine: includeCompletionData ? dispenseMedicine : undefined,
       vaccination:
         includeCompletionData && detail.examType.code === "VACCINATION"
           ? {
@@ -1225,16 +1227,33 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                 ) : (
                   <p className="body-md text-petcenter-text-secondary">Chưa có dòng thuốc nào trong đơn.</p>
                 )}
-                <Button
-                  className="rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background"
-                  disabled={Boolean(isWaiting)}
-                  onClick={openPrescriptionDialog}
-                  type="button"
-                  variant="outline"
-                >
-                  <Plus className="h-4 w-4" />
-                  Thêm dòng thuốc
-                </Button>
+                <div className="flex flex-col gap-4">
+                  <Button
+                    className="w-fit rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background"
+                    disabled={Boolean(isWaiting)}
+                    onClick={openPrescriptionDialog}
+                    type="button"
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Thêm dòng thuốc
+                  </Button>
+                  
+                  {prescriptionItems.length > 0 && (
+                    <label className="flex items-center gap-2 rounded-lg border border-petcenter-border bg-petcenter-background p-3 hover:cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-petcenter-border text-petcenter-primary focus:ring-petcenter-primary disabled:cursor-not-allowed"
+                        checked={dispenseMedicine}
+                        onChange={(e) => setDispenseMedicine(e.target.checked)}
+                        disabled={Boolean(isWaiting)}
+                      />
+                      <span className="text-sm font-medium text-petcenter-text">
+                        Kê đơn và xuất thuốc tại trung tâm (Bao gồm tiền thuốc vào hóa đơn)
+                      </span>
+                    </label>
+                  )}
+                </div>
               </div>
             )}
           </Section>

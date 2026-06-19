@@ -27,9 +27,8 @@ export async function getStaffInvoicesList(filters: any) {
       u.user_id AS owner_id,
       u.full_name AS owner_name,
       (
-        SELECT description FROM pet_center.invoice_lines il 
+        SELECT string_agg(description, ' + ' ORDER BY invoice_line_id ASC) FROM pet_center.invoice_lines il 
         WHERE il.invoice_id = i.invoice_id 
-        ORDER BY il.invoice_line_id ASC LIMIT 1
       ) as first_line_desc,
       (
         SELECT source_type FROM pet_center.invoice_lines il 
@@ -271,11 +270,9 @@ export async function getOwnerInvoicesList(
           LIMIT 1
         ) AS paid_at,
         (
-          SELECT description
+          SELECT string_agg(description, ' + ' ORDER BY invoice_line_id ASC)
           FROM pet_center.invoice_lines il
           WHERE il.invoice_id = i.invoice_id
-          ORDER BY il.invoice_line_id ASC
-          LIMIT 1
         ) AS first_line_desc,
         (
           SELECT source_type

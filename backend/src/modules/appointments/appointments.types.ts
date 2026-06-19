@@ -313,6 +313,7 @@ export interface CompleteDoctorExaminationBody {
   prescriptionItems?: DoctorPrescriptionItemBody[];
   vaccination?: DoctorVaccinationBody;
   followUp?: DoctorFollowUpInstructionBody;
+  dispenseMedicine?: boolean;
 }
 
 export interface SaveDraftDoctorExaminationBody {
