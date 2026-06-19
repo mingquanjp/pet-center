@@ -22,6 +22,7 @@ function mapMedicineRowToAdminDto(row: any): AdminMedicineDto {
     description: row.description,
     usageNote: row.usage_note,
     unitPrice: Number(row.unit_price),
+    stockQuantity: Number(row.stock_quantity),
     medicineStatus: row.medicine_status as MedicineStatus,
     prescriptionUsageCount: Number(row.prescription_usage_count)
   };
@@ -169,3 +170,12 @@ export async function deleteAdminMedicine(medicineId: string): Promise<{ deleted
     throw new AppError("Không thể xóa thuốc.", "ADMIN_MEDICINE_DELETE_FAILED", httpStatus.INTERNAL_SERVER_ERROR, error);
   }
 }
+
+export async function getMedicineUnitsService() {
+  try {
+    return await medicinesRepository.getMedicineUnits();
+  } catch (error) {
+    throw new AppError("Khong the lay danh sach don vi thuoc.", "ADMIN_MEDICINE_UNITS_FETCH_FAILED", httpStatus.INTERNAL_SERVER_ERROR, error);
+  }
+}
+

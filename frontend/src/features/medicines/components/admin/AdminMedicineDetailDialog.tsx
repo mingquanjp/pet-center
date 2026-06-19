@@ -72,6 +72,10 @@ export function AdminMedicineDetailDialog({
               <Label className="text-muted-foreground">Đơn giá</Label>
               <div className="mt-1 font-medium">{formatVnd(medicine.unitPrice)}</div>
             </div>
+            <div>
+              <Label className="text-muted-foreground">Tồn kho</Label>
+              <div className="mt-1 font-medium">{medicine.stockQuantity ?? 0}</div>
+            </div>
           </div>
 
           {medicine.description && (

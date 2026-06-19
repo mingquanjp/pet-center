@@ -1,5 +1,5 @@
 import { Search, RotateCcw } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import {
   AdminMedicineFilters,
@@ -7,6 +7,8 @@ import {
   MedicineUnitFilter,
 } from "../../types/medicine.types"
 import { medicineUnitOptions } from "../../constants/medicine.constants"
+import { useMedicineUnits } from "../../hooks/useMedicineUnits"
+import { getMedicineUnitLabel } from "../../utils/medicine-format"
 
 interface AdminMedicineFilterBarProps {
   filters: AdminMedicineFilters
@@ -22,6 +24,29 @@ export function AdminMedicineFilterBar({
 }: AdminMedicineFilterBarProps) {
   const [searchValue, setSearchValue] = useState(filters.search || "")
   const debouncedSearch = useDebouncedValue(searchValue, 500)
+  
+  const { units } = useMedicineUnits()
+
+  const allUnitOptions = useMemo(() => {
+    const labelToValue = new Map<string, string>()
+    // Thêm các đơn vị mặc định trước
+    medicineUnitOptions.forEach(opt => {
+      labelToValue.set(opt.label.toLowerCase(), opt.value)
+    })
+    // Thêm các đơn vị từ DB
+    units.forEach(unit => {
+      const label = getMedicineUnitLabel(unit)
+      const lowerLabel = label.toLowerCase()
+      if (!labelToValue.has(lowerLabel)) {
+        labelToValue.set(lowerLabel, unit)
+      }
+    })
+    
+    return Array.from(labelToValue.entries()).map(([, value]) => ({ 
+      value, 
+      label: getMedicineUnitLabel(value) 
+    }))
+  }, [units])
 
   // Sync local state when filters are reset externally
   useEffect(() => {
@@ -60,7 +85,7 @@ export function AdminMedicineFilterBar({
             onChange={(e) => onFiltersChange({ unit: e.target.value as MedicineUnitFilter })}
           >
             <option value="ALL">Tất cả</option>
-            {medicineUnitOptions.map((option) => (
+            {allUnitOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

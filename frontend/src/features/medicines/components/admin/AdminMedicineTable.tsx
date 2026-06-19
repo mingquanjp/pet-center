@@ -41,7 +41,8 @@ export function AdminMedicineTable({
             <col className="w-[140px]" />
             <col className="w-auto" />
             <col className="w-[120px]" />
-            <col className="w-[160px]" />
+            <col className="w-[120px]" />
+            <col className="w-[120px]" />
             <col className="w-[160px]" />
             <col className="w-[210px]" />
           </colgroup>
@@ -51,6 +52,7 @@ export function AdminMedicineTable({
               <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Tên thuốc</th>
               <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Đơn vị</th>
               <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Đơn giá</th>
+              <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Tồn kho</th>
               <th className="px-6 py-4 text-sm font-medium text-petcenter-text-secondary">Trạng thái</th>
               <th className="px-6 py-4 text-center text-sm font-medium text-petcenter-text-secondary">Thao tác</th>
             </tr>
@@ -74,6 +76,9 @@ export function AdminMedicineTable({
                 </td>
                 <td className="px-6 py-4 text-sm font-semibold text-petcenter-primary whitespace-nowrap">
                   {formatVnd(med.unitPrice).replace("₫", "đ")}
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-petcenter-text whitespace-nowrap">
+                  {med.stockQuantity ?? 0}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <AdminMedicineStatusBadge status={med.medicineStatus} />

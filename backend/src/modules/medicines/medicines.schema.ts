@@ -1,11 +1,11 @@
 import { z } from "zod";
 
-const medicineUnitSchema = z.enum(["tablet", "blister", "packet", "tube", "bottle"]);
+const medicineUnitSchema = z.string().min(1, "Đơn vị không được để trống").max(30, "Đơn vị tối đa 30 ký tự");
 const medicineStatusSchema = z.enum(["active", "inactive"]);
 
 export const getAdminMedicinesQuerySchema = z.object({
   search: z.string().max(100).optional(),
-  unit: z.enum(["ALL", "tablet", "blister", "packet", "tube", "bottle"]).optional(),
+  unit: z.string().optional(),
   status: z.enum(["ALL", "active", "inactive"]).optional(),
   page: z.preprocess(
     (val) => (val ? Number(val) : 1),
@@ -27,6 +27,7 @@ export const createAdminMedicineSchema = z.object({
   description: z.string().nullable().optional(),
   usageNote: z.string().nullable().optional(),
   unitPrice: z.number().min(0, "Giá không hợp lệ"),
+  stockQuantity: z.number().int("Số lượng tồn kho phải là số nguyên").min(0, "Số lượng không được âm").optional().default(0),
   medicineStatus: medicineStatusSchema.optional().default("active"),
 });
 
@@ -36,6 +37,7 @@ export const updateAdminMedicineSchema = z.object({
   description: z.string().nullable().optional(),
   usageNote: z.string().nullable().optional(),
   unitPrice: z.number().min(0, "Giá không hợp lệ").optional(),
+  stockQuantity: z.number().int("Số lượng tồn kho phải là số nguyên").min(0, "Số lượng không được âm").optional(),
   medicineStatus: medicineStatusSchema.optional(),
 }).refine(
   (data) => Object.keys(data).length > 0,

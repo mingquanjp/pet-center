@@ -232,6 +232,7 @@ export interface DoctorMedicineOptionRow {
   medicine_id: string;
   medicine_name: string;
   unit: string;
+  stock_quantity: number;
   medicine_status: string;
 }
 
