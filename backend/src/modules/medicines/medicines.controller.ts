@@ -46,3 +46,9 @@ export async function deleteAdminMedicineController(req: Request, res: Response)
   const result = await medicinesService.deleteAdminMedicine(medicineId);
   sendSuccess(res, result, result.message, httpStatus.OK);
 }
+
+export async function getMedicineUnitsController(req: Request, res: Response) {
+  const data = await medicinesService.getMedicineUnitsService();
+  sendSuccess(res, data, "Lay danh sach don vi thanh cong.", httpStatus.OK);
+}
+

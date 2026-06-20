@@ -41,6 +41,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { LoadingState } from "@/components/ui/loading-state"
 import { getMedicineUnitLabel } from "@/features/medicines/utils/medicine-format"
 import type { MedicineUnit } from "@/features/medicines/types/medicine.types"
@@ -96,11 +104,13 @@ function formatMedicineUnit(unit?: string | null) {
 }
 
 type PrescriptionDurationUnit = "ngày" | "tuần" | "tháng" | "năm"
+type PrescriptionFrequencyUnit = "lần/ngày" | "lần/tuần" | "lần/tháng" | "lần/năm"
 
 type PrescriptionDraftValues = {
   quantity: string
   dosage: string
   frequency: string
+  frequencyUnit: PrescriptionFrequencyUnit
   duration: string
   durationUnit: PrescriptionDurationUnit
 }
@@ -110,6 +120,7 @@ function emptyPrescriptionDraftValues(): PrescriptionDraftValues {
     quantity: "1",
     dosage: "",
     frequency: "",
+    frequencyUnit: "lần/ngày",
     duration: "",
     durationUnit: "ngày",
   }
@@ -132,6 +143,13 @@ function parsePrescriptionDraftValues(item: DoctorPrescriptionItem): Prescriptio
     quantity: item.quantity === undefined || item.quantity === null ? "" : String(item.quantity),
     dosage: parseNumericValue(item.dosage),
     frequency: parseNumericValue(item.frequency),
+    frequencyUnit: item.frequency.toLowerCase().includes("năm")
+      ? "lần/năm"
+      : item.frequency.toLowerCase().includes("tháng")
+        ? "lần/tháng"
+        : item.frequency.toLowerCase().includes("tuần")
+          ? "lần/tuần"
+          : "lần/ngày",
     duration: parseNumericValue(item.duration),
     durationUnit: item.duration.toLowerCase().includes("năm")
       ? "năm"
@@ -143,12 +161,12 @@ function parsePrescriptionDraftValues(item: DoctorPrescriptionItem): Prescriptio
   }
 }
 
-function buildDosage(value: string, unit?: string | null) {
-  return `${value} ${getDosageSuffix(unit)}`
+function buildDosage(value: string, _unit?: string | null) {
+  return value.trim()
 }
 
-function buildFrequency(value: string) {
-  return `${value} lần/ngày`
+function buildFrequency(value: string, unit: PrescriptionFrequencyUnit) {
+  return `${value} ${unit}`
 }
 
 function buildDuration(value: string, unit: PrescriptionDurationUnit) {
@@ -234,11 +252,11 @@ function Section({
   )
 }
 
-function ReadOnlyField({ label, value }: { label: string; value?: string | number | null }) {
+function ReadOnlyField({ label, value, fullWidth }: { label: string; value?: string | number | null; fullWidth?: boolean }) {
   return (
-    <div>
-      <p className="label-md mb-1 text-petcenter-text-secondary">{label}</p>
-      <p className="body-md font-medium text-petcenter-text">{value || "Chưa cập nhật"}</p>
+    <div className={cn("rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition-colors hover:border-[#CBD5E1]", fullWidth && "md:col-span-full")}>
+      <p className="mb-1 text-[13px] font-medium text-[#64748B]">{label}</p>
+      <p className="text-[15px] font-semibold text-[#0F172A] whitespace-pre-wrap">{value || "Chưa cập nhật"}</p>
     </div>
   )
 }
@@ -267,11 +285,11 @@ function ReadOnlyExamField({
   value: string
 }) {
   if (config.type !== "file") {
-    return <ReadOnlyField label={config.label} value={fieldValueLabel(config, value)} />
+    return <ReadOnlyField label={config.label} value={fieldValueLabel(config, value)} fullWidth={config.fullWidth} />
   }
 
   return (
-    <div className={config.fullWidth ? "md:col-span-2" : ""}>
+    <div className={config.fullWidth ? "md:col-span-full" : ""}>
       <p className="label-md mb-1 text-petcenter-text-secondary">{config.label}</p>
       {value ? (
         <button
@@ -499,10 +517,10 @@ function FormField({
     )
 
   return (
-    <div className={config.fullWidth ? "md:col-span-2" : ""}>
-      <span className="label-md mb-1 block font-medium text-petcenter-text">
+    <div className={cn("group", config.fullWidth ? "md:col-span-full" : "")}>
+      <label htmlFor={inputId} className="mb-1.5 flex items-center text-[14px] font-semibold text-[#1E293B] group-focus-within:text-[#0D9488] transition-colors">
         {config.label} {config.required ? <span className="text-petcenter-danger-text">*</span> : null}
-      </span>
+      </label>
       <div className={config.unit ? "flex items-center gap-2" : ""}>
         {input}
         {config.unit ? <span className="body-sm w-10 text-petcenter-text-secondary">{config.unit}</span> : null}
@@ -561,6 +579,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
   const [followUpDate, setFollowUpDate] = useState("")
   const [followUpReason, setFollowUpReason] = useState("")
   const [followUpOwnerNote, setFollowUpOwnerNote] = useState("")
+  const [dispenseMedicine, setDispenseMedicine] = useState(true)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
   const [isPrescriptionDialogOpen, setIsPrescriptionDialogOpen] = useState(false)
   const [prescriptionDraft, setPrescriptionDraft] = useState<DoctorPrescriptionItem>(emptyPrescriptionItem())
@@ -683,6 +702,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
       prescriptionItems: includeCompletionData
         ? prescriptionItems.filter((item) => item.medicineId && item.dosage && item.frequency && item.duration && item.usageInstruction)
         : undefined,
+      dispenseMedicine: includeCompletionData ? dispenseMedicine : undefined,
       vaccination:
         includeCompletionData && detail.examType.code === "VACCINATION"
           ? {
@@ -770,7 +790,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     if (!Number.isInteger(Number(prescriptionDraftValues.quantity)) || Number(prescriptionDraftValues.quantity) <= 0) {
       nextErrors.quantity = "Số lượng phải là số nguyên lớn hơn 0"
     }
-    if (!Number(prescriptionDraftValues.dosage) || Number(prescriptionDraftValues.dosage) <= 0) nextErrors.dosage = "Nhập liều dùng"
+    if (!prescriptionDraftValues.dosage.trim()) nextErrors.dosage = "Nhập liều dùng"
     if (!Number.isInteger(Number(prescriptionDraftValues.frequency)) || Number(prescriptionDraftValues.frequency) <= 0) {
       nextErrors.frequency = "Tần suất phải là số nguyên lớn hơn 0"
     }
@@ -805,7 +825,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
       medicineUnit: medicine?.unit,
       quantity: Number(prescriptionDraftValues.quantity),
       dosage: buildDosage(prescriptionDraftValues.dosage, medicine?.unit),
-      frequency: buildFrequency(prescriptionDraftValues.frequency),
+      frequency: buildFrequency(prescriptionDraftValues.frequency, prescriptionDraftValues.frequencyUnit),
       duration: buildDuration(prescriptionDraftValues.duration, prescriptionDraftValues.durationUnit),
       note: prescriptionDraft.note?.trim() || undefined,
     }
@@ -885,22 +905,28 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
     <div className="flex-1 space-y-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-sm text-petcenter-text-secondary">
-            <Link className="hover:text-petcenter-primary" href="/doctor/examinations">
-              Phiếu khám
-            </Link>
-            <span className="text-petcenter-text-muted">&gt;</span>
-            <span className="font-bold text-petcenter-text">{detail.examinationCode}</span>
-          </div>
+          <Breadcrumb className="mb-2">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/doctor/examinations" className="hover:text-petcenter-primary">
+                    Phiếu khám
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="font-bold text-petcenter-text">{detail.examinationCode}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="heading-lg text-petcenter-text">
               {isReadOnly ? "Chi tiết phiếu khám" : "Cập nhật kết quả khám"}
             </h2>
             <DoctorExaminationStatusBadge status={detail.status} />
           </div>
-          <p className="body-md mt-1 text-petcenter-text-secondary">
-            {detail.examinationCode} · {detail.pet.name}
-          </p>
+
         </div>
 
         <Link href={backHref}>
@@ -918,78 +944,104 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
       <div className="space-y-6">
         <aside className="grid grid-cols-1 items-start gap-6">
           <Section title="Thông tin phiếu và thú cưng" icon={FileText}>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-[minmax(280px,1.35fr)_minmax(190px,0.9fr)_minmax(240px,1.05fr)_minmax(220px,0.95fr)]">
-              <div className="flex min-w-0 items-start gap-4">
-                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-petcenter-filter text-petcenter-primary">
-                  {detail.pet.imageUrl ? (
-                    <Image
-                      src={detail.pet.imageUrl}
-                      alt={detail.pet.name}
-                      width={80}
-                      height={80}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-sm font-bold">
-                      {getPetInitials(detail.pet.name)}
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h3 className="title-md truncate text-petcenter-text">{detail.pet.name}</h3>
-                  <p className="body-sm mt-1 text-petcenter-text-secondary">Mã thú cưng: {detail.pet.id}</p>
-                  <p className="body-sm mt-0.5 text-petcenter-text-secondary">
-                    {detail.pet.species}
-                    {detail.pet.breed ? ` · ${detail.pet.breed}` : ""}
-                    {detail.pet.ageText ? ` · ${detail.pet.ageText}` : ""}
-                  </p>
-                  <p className="body-sm mt-0.5 text-petcenter-text-secondary">
-                    {detail.pet.gender ? (detail.pet.gender.toLowerCase() === "male" ? "Đực" : detail.pet.gender.toLowerCase() === "female" ? "Cái" : detail.pet.gender) : "Chưa rõ giới tính"}
-                    {detail.pet.weightText ? ` · ${detail.pet.weightText}` : ""}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid content-start gap-3">
-                <ReadOnlyField label="Mã phiếu khám" value={detail.examinationCode} />
-                <ReadOnlyField label="Ngày giờ khám" value={scheduledAt ? formatDateTime(detail.scheduledAt) : undefined} />
-              </div>
-
-              <div className="grid content-start gap-3">
-                <ReadOnlyField label="Bác sĩ phụ trách" value={detail.doctor?.fullName || "BS. Nguyễn Văn A"} />
-                <div>
-                  <p className="label-md mb-1 text-petcenter-text-secondary">Chủ nuôi</p>
-                  <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-petcenter-text">
-                    <User className="h-4 w-4 shrink-0 text-petcenter-text-secondary" />
-                    <span className="truncate">{detail.owner.fullName}</span>
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex items-center gap-4 rounded-xl border border-[#E2E8F0] p-4 transition-all hover:border-[#0D9488] hover:shadow-md">
+                  <div className="h-20 w-20 shrink-0 overflow-hidden rounded-full ring-4 ring-[#F1F5F9]">
+                    {detail.pet.imageUrl ? (
+                      <Image
+                        src={detail.pet.imageUrl}
+                        alt={detail.pet.name}
+                        width={80}
+                        height={80}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-[#F8FAFC] text-[20px] font-bold text-[#0D9488]">
+                        {getPetInitials(detail.pet.name)}
+                      </div>
+                    )}
                   </div>
-                  <p className="body-sm mt-1 truncate text-petcenter-text-secondary">{detail.owner.phoneNumber || "Chưa có SĐT"}</p>
-                  {detail.owner.email ? <p className="body-sm truncate text-petcenter-text-secondary">{detail.owner.email}</p> : null}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate text-[18px] font-bold text-[#0F172A]">{detail.pet.name}</h3>
+                      <span className="rounded-full bg-[#F1F5F9] px-2.5 py-0.5 text-[12px] font-bold text-[#64748B]">
+                        #{detail.pet.id}
+                      </span>
+                    </div>
+                    <p className="mt-1 flex items-center gap-1.5 text-[14px] font-medium text-[#64748B]">
+                      <span>{detail.pet.species}</span>
+                      {detail.pet.breed ? <span className="text-[#CBD5E1]">•</span> : null}
+                      {detail.pet.breed ? <span>{detail.pet.breed}</span> : null}
+                    </p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[14px] font-medium text-[#64748B]">
+                      <span>
+                        {detail.pet.gender
+                          ? detail.pet.gender.toLowerCase() === "male"
+                            ? "Đực"
+                            : detail.pet.gender.toLowerCase() === "female"
+                              ? "Cái"
+                              : detail.pet.gender
+                          : "Chưa rõ giới tính"}
+                      </span>
+                      {detail.pet.ageText ? <span className="text-[#CBD5E1]">•</span> : null}
+                      {detail.pet.ageText ? <span>{detail.pet.ageText}</span> : null}
+                      {detail.pet.weightText ? <span className="text-[#CBD5E1]">•</span> : null}
+                      {detail.pet.weightText ? <span>{detail.pet.weightText}</span> : null}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col justify-center rounded-xl border border-[#E2E8F0] p-4 transition-all hover:border-[#0D9488] hover:shadow-md">
+                  <p className="mb-2 text-[12px] font-bold uppercase tracking-wider text-[#94A3B8]">Thông tin chủ nuôi</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#F0FDFA] text-[#0D9488]">
+                      <User className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[16px] font-bold text-[#0F172A]">{detail.owner.fullName}</p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] font-medium text-[#64748B]">
+                        <span>{detail.owner.phoneNumber || "Chưa có SĐT"}</span>
+                        {detail.owner.email ? <span className="hidden text-[#CBD5E1] sm:inline">•</span> : null}
+                        {detail.owner.email ? <span className="truncate">{detail.owner.email}</span> : null}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid content-start gap-3">
-                <div>
-                  <p className="label-md mb-1 text-petcenter-text-secondary">Trạng thái phiếu</p>
-                  <DoctorExaminationStatusBadge status={detail.status} />
-                </div>
-                <div>
-                  <p className="label-md mb-1 text-petcenter-text-secondary">Loại khám trong phiếu</p>
-                  <span className="inline-flex rounded-full bg-petcenter-success-bg px-4 py-1.5 text-sm font-semibold text-petcenter-primary">
-                    {detail.examType.name}
-                  </span>
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <ReadOnlyField label="Mã phiếu khám" value={detail.examinationCode} />
+                <ReadOnlyField label="Ngày giờ khám" value={detail.scheduledAt ? formatDateTime(detail.scheduledAt) : undefined} />
+                <ReadOnlyField label="Bác sĩ phụ trách" value={detail.doctor?.fullName || "Chưa phân công"} />
+                <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 transition-colors hover:border-[#CBD5E1]">
+                  <p className="mb-2 text-[13px] font-medium text-[#64748B]">Trạng thái & Loại khám</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <DoctorExaminationStatusBadge status={detail.status} />
+                    <span className="inline-flex items-center rounded-full bg-[#EFF6FF] px-2.5 py-0.5 text-[12px] font-bold text-[#2563EB]">
+                      {detail.examType.name}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t border-petcenter-border pt-4 md:col-span-2 xl:col-span-4">
-                <div className="rounded-control border border-petcenter-border bg-white px-4 py-3">
-                  <p className="label-md mb-2 font-semibold text-petcenter-text-secondary">
-                    Triệu chứng ghi nhận ban đầu
-                  </p>
-                  <p className="body-md text-petcenter-text">{detail.symptomDescription || "Chưa có triệu chứng ban đầu"}</p>
-                  {detail.internalNote ? (
-                    <p className="body-sm mt-2 text-petcenter-text-secondary">Ghi chú nội bộ: {detail.internalNote}</p>
-                  ) : null}
+              <div className="rounded-xl border border-petcenter-warning-text/20 bg-petcenter-warning-bg p-5 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 shrink-0 rounded-lg bg-petcenter-warning-text/10 p-1.5 text-petcenter-warning-text">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-bold text-petcenter-warning-text">Triệu chứng ghi nhận ban đầu</p>
+                    <p className="mt-1 whitespace-pre-wrap text-[15px] font-medium leading-relaxed text-petcenter-warning-text/90">
+                      {detail.symptomDescription || "Chưa có triệu chứng ban đầu"}
+                    </p>
+                    {detail.internalNote ? (
+                      <div className="mt-3 border-t border-petcenter-warning-text/20 pt-3">
+                        <p className="text-[13px] font-bold uppercase tracking-wider text-petcenter-warning-text/80">Ghi chú nội bộ</p>
+                        <p className="mt-1 text-[14px] font-medium italic text-petcenter-warning-text/90">{detail.internalNote}</p>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1014,11 +1066,12 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
           ) : null}
 
           <Section title="Khám lâm sàng" icon={Stethoscope}>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {clinicalExamFields.map((config) =>
                 isReadOnly ? (
                   <ReadOnlyField
                     key={config.name}
+                    fullWidth={config.fullWidth}
                     label={config.label}
                     value={`${fieldValueLabel(config, fieldValues[config.name] || "")}${fieldValues[config.name] && config.unit ? ` ${config.unit}` : ""}`}
                   />
@@ -1076,54 +1129,64 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
           </Section>
 
           <Section title="Chẩn đoán & Kết luận" icon={ClipboardCheck}>
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {isReadOnly ? (
                 <>
                   <ReadOnlyField label="Chẩn đoán chính" value={diagnosis} />
                   <ReadOnlyField label="Kết luận của bác sĩ" value={conclusion} />
-                  <ReadOnlyField label="Ghi chú chuyên môn" value={healthNote} />
+                  <ReadOnlyField label="Ghi chú chuyên môn" value={healthNote} fullWidth />
                 </>
               ) : (
                 <>
-                  <label>
-                    <span className="label-md mb-1 block font-medium text-petcenter-text">
-                      Chẩn đoán chính <span className="text-petcenter-danger-text">*</span>
-                    </span>
+                  <div className="group">
+                    <label className="mb-1.5 flex items-center text-[14px] font-semibold text-[#1E293B] group-focus-within:text-[#0D9488] transition-colors">
+                      Chẩn đoán chính <span className="ml-1 text-[#EF4444]">*</span>
+                    </label>
                     <textarea
-                      className={fieldInputClass}
+                      className={cn(fieldInputClass, "resize-y")}
                       disabled={Boolean(isWaiting)}
                       onChange={(event) => setDiagnosis(event.target.value)}
                       placeholder="Nhập chẩn đoán chính..."
                       rows={3}
                       value={diagnosis}
                     />
-                    {validationErrors.diagnosis ? <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{validationErrors.diagnosis}</p> : null}
-                  </label>
-                  <label>
-                    <span className="label-md mb-1 block font-medium text-petcenter-text">
-                      Kết luận của bác sĩ <span className="text-petcenter-danger-text">*</span>
-                    </span>
+                    {validationErrors.diagnosis ? (
+                      <p className="mt-1.5 flex items-center gap-1 text-[13px] font-medium text-[#EF4444] animate-in fade-in slide-in-from-top-1">
+                        {validationErrors.diagnosis}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="group">
+                    <label className="mb-1.5 flex items-center text-[14px] font-semibold text-[#1E293B] group-focus-within:text-[#0D9488] transition-colors">
+                      Kết luận của bác sĩ <span className="ml-1 text-[#EF4444]">*</span>
+                    </label>
                     <textarea
-                      className={fieldInputClass}
+                      className={cn(fieldInputClass, "resize-y")}
                       disabled={Boolean(isWaiting)}
                       onChange={(event) => setConclusion(event.target.value)}
                       placeholder="Nhập kết luận sau khi tổng hợp kết quả khám..."
                       rows={3}
                       value={conclusion}
                     />
-                    {validationErrors.conclusion ? <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{validationErrors.conclusion}</p> : null}
-                  </label>
-                  <label>
-                    <span className="label-md mb-1 block font-medium text-petcenter-text">Ghi chú chuyên môn</span>
+                    {validationErrors.conclusion ? (
+                      <p className="mt-1.5 flex items-center gap-1 text-[13px] font-medium text-[#EF4444] animate-in fade-in slide-in-from-top-1">
+                        {validationErrors.conclusion}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="group md:col-span-2">
+                    <label className="mb-1.5 flex items-center text-[14px] font-semibold text-[#1E293B] group-focus-within:text-[#0D9488] transition-colors">
+                      Ghi chú chuyên môn
+                    </label>
                     <textarea
-                      className={fieldInputClass}
+                      className={cn(fieldInputClass, "resize-y")}
                       disabled={Boolean(isWaiting)}
                       onChange={(event) => setHealthNote(event.target.value)}
                       placeholder="Nhập lưu ý chuyên môn, dặn dò hoặc hướng theo dõi..."
-                      rows={2}
+                      rows={3}
                       value={healthNote}
                     />
-                  </label>
+                  </div>
                 </>
               )}
             </div>
@@ -1225,16 +1288,33 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                 ) : (
                   <p className="body-md text-petcenter-text-secondary">Chưa có dòng thuốc nào trong đơn.</p>
                 )}
-                <Button
-                  className="rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background"
-                  disabled={Boolean(isWaiting)}
-                  onClick={openPrescriptionDialog}
-                  type="button"
-                  variant="outline"
-                >
-                  <Plus className="h-4 w-4" />
-                  Thêm dòng thuốc
-                </Button>
+                <div className="flex flex-col gap-4">
+                  <Button
+                    className="w-fit rounded-control border-petcenter-border bg-white text-petcenter-primary hover:bg-petcenter-background"
+                    disabled={Boolean(isWaiting)}
+                    onClick={openPrescriptionDialog}
+                    type="button"
+                    variant="outline"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Thêm dòng thuốc
+                  </Button>
+
+                  {prescriptionItems.length > 0 && (
+                    <label className="flex items-center gap-2 rounded-lg border border-petcenter-border bg-petcenter-background p-3 hover:cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-petcenter-border text-petcenter-primary focus:ring-petcenter-primary disabled:cursor-not-allowed"
+                        checked={dispenseMedicine}
+                        onChange={(e) => setDispenseMedicine(e.target.checked)}
+                        disabled={Boolean(isWaiting)}
+                      />
+                      <span className="text-sm font-medium text-petcenter-text">
+                        Kê đơn và xuất thuốc tại trung tâm (Bao gồm tiền thuốc vào hóa đơn)
+                      </span>
+                    </label>
+                  )}
+                </div>
               </div>
             )}
           </Section>
@@ -1250,9 +1330,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
               }
             }}
           >
-            <DialogContent className="max-w-3xl rounded-2xl bg-white p-6 text-petcenter-text">
+            <DialogContent className="sm:max-w-[500px] rounded-2xl bg-white p-6 text-petcenter-text w-[calc(100%-2rem)]">
               <DialogHeader>
-                <DialogTitle className="title-md text-petcenter-text">
+                <DialogTitle className="text-xl font-bold text-petcenter-text">
                   {editingPrescriptionIndex === null ? "Thêm dòng thuốc" : "Sửa dòng thuốc"}
                 </DialogTitle>
                 <DialogDescription className="body-sm text-petcenter-text-secondary">
@@ -1262,7 +1342,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label className="md:col-span-2">
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Thuốc <span className="text-petcenter-danger-text">*</span>
                   </span>
                   <select
@@ -1280,8 +1360,12 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                   >
                     <option value="" disabled hidden>Chọn thuốc...</option>
                     {detail.medicines.map((medicine) => (
-                      <option key={medicine.id} value={medicine.id}>
-                        {medicine.name} ({formatMedicineUnit(medicine.unit)})
+                      <option
+                        key={medicine.id}
+                        value={medicine.id}
+                        disabled={medicine.stockQuantity <= 0}
+                      >
+                        {medicine.name} ({formatMedicineUnit(medicine.unit)}) - Tồn kho: {medicine.stockQuantity}
                       </option>
                     ))}
                   </select>
@@ -1291,7 +1375,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                 </label>
 
                 <label>
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Số lượng <span className="text-petcenter-danger-text">*</span>
                   </span>
                   <input
@@ -1300,6 +1384,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                     onChange={(event) =>
                       setPrescriptionDraftValues((current) => ({ ...current, quantity: event.target.value }))
                     }
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault()
+                    }}
                     type="number"
                     value={prescriptionDraftValues.quantity}
                   />
@@ -1309,45 +1396,53 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                 </label>
 
                 <label>
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Liều dùng <span className="text-petcenter-danger-text">*</span>
                   </span>
-                  <div className="flex overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
-                    <input
-                      className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none"
-                      min="0.1"
-                      onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, dosage: event.target.value }))}
-                      placeholder="Nhập số"
-                      step="0.1"
-                      type="number"
-                      value={prescriptionDraftValues.dosage}
-                    />
-                    <span className="flex items-center border-l border-petcenter-border bg-petcenter-background px-3 text-sm font-medium text-petcenter-text-secondary">
-                      {getDosageSuffix(detail.medicines.find((medicine) => medicine.id === prescriptionDraft.medicineId)?.unit)}
-                    </span>
-                  </div>
+                  <input
+                    className={fieldInputClass}
+                    onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, dosage: event.target.value }))}
+                    placeholder="VD: 1 viên/ lần, bôi mỏng..."
+                    type="text"
+                    value={prescriptionDraftValues.dosage}
+                  />
                   {prescriptionDraftErrors.dosage ? (
                     <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{prescriptionDraftErrors.dosage}</p>
                   ) : null}
                 </label>
 
                 <label>
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Tần suất <span className="text-petcenter-danger-text">*</span>
                   </span>
-                  <div className="flex overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
+                  <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
                     <input
-                      className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none"
+                      className="min-w-0 bg-transparent px-3 py-2 text-sm outline-none"
                       min="1"
                       onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, frequency: event.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault()
+                      }}
                       placeholder="Nhập số"
                       step="1"
                       type="number"
                       value={prescriptionDraftValues.frequency}
                     />
-                    <span className="flex items-center border-l border-petcenter-border bg-petcenter-background px-3 text-sm font-medium text-petcenter-text-secondary">
-                      lần/ngày
-                    </span>
+                    <select
+                      className="border-l border-petcenter-border bg-petcenter-background px-3 py-2 text-sm font-medium text-petcenter-text-secondary outline-none focus-within:text-petcenter-text"
+                      onChange={(event) =>
+                        setPrescriptionDraftValues((current) => ({
+                          ...current,
+                          frequencyUnit: event.target.value as PrescriptionFrequencyUnit,
+                        }))
+                      }
+                      value={prescriptionDraftValues.frequencyUnit}
+                    >
+                      <option value="lần/ngày">lần/ngày</option>
+                      <option value="lần/tuần">lần/tuần</option>
+                      <option value="lần/tháng">lần/tháng</option>
+                      <option value="lần/năm">lần/năm</option>
+                    </select>
                   </div>
                   {prescriptionDraftErrors.frequency ? (
                     <p className="mt-1 text-xs font-medium text-petcenter-danger-text">{prescriptionDraftErrors.frequency}</p>
@@ -1355,7 +1450,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                 </label>
 
                 <label>
-                  <span className="label-md mb-1 block font-medium text-petcenter-text">
+                  <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                     Thời gian <span className="text-petcenter-danger-text">*</span>
                   </span>
                   <div className="grid grid-cols-[1fr_auto] overflow-hidden rounded-control border border-petcenter-border-strong bg-white focus-within:border-petcenter-primary focus-within:ring-1 focus-within:ring-petcenter-primary">
@@ -1363,6 +1458,9 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                       className="min-w-0 bg-transparent px-3 py-2 text-sm outline-none"
                       min="1"
                       onChange={(event) => setPrescriptionDraftValues((current) => ({ ...current, duration: event.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault()
+                      }}
                       placeholder="Nhập số"
                       step="1"
                       type="number"
@@ -1394,7 +1492,7 @@ export function DoctorExaminationDetailPage({ appointmentId }: Props) {
                   ["note", "Ghi chú", "Ghi chú thêm nếu có"],
                 ].map(([key, label, placeholder]) => (
                   <label key={key} className="md:col-span-2">
-                    <span className="label-md mb-1 block font-medium text-petcenter-text">
+                    <span className="text-[15px] mb-1 block font-semibold text-petcenter-text">
                       {label} {key !== "note" ? <span className="text-petcenter-danger-text">*</span> : null}
                     </span>
                     <input

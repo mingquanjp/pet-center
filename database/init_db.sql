@@ -206,9 +206,10 @@ CREATE TABLE medicines (
     description TEXT,
     usage_note TEXT,
     unit_price NUMERIC(12,2) NOT NULL DEFAULT 0,
+    stock_quantity INTEGER NOT NULL DEFAULT 0,
     medicine_status VARCHAR(20) NOT NULL DEFAULT 'active',
-    CONSTRAINT chk_medicines_unit CHECK (unit IN ('tablet', 'blister', 'packet', 'tube', 'bottle')),
     CONSTRAINT chk_medicines_unit_price CHECK (unit_price >= 0),
+    CONSTRAINT chk_medicines_stock_quantity CHECK (stock_quantity >= 0),
     CONSTRAINT chk_medicines_status CHECK (medicine_status IN ('active', 'inactive'))
 );
 

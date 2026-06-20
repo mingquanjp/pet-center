@@ -214,6 +214,17 @@ export async function completeDoctorExamination(
     await repo.replaceVaccination(examId, row.pet_id, body.vaccination, client);
     await repo.replaceFollowUpInstruction(examId, body.followUp, client);
     await repo.updateAppointmentExaminationStatus(row.appointment_id, hasFollowUp ? "follow_up" : "completed", client);
+
+    await repo.processExaminationBilling(
+      row.appointment_id,
+      examId,
+      row.pet_id,
+      row.owner_id,
+      row.exam_type_id,
+      body.prescriptionItems,
+      body.dispenseMedicine ?? true,
+      client
+    );
     await upsertPetActivityLog({
       petId: row.pet_id,
       ownerUserId: row.owner_id,
