@@ -41,6 +41,7 @@ const ownerAppointmentRow = {
   appointment_status: "pending",
   examination_status: "waiting",
   symptom_description: "Bỏ ăn",
+  exam_id: "mex_pending",
 };
 
 describe("owner appointment status mapping", () => {
@@ -90,6 +91,7 @@ describe("owner appointment status mapping", () => {
     const result = await listOwnerAppointments("usr_owner_01", { page: 1, limit: 6 });
 
     expect(result.data[0]?.status).toBe("COMPLETED");
+    expect(result.data[0]?.examId).toBe("mex_pending");
   });
 });
 

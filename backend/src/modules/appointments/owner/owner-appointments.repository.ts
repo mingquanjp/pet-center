@@ -67,10 +67,12 @@ export async function listOwnerAppointments(ownerUserId: string, filters: OwnerA
       ma.scheduled_at,
       ma.appointment_status,
       ma.examination_status,
-      ma.symptom_description
+      ma.symptom_description,
+      me.exam_id
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
+    LEFT JOIN pet_center.medical_exams me ON me.appointment_id = ma.appointment_id
     WHERE ${where}
     ORDER BY
       (ma.scheduled_at >= now()) DESC,
@@ -122,11 +124,13 @@ export async function findOwnerAppointmentDetail(appointmentId: string, ownerUse
       ma.rejection_reason,
       o.full_name AS owner_full_name,
       o.phone_number AS owner_phone_number,
-      o.email AS owner_email
+      o.email AS owner_email,
+      me.exam_id
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.users o ON ma.owner_user_id = o.user_id
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
+    LEFT JOIN pet_center.medical_exams me ON me.appointment_id = ma.appointment_id
     WHERE ma.appointment_id = $1
       AND ma.owner_user_id = $2
   `;
@@ -165,11 +169,13 @@ export async function findOwnerAppointmentDetailForUpdate(
       ma.rejection_reason,
       o.full_name AS owner_full_name,
       o.phone_number AS owner_phone_number,
-      o.email AS owner_email
+      o.email AS owner_email,
+      me.exam_id
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.users o ON ma.owner_user_id = o.user_id
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
+    LEFT JOIN pet_center.medical_exams me ON me.appointment_id = ma.appointment_id
     WHERE ma.appointment_id = $1
       AND ma.owner_user_id = $2
     FOR UPDATE OF ma

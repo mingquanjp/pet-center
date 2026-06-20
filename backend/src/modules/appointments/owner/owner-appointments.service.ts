@@ -183,6 +183,7 @@ function mapListRowToDto(row: OwnerAppointmentListRow): OwnerAppointmentDto {
     },
     scheduledAt: new Date(row.scheduled_at).toISOString(),
     status: mapDbStatus(row),
+    examId: row.exam_id ?? undefined,
     symptomDescription: row.symptom_description ?? undefined,
   };
 }
@@ -264,6 +265,7 @@ function mapDetailRowToDto(row: OwnerAppointmentDetailRow): OwnerAppointmentDeta
     serviceType: mapTypeCode(row.type_code),
     scheduledAt: new Date(row.scheduled_at).toISOString(),
     reason: row.symptom_description ?? "Không có mô tả triệu chứng",
+    examId: row.exam_id ?? undefined,
     note: row.internal_note ?? undefined,
     pet: {
       id: row.pet_id,
