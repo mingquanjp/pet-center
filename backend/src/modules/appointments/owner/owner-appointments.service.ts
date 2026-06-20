@@ -74,8 +74,8 @@ function getVietnamTimeLabel(date: Date) {
   }).format(date);
 }
 
-function mapDbStatus(row: Pick<OwnerAppointmentListRow, "appointment_status" | "completed_exam_id">): OwnerAppointmentStatusDto {
-  if (row.completed_exam_id) {
+function mapDbStatus(row: Pick<OwnerAppointmentListRow, "appointment_status" | "examination_status">): OwnerAppointmentStatusDto {
+  if (row.examination_status === "completed" || row.examination_status === "follow_up") {
     return "COMPLETED";
   }
 

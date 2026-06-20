@@ -34,8 +34,8 @@ export interface OwnerAppointmentListRow {
   type_name: string;
   scheduled_at: Date;
   appointment_status: string;
+  examination_status: string;
   symptom_description: string | null;
-  completed_exam_id: string | null;
 }
 
 export interface OwnerAppointmentDetailRow extends OwnerAppointmentListRow {

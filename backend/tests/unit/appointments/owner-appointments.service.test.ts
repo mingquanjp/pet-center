@@ -3,7 +3,9 @@ import { httpStatus } from "../../../src/shared/errors/http-status.js";
 import * as repo from "../../../src/modules/appointments/owner/owner-appointments.repository.js";
 import {
   createOwnerAppointment,
+  getOwnerAppointmentDetail,
   getOwnerAvailableSlots,
+  listOwnerAppointments,
 } from "../../../src/modules/appointments/owner/owner-appointments.service.js";
 import * as transactions from "../../../src/db/transactions.js";
 import * as idUtils from "../../../src/shared/utils/id.js";
@@ -19,8 +21,77 @@ vi.mock("../../../src/shared/utils/id.js", () => ({
 vi.mock("../../../src/modules/notifications/notification-events.js", () => ({
   notifyAppointmentCreated: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock("../../../src/modules/pet-activity-logs/pet-activity-logs.repository.js", () => ({
+  upsertPetActivityLog: vi.fn().mockResolvedValue("elog_mock"),
+}));
 
 const mockRepo = vi.mocked(repo);
+
+const ownerAppointmentRow = {
+  appointment_id: "appt_pending",
+  pet_id: "pet_001",
+  pet_name: "Buddy",
+  species: "Dog",
+  breed: null,
+  profile_image_url: null,
+  exam_type_id: "exam_general",
+  type_code: "general_checkup",
+  type_name: "Khám tổng quát",
+  scheduled_at: new Date("2099-06-20T07:30:00.000Z"),
+  appointment_status: "pending",
+  examination_status: "waiting",
+  symptom_description: "Bỏ ăn",
+};
+
+describe("owner appointment status mapping", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("keeps a waiting examination appointment pending in the owner list", async () => {
+    mockRepo.listOwnerAppointments.mockResolvedValue([ownerAppointmentRow]);
+    mockRepo.countOwnerAppointments.mockResolvedValue(1);
+
+    const result = await listOwnerAppointments("usr_owner_01", { page: 1, limit: 6 });
+
+    expect(result.data[0]?.status).toBe("PENDING");
+  });
+
+  it("keeps confirmation and completion upcoming in pending appointment detail", async () => {
+    mockRepo.findOwnerAppointmentDetail.mockResolvedValue({
+      ...ownerAppointmentRow,
+      owner_user_id: "usr_owner_01",
+      internal_note: null,
+      rejection_reason: null,
+      birth_date: null,
+      estimated_age: null,
+      gender: null,
+      owner_full_name: "Nguyễn Văn A",
+      owner_phone_number: null,
+      owner_email: null,
+    });
+
+    const result = await getOwnerAppointmentDetail("usr_owner_01", "appt_pending");
+
+    expect(result.status).toBe("PENDING");
+    expect(result.timeline.find((item) => item.key === "waiting_confirmation")?.status).toBe("CURRENT");
+    expect(result.timeline.find((item) => item.key === "confirmed")?.status).toBe("UPCOMING");
+    expect(result.timeline.find((item) => item.key === "completed")?.status).toBe("UPCOMING");
+  });
+
+  it("marks an appointment completed only from its examination lifecycle", async () => {
+    mockRepo.listOwnerAppointments.mockResolvedValue([{
+      ...ownerAppointmentRow,
+      appointment_status: "confirmed",
+      examination_status: "completed",
+    }]);
+    mockRepo.countOwnerAppointments.mockResolvedValue(1);
+
+    const result = await listOwnerAppointments("usr_owner_01", { page: 1, limit: 6 });
+
+    expect(result.data[0]?.status).toBe("COMPLETED");
+  });
+});
 
 describe("createOwnerAppointment", () => {
   beforeEach(() => {

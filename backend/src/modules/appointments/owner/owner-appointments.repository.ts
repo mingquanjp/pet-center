@@ -66,12 +66,11 @@ export async function listOwnerAppointments(ownerUserId: string, filters: OwnerA
       et.type_name,
       ma.scheduled_at,
       ma.appointment_status,
-      ma.symptom_description,
-      me.exam_id AS completed_exam_id
+      ma.examination_status,
+      ma.symptom_description
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
-    LEFT JOIN pet_center.medical_exams me ON me.appointment_id = ma.appointment_id
     WHERE ${where}
     ORDER BY
       (ma.scheduled_at >= now()) DESC,
@@ -92,7 +91,6 @@ export async function countOwnerAppointments(ownerUserId: string, filters: Owner
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
-    LEFT JOIN pet_center.medical_exams me ON me.appointment_id = ma.appointment_id
     WHERE ${where}
   `;
 
@@ -118,18 +116,17 @@ export async function findOwnerAppointmentDetail(appointmentId: string, ownerUse
       et.type_name,
       ma.scheduled_at,
       ma.appointment_status,
+      ma.examination_status,
       ma.symptom_description,
       ma.internal_note,
       ma.rejection_reason,
       o.full_name AS owner_full_name,
       o.phone_number AS owner_phone_number,
-      o.email AS owner_email,
-      me.exam_id AS completed_exam_id
+      o.email AS owner_email
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.users o ON ma.owner_user_id = o.user_id
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
-    LEFT JOIN pet_center.medical_exams me ON me.appointment_id = ma.appointment_id
     WHERE ma.appointment_id = $1
       AND ma.owner_user_id = $2
   `;
@@ -162,18 +159,17 @@ export async function findOwnerAppointmentDetailForUpdate(
       et.type_name,
       ma.scheduled_at,
       ma.appointment_status,
+      ma.examination_status,
       ma.symptom_description,
       ma.internal_note,
       ma.rejection_reason,
       o.full_name AS owner_full_name,
       o.phone_number AS owner_phone_number,
-      o.email AS owner_email,
-      me.exam_id AS completed_exam_id
+      o.email AS owner_email
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.users o ON ma.owner_user_id = o.user_id
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
-    LEFT JOIN pet_center.medical_exams me ON me.appointment_id = ma.appointment_id
     WHERE ma.appointment_id = $1
       AND ma.owner_user_id = $2
     FOR UPDATE OF ma
