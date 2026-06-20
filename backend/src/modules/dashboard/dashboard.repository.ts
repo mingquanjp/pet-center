@@ -434,6 +434,7 @@ function formatDoctorActivityTime(value: Date): string {
     timeZone: "Asia/Ho_Chi_Minh",
     day: "2-digit",
     month: "2-digit",
+    year: "numeric",
   }).format(value)}`;
 }
 
@@ -471,13 +472,13 @@ function mapAppointmentTask(row: AppointmentTaskRow): StaffDashboardAppointmentT
 
 function getAdminActivityStatusLabel(status: AdminDashboardRecentActivityDto["status"]): string {
   const labels: Record<AdminDashboardRecentActivityDto["status"], string> = {
-    scheduled: "\u0110\u00e3 l\u00ean l\u1ecbch",
-    pending: "\u0110ang ch\u1edd",
-    confirmed: "\u0110\u00e3 x\u00e1c nh\u1eadn",
-    completed: "Ho\u00e0n th\u00e0nh",
-    cancelled: "\u0110\u00e3 h\u1ee7y",
-    rejected: "T\u1eeb ch\u1ed1i",
-    failed: "Th\u1ea5t b\u1ea1i",
+    scheduled: "Đã lên lịch",
+    pending: "Đang chờ",
+    confirmed: "Đã xác nhận",
+    completed: "Hoàn thành",
+    cancelled: "Đã hủy",
+    rejected: "Từ chối",
+    failed: "Thất bại",
   };
 
   return labels[status] ?? status;
@@ -485,11 +486,11 @@ function getAdminActivityStatusLabel(status: AdminDashboardRecentActivityDto["st
 
 function getAdminServiceCategoryLabel(category: AdminDashboardServiceRevenueDto["category"]): string {
   const labels: Record<AdminDashboardServiceRevenueDto["category"], string> = {
-    medical: "Kh\u00e1m b\u1ec7nh",
+    medical: "Khám bệnh",
     grooming: "Grooming",
     boarding: "Boarding",
     medicine: "Medicine",
-    other: "Kh\u00e1c",
+    other: "Khác",
   };
 
   return labels[category];
@@ -918,7 +919,7 @@ export async function findDoctorAssignedExams(
   limit: number
 ): Promise<DoctorAssignedExamDto[]> {
   const result = await query<DoctorAssignedExamRow>(
-     `select
+    `select
        ma.appointment_id,
        me.exam_id,
        p.pet_id,
@@ -1343,8 +1344,8 @@ async function findBoardingCapacityAlerts(): Promise<AdminDashboardAlertDto[]> {
       id: `boarding-capacity-${row.room_type_id}`,
       type: "boarding_capacity",
       severity: isOverCapacity ? "danger" : "warning",
-      title: isOverCapacity ? "Lo\u1ea1i ph\u00f2ng l\u01b0u tr\u00fa qu\u00e1 t\u1ea3i" : "Lo\u1ea1i ph\u00f2ng l\u01b0u tr\u00fa \u0111\u00e3 \u0111\u1ea7y",
-      description: `${row.room_type_name}: ${occupiedCount}/${capacity} th\u00fa c\u01b0ng \u0111ang ho\u1eb7c s\u1eafp l\u01b0u tr\u00fa.`,
+      title: isOverCapacity ? "Loại phòng lưu trú quá tải" : "Loại phòng lưu trú đã đầy",
+      description: `${row.room_type_name}: ${occupiedCount}/${capacity} thú cưng đang hoặc sắp lưu trú.`,
       sourceType: "room_type",
       sourceId: row.room_type_id,
       occurredAt: null,
@@ -1384,8 +1385,8 @@ async function findFailedPaymentAlerts(): Promise<AdminDashboardAlertDto[]> {
     id: `payment-failed-${row.id}`,
     type: "payment_failed",
     severity: "danger",
-    title: "Thanh to\u00e1n th\u1ea5t b\u1ea1i",
-    description: `H\u00f3a \u0111\u01a1n ${row.invoice_id} l\u1ed7i thanh to\u00e1n ${Number(row.amount).toLocaleString("vi-VN")} VND.`,
+    title: "Thanh toán thất bại",
+    description: `Hóa đơn ${row.invoice_id} lỗi thanh toán ${Number(row.amount).toLocaleString("vi-VN")} VND.`,
     sourceType: row.source_kind,
     sourceId: row.id,
     occurredAt: row.occurred_at.toISOString(),
@@ -1432,8 +1433,8 @@ async function findDelayedAppointmentAlerts(): Promise<AdminDashboardAlertDto[]>
     id: `appointment-delay-${row.id}`,
     type: "appointment_delay",
     severity: "warning",
-    title: "L\u1ecbch h\u1eb9n ch\u1edd qu\u00e1 l\u00e2u",
-    description: `${row.code} c\u1ee7a ${row.owner_name} / ${row.pet_name} \u0111ang pending qu\u00e1 30 ph\u00fat.`,
+    title: "Lịch hẹn chờ quá lâu",
+    description: `${row.code} của ${row.owner_name} / ${row.pet_name} đang pending quá 30 phút.`,
     sourceType: row.source_kind,
     sourceId: row.id,
     occurredAt: row.scheduled_at.toISOString(),

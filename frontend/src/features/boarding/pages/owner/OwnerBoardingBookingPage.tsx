@@ -19,6 +19,14 @@ import {
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -231,13 +239,21 @@ export function OwnerBoardingBookingPage() {
   return (
     <div className="flex w-full flex-col gap-8">
       <section className="flex flex-col gap-4">
-        <nav className="flex items-center gap-2 text-sm leading-5" aria-label="Breadcrumb">
-          <Link href="/owner/boarding" className="text-[#3E4946] transition hover:text-[#00796B]">
-            Lưu trú
-          </Link>
-          <ChevronRight className="size-4 text-[#3E4946]" aria-hidden="true" />
-          <span className="font-medium text-[#1B1C15]">Đặt phòng lưu trú</span>
-        </nav>
+        <Breadcrumb>
+          <BreadcrumbList className="text-[13px] leading-[18px] text-[#3E4946]">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link className="transition-colors hover:text-[#00796B]" href="/owner/boarding">
+                  Lưu trú
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-[#3E4946]" />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium text-[#1B1C15]">Đặt phòng lưu trú</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
         <div className="space-y-2">
           <h1 className="heading-lg text-[#1B1C15]">Đặt phòng lưu trú</h1>
@@ -262,7 +278,7 @@ export function OwnerBoardingBookingPage() {
 
           <div className="mt-6 flex flex-col gap-6">
             <div className="space-y-2">
-              <label className="block text-xs font-medium leading-4 text-[#3E4946]">Chọn thú cưng</label>
+              <label className="block text-sm font-medium leading-5 text-[#3E4946]">Chọn thú cưng</label>
               <div className="relative max-w-[448px]">
                 {isLoadingOptions && pets.length === 0 ? (
                   <div className="h-[52px] animate-pulse rounded-xl bg-[#EFEEE2]" />
@@ -364,7 +380,7 @@ export function OwnerBoardingBookingPage() {
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-medium leading-4 text-[#1B1C15]">Loại phòng</p>
+              <p className="text-sm font-medium leading-5 text-[#1B1C15]">Loại phòng</p>
               <div className="space-y-3">
                 {isLoadingOptions && roomOptions.length === 0 ? (
                   <>
@@ -390,7 +406,7 @@ export function OwnerBoardingBookingPage() {
             </div>
 
             <div className="space-y-3">
-              <label htmlFor="boarding-special-request" className="block text-xs font-medium leading-4 text-[#1B1C15]">
+              <label htmlFor="boarding-special-request" className="block text-sm font-medium leading-5 text-[#1B1C15]">
                 Yêu cầu chăm sóc đặc biệt
               </label>
               <Textarea
@@ -589,7 +605,7 @@ function DateTimeField({
 
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-medium leading-4 text-[#1B1C15]">{label}</label>
+      <label className="block text-sm font-medium leading-5 text-[#1B1C15]">{label}</label>
       <div className="relative">
         <CalendarDays className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-[#3E4946]" aria-hidden="true" />
         <button

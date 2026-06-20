@@ -340,7 +340,7 @@ export function OwnerSpaListPage() {
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="h-auto flex-none rounded-none bg-transparent px-1 pb-3 pt-0 text-xs font-medium leading-4 text-[#3E4946] hover:bg-transparent hover:text-[#005E53] after:bottom-[-1px] after:bg-[#005E53] after:opacity-0 hover:after:opacity-100 data-[state=active]:bg-transparent data-[state=active]:font-bold data-[state=active]:text-[#005E53] data-[state=active]:after:opacity-100"
+              className="h-auto flex-none rounded-none bg-transparent px-1 pb-3 pt-0 text-base font-medium leading-6 text-[#3E4946] hover:bg-transparent hover:text-[#005E53] after:bottom-[-1px] after:bg-[#005E53] after:opacity-0 hover:after:opacity-100 data-[state=active]:bg-transparent data-[state=active]:font-bold data-[state=active]:text-[#005E53] data-[state=active]:after:opacity-100"
             >
               {tab.label}
             </TabsTrigger>
