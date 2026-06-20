@@ -232,9 +232,10 @@ export function StaffSpaListPage() {
       } else if (ticket.canStart) {
         const scheduledTime = new Date(ticket.scheduledAt).getTime()
         const currentTime = Date.now()
+        const earliestStartTime = scheduledTime - 24 * 60 * 60 * 1000
 
-        if (currentTime < scheduledTime) {
-          toast.warning("Chưa đến thời gian thực hiện dịch vụ.")
+        if (currentTime < earliestStartTime) {
+          toast.warning("Chỉ có thể bắt đầu dịch vụ trong vòng 24 giờ trước thời gian đã đặt.")
           setPendingTicketId(null)
           return
         }
