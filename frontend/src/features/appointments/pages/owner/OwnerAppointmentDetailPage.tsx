@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight, FileSearch } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,9 @@ export function OwnerAppointmentDetailPage({
 
   const appointment = localStatus ? { ...data, status: localStatus } : data;
   const canCancel = appointment.status === "PENDING";
+  const examResultHref = appointment.examId
+    ? `/owner/pets/${encodeURIComponent(appointment.pet.id)}/medical-exams/${encodeURIComponent(appointment.examId)}?returnUrl=${encodeURIComponent(`/owner/appointments/${encodeURIComponent(appointment.id)}`)}`
+    : null;
 
   async function handleCancelConfirm(reason?: string) {
     try {
@@ -87,6 +90,18 @@ export function OwnerAppointmentDetailPage({
         </nav>
 
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-end">
+          {appointment.status === "COMPLETED" && examResultHref ? (
+            <Button
+              asChild
+              className="h-10 rounded-[0.75rem] bg-petcenter-primary px-4 body-md font-semibold text-white hover:bg-petcenter-primary-hover"
+            >
+              <Link href={examResultHref}>
+                <FileSearch className="h-4 w-4" aria-hidden="true" />
+                Xem kết quả khám
+              </Link>
+            </Button>
+          ) : null}
+
           {canCancel ? (
             <Button
               type="button"
