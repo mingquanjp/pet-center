@@ -91,7 +91,7 @@ export async function findAdminServiceCategories(params: AdminServiceCategoriesQ
         (SELECT COUNT(*) FROM pet_center.invoice_lines il WHERE il.service_id = s.service_id)
       )::int AS usage_count
     FROM pet_center.services s
-    WHERE 1=1
+    WHERE s.service_category IN ('medical', 'grooming')
   `;
 
   sql = appendFilters(sql, queryParams, params);
@@ -110,7 +110,7 @@ export async function findAdminServiceCategories(params: AdminServiceCategoriesQ
 
 export async function countAdminServiceCategories(params: AdminServiceCategoriesQueryDto): Promise<number> {
   const queryParams: unknown[] = [];
-  let sql = `SELECT COUNT(*) AS total FROM pet_center.services s WHERE 1=1`;
+  let sql = `SELECT COUNT(*) AS total FROM pet_center.services s WHERE s.service_category IN ('medical', 'grooming')`;
   sql = appendFilters(sql, queryParams, params);
 
   const result = await query<{ total: string }>(sql, queryParams);
@@ -126,6 +126,7 @@ export async function getAdminServiceCategoryStats() {
       COUNT(*) FILTER (WHERE service_category = 'medical') AS medical_services,
       COALESCE(ROUND(AVG(base_price)), 0) AS average_price
     FROM pet_center.services
+    WHERE service_category IN ('medical', 'grooming')
   `;
   const result = await query<{
     total_services: string;
@@ -146,7 +147,10 @@ export async function getAdminServiceCategoryStats() {
 }
 
 export async function findServiceCategoryById(serviceId: string): Promise<boolean> {
-  const result = await query(`SELECT 1 FROM pet_center.services WHERE service_id = $1 LIMIT 1`, [serviceId]);
+  const result = await query(
+    `SELECT 1 FROM pet_center.services WHERE service_id = $1 AND service_category IN ('medical', 'grooming') LIMIT 1`,
+    [serviceId]
+  );
   return result.rowCount !== null && result.rowCount > 0;
 }
 
@@ -168,6 +172,7 @@ export async function findServiceCategoryDetailById(serviceId: string): Promise<
         )::int AS usage_count
       FROM pet_center.services s
       WHERE s.service_id = $1
+        AND s.service_category IN ('medical', 'grooming')
     `,
     [serviceId]
   );
