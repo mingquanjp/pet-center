@@ -7,7 +7,7 @@ interface OwnerAppointmentListProps {
 
 export function OwnerAppointmentList({ appointments }: OwnerAppointmentListProps) {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
       {appointments.map((appointment) => (
         <OwnerAppointmentCard key={appointment.id} appointment={appointment} />
       ))}

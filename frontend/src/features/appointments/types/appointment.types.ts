@@ -168,6 +168,7 @@ export interface OwnerAppointment {
   };
   scheduledAt: string;
   status: OwnerAppointmentStatus;
+  examId?: string;
   symptomDescription?: string;
 }
 
@@ -204,6 +205,7 @@ export interface OwnerAppointmentDetail {
   serviceType: OwnerAppointmentServiceType;
   scheduledAt: string;
   reason: string;
+  examId?: string;
   note?: string;
   pet: {
     id: string;

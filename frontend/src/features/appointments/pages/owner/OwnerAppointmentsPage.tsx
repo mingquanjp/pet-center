@@ -71,34 +71,26 @@ export function OwnerAppointmentsPage({
         onResetFilters={handleResetFilters}
       />
 
-      <div className="overflow-hidden rounded-[16px] border border-[#E6E8DD] bg-white shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
-        <div className="relative">
-          {isLoading ? (
-            <div className="p-8 body-md text-petcenter-text-secondary">
-              Đang tải lịch khám...
-            </div>
-          ) : isError ? (
-            <div className="p-8 body-md text-petcenter-danger-text">
-              Không thể tải danh sách lịch khám.
-            </div>
-          ) : data.length > 0 ? (
-            <>
-              <div className="p-4 md:p-5">
-                <OwnerAppointmentList appointments={data} />
-              </div>
-              <OwnerAppointmentPagination
-                page={pagination.page}
-                totalPages={pagination.totalPages}
-                onPageChange={setPage}
-              />
-            </>
-          ) : (
-            <div className="p-4 md:p-5">
-              <OwnerAppointmentEmptyState onResetFilters={handleResetFilters} />
-            </div>
-          )}
+      {isLoading ? (
+        <div className="rounded-card border border-petcenter-border bg-petcenter-card p-6 body-md text-petcenter-text-secondary shadow-card">
+          Đang tải lịch khám...
         </div>
-      </div>
+      ) : isError ? (
+        <div className="rounded-card border border-petcenter-danger-bg bg-petcenter-danger-bg/30 p-6 body-md text-petcenter-danger-text">
+          Không thể tải danh sách lịch khám.
+        </div>
+      ) : data.length > 0 ? (
+        <>
+          <OwnerAppointmentList appointments={data} />
+          <OwnerAppointmentPagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={setPage}
+          />
+        </>
+      ) : (
+        <OwnerAppointmentEmptyState onResetFilters={handleResetFilters} />
+      )}
     </div>
   );
 }

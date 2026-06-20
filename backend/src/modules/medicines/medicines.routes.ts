@@ -15,6 +15,13 @@ import {
 export const medicinesRouter = Router();
 
 medicinesRouter.get(
+  "/admin/medicines-units",
+  authMiddleware,
+  requireRole("ADMIN"),
+  asyncHandler(medicinesController.getMedicineUnitsController)
+);
+
+medicinesRouter.get(
   "/admin/medicines",
   authMiddleware,
   requireRole("ADMIN"),

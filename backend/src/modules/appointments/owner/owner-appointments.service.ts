@@ -5,6 +5,7 @@ import { createId } from "../../../shared/utils/id.js";
 import { getMaxConcurrentIntervals } from "../../../shared/utils/interval-capacity.js";
 import * as repo from "./owner-appointments.repository.js";
 import { notifyAppointmentCreated } from "../../notifications/notification-events.js";
+import { upsertPetActivityLog } from "../../pet-activity-logs/pet-activity-logs.repository.js";
 import type {
   CancelOwnerAppointmentBody,
   CreateOwnerAppointmentBody,
@@ -73,8 +74,8 @@ function getVietnamTimeLabel(date: Date) {
   }).format(date);
 }
 
-function mapDbStatus(row: Pick<OwnerAppointmentListRow, "appointment_status" | "completed_exam_id">): OwnerAppointmentStatusDto {
-  if (row.completed_exam_id) {
+function mapDbStatus(row: Pick<OwnerAppointmentListRow, "appointment_status" | "examination_status">): OwnerAppointmentStatusDto {
+  if (row.examination_status === "completed" || row.examination_status === "follow_up") {
     return "COMPLETED";
   }
 
@@ -182,6 +183,7 @@ function mapListRowToDto(row: OwnerAppointmentListRow): OwnerAppointmentDto {
     },
     scheduledAt: new Date(row.scheduled_at).toISOString(),
     status: mapDbStatus(row),
+    examId: row.exam_id ?? undefined,
     symptomDescription: row.symptom_description ?? undefined,
   };
 }
@@ -263,6 +265,7 @@ function mapDetailRowToDto(row: OwnerAppointmentDetailRow): OwnerAppointmentDeta
     serviceType: mapTypeCode(row.type_code),
     scheduledAt: new Date(row.scheduled_at).toISOString(),
     reason: row.symptom_description ?? "Không có mô tả triệu chứng",
+    examId: row.exam_id ?? undefined,
     note: row.internal_note ?? undefined,
     pet: {
       id: row.pet_id,
@@ -457,6 +460,25 @@ export async function createOwnerAppointment(
       client,
     );
     await repo.insertOwnerMedicalExam(await createId("mex", client), appointmentId, client);
+    const isVaccination = examType.type_code === "vaccination";
+    await upsertPetActivityLog({
+      petId: body.petId,
+      ownerUserId,
+      actorUserId: ownerUserId,
+      activityCategory: isVaccination ? "vaccination" : "medical",
+      activityType: "appointment_created",
+      activityStatus: "pending",
+      title: isVaccination ? "Đã đặt lịch tiêm phòng" : "Đã đặt lịch khám",
+      summary: `${pet.pet_name} có lịch ${examType.type_name}.`,
+      sourceType: "medical_appointment",
+      sourceId: appointmentId,
+      metadata: {
+        scheduledAt: scheduledAt.toISOString(),
+        examTypeId: body.examTypeId,
+        examTypeName: examType.type_name,
+        symptomDescription: body.symptomDescription ?? null
+      }
+    }, client);
 
     return {
       id: appointmentId,
@@ -491,6 +513,22 @@ export async function cancelOwnerAppointment(
     }
 
     await repo.cancelOwnerAppointment(appointmentId, ownerUserId, client);
+    await upsertPetActivityLog({
+      petId: row.pet_id,
+      ownerUserId,
+      actorUserId: ownerUserId,
+      activityCategory: row.type_code === "vaccination" ? "vaccination" : "medical",
+      activityType: "appointment_cancelled",
+      activityStatus: "cancelled",
+      title: "Đã hủy lịch hẹn",
+      summary: `${row.pet_name} đã được hủy lịch ${row.type_name}.`,
+      sourceType: "medical_appointment",
+      sourceId: appointmentId,
+      metadata: {
+        scheduledAt: new Date(row.scheduled_at).toISOString(),
+        examTypeName: row.type_name
+      }
+    }, client);
   });
 
   return getOwnerAppointmentDetail(ownerUserId, appointmentId);

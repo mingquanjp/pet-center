@@ -47,8 +47,6 @@ import {
 const categoryOptions: Array<{ value: ServiceCategoryKind; label: string; className: string }> = [
   { value: "medical", label: "Khám bệnh", className: "bg-petcenter-info-bg text-petcenter-info-text" },
   { value: "grooming", label: "Spa & Grooming", className: "bg-petcenter-warning-bg text-petcenter-warning-text" },
-  { value: "boarding", label: "Lưu trú", className: "bg-[#EEE8FF] text-[#6D4AFF]" },
-  { value: "medicine", label: "Thuốc", className: "bg-petcenter-success-bg text-petcenter-success-text" },
 ]
 
 const defaultFilters: ServiceCategoryFilters = {

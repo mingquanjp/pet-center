@@ -13,6 +13,7 @@ interface AdminMedicineRow {
   description: string | null;
   usage_note: string | null;
   unit_price: number;
+  stock_quantity: number;
   medicine_status: string;
   prescription_usage_count: number;
 }
@@ -28,6 +29,7 @@ export async function findAdminMedicines(params: AdminMedicinesQueryDto): Promis
       m.description,
       m.usage_note,
       m.unit_price,
+      m.stock_quantity,
       m.medicine_status,
       COALESCE(COUNT(pi.prescription_item_id), 0)::int AS prescription_usage_count
     FROM pet_center.medicines m
@@ -69,6 +71,7 @@ export async function findAdminMedicines(params: AdminMedicinesQueryDto): Promis
       m.description,
       m.usage_note,
       m.unit_price,
+      m.stock_quantity,
       m.medicine_status
     ORDER BY
       CASE WHEN m.medicine_status = 'active' THEN 0 ELSE 1 END,
@@ -154,6 +157,7 @@ export async function findMedicineDetailById(medicineId: string): Promise<AdminM
       m.description,
       m.usage_note,
       m.unit_price,
+      m.stock_quantity,
       m.medicine_status,
       COALESCE(COUNT(pi.prescription_item_id), 0)::int AS prescription_usage_count
     FROM pet_center.medicines m
@@ -166,6 +170,7 @@ export async function findMedicineDetailById(medicineId: string): Promise<AdminM
       m.description,
       m.usage_note,
       m.unit_price,
+      m.stock_quantity,
       m.medicine_status
   `;
   const result = await query<AdminMedicineRow>(sql, [medicineId]);
@@ -190,8 +195,8 @@ export async function checkMedicineNameExists(name: string, excludeMedicineId?: 
 export async function createAdminMedicine(medicineId: string, payload: CreateAdminMedicineBody): Promise<void> {
   const sql = `
     INSERT INTO pet_center.medicines (
-      medicine_id, medicine_name, unit, description, usage_note, unit_price, medicine_status
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      medicine_id, medicine_name, unit, description, usage_note, unit_price, stock_quantity, medicine_status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   `;
   await query(sql, [
     medicineId,
@@ -200,6 +205,7 @@ export async function createAdminMedicine(medicineId: string, payload: CreateAdm
     payload.description ?? null,
     payload.usageNote ?? null,
     payload.unitPrice,
+    payload.stockQuantity ?? 0,
     payload.medicineStatus ?? "active"
   ]);
 }
@@ -228,6 +234,10 @@ export async function updateAdminMedicine(medicineId: string, payload: UpdateAdm
   if (payload.unitPrice !== undefined) {
     updates.push(`unit_price = $${paramIndex++}`);
     params.push(payload.unitPrice);
+  }
+  if (payload.stockQuantity !== undefined) {
+    updates.push(`stock_quantity = $${paramIndex++}`);
+    params.push(payload.stockQuantity);
   }
   if (payload.medicineStatus !== undefined) {
     updates.push(`medicine_status = $${paramIndex++}`);
@@ -260,4 +270,10 @@ export async function countPrescriptionUsageByMedicineId(medicineId: string): Pr
 export async function deleteMedicine(medicineId: string): Promise<void> {
   const sql = `DELETE FROM pet_center.medicines WHERE medicine_id = $1`;
   await query(sql, [medicineId]);
+}
+
+export async function getMedicineUnits(): Promise<string[]> {
+  const sql = `SELECT DISTINCT unit FROM pet_center.medicines ORDER BY unit ASC`;
+  const result = await query<{ unit: string }>(sql);
+  return result.rows.map(r => r.unit);
 }

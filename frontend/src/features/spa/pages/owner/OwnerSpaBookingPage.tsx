@@ -4,6 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { AlertCircle, CalendarDays, Check, ChevronDown, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -218,13 +226,21 @@ export function OwnerSpaBookingPage() {
   return (
     <div className="w-full space-y-8">
       <section className="space-y-1">
-        <div className="flex items-center gap-2 text-[13px] leading-[18px]">
-          <Link href="/owner/spa" className="text-[#3E4946] hover:text-[#005E53]">
-            Dịch vụ spa
-          </Link>
-          <span className="text-[#3E4946]">›</span>
-          <span className="font-medium text-[#1B1C15]">Đặt dịch vụ</span>
-        </div>
+        <Breadcrumb>
+          <BreadcrumbList className="text-[13px] leading-[18px] text-[#3E4946]">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link className="transition-colors hover:text-[#005E53]" href="/owner/spa">
+                  Dịch vụ spa
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="text-[#3E4946]" />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-medium text-[#1B1C15]">Đặt dịch vụ</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <h1 className="pt-1 text-[32px] font-bold leading-10 tracking-[-0.02em] text-[#1B1C15]">
           Đặt dịch vụ làm đẹp
         </h1>

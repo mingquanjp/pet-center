@@ -6,12 +6,14 @@ import {
   AlertCircle,
   ArrowLeft,
   CalendarCheck,
+  Camera,
+  Check,
   Clock3,
   ClipboardList,
   FileText,
+  History,
   Home,
-  ListFilter,
-  NotebookPen,
+  LogIn,
   PawPrint,
   Play,
   RotateCcw,
@@ -29,6 +31,7 @@ import { boardingApi } from "../../api/boarding.api"
 import type {
   BoardingCareLogAlertLevel,
   BoardingCareLogAttachment,
+  BoardingCareLogType,
   BoardingRecordDetail,
   BoardingRecordStatus,
 } from "../../types/boarding.types"
@@ -137,6 +140,7 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
   }
 
   const meta = statusMeta[record.status]
+  const canRebookRoom = record.status === "checked_out" || record.status === "cancelled" || record.status === "rejected"
 
   return (
     <div className="space-y-8 p-0">
@@ -144,10 +148,6 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
         <nav className="flex flex-wrap items-center gap-2 text-[13px] leading-[18px] text-[#3E4946]" aria-label="Breadcrumb">
           <Link href="/owner/boarding" className="transition hover:text-[#005E53]">
             Lưu trú
-          </Link>
-          <span aria-hidden="true">›</span>
-          <Link href="/owner/boarding" className="transition hover:text-[#005E53]">
-            Lưu trú của tôi
           </Link>
           <span aria-hidden="true">›</span>
           <span className="font-medium text-[#1B1C15]">Chi tiết lưu trú</span>
@@ -189,12 +189,14 @@ export function OwnerBoardingDetailPage({ boardingRecordId }: OwnerBoardingDetai
               Hủy lịch
             </Button>
           ) : null}
-          <Button asChild className="h-9 rounded-lg bg-[#005E53] px-4 text-xs font-medium text-white hover:bg-[#004C43]">
-            <Link href="/owner/boarding/booking">
-              <RotateCcw className="mr-2 size-4" aria-hidden="true" />
-              Đặt lại phòng này
-            </Link>
-          </Button>
+          {canRebookRoom ? (
+            <Button asChild className="h-9 rounded-lg bg-[#005E53] px-4 text-xs font-medium text-white hover:bg-[#004C43]">
+              <Link href="/owner/boarding/booking">
+                <RotateCcw className="mr-2 size-4" aria-hidden="true" />
+                Đặt lại phòng này
+              </Link>
+            </Button>
+          ) : null}
         </div>
       </section>
 
@@ -343,69 +345,78 @@ function CareLogTimeline({ record }: { record: BoardingRecordDetail }) {
   const [previewMedia, setPreviewMedia] = React.useState<BoardingCareLogAttachment | null>(null)
 
   return (
-    <section className="min-h-[600px] rounded-2xl border border-petcenter-border bg-petcenter-card p-6 pb-10 shadow-card">
-      <div className="mb-6 flex items-center justify-between border-b border-petcenter-border pb-4">
-        <div className="flex items-center gap-2">
-          <NotebookPen className="h-5 w-5 text-petcenter-primary" aria-hidden="true" />
-          <h2 className="title-md text-petcenter-text">Nhật ký chăm sóc</h2>
+    <section className="min-h-[600px] overflow-hidden rounded-2xl border border-petcenter-border bg-petcenter-card shadow-card">
+      <div className="border-b border-petcenter-border/40 bg-petcenter-background/30 px-6 py-5">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-full bg-petcenter-info-bg text-petcenter-info-text shadow-sm">
+            <History className="size-5" aria-hidden="true" />
+          </span>
+          <h2 className="title-md text-petcenter-text">Nhật ký lưu trú</h2>
         </div>
-        <button className="label-md flex items-center gap-1 font-semibold text-petcenter-primary" type="button">
-          <ListFilter className="h-4 w-4" aria-hidden="true" />
-          Lọc nhật ký
-        </button>
       </div>
 
-      {entries.length > 0 ? (
-        <>
-          <div className="ml-3 border-l-2 border-petcenter-border pl-7">
-            <div className="space-y-8">
-              {entries.map((entry) => (
-                <div className="relative space-y-2" key={entry.logId}>
-                  <div className="absolute -left-[33px] top-1 h-4 w-4 rounded-full bg-petcenter-primary shadow-[0_0_0_4px_white]" />
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <h3 className="body-lg font-semibold text-petcenter-text">{entry.title}</h3>
-                    <span className={cn("label-md w-fit rounded-full px-2 py-0.5 font-semibold", getHealthBadgeClassName(entry.alertLevel))}>
-                      {entry.alertLabel}
-                    </span>
-                    <span className="label-md ml-auto flex items-center gap-1 text-petcenter-text-secondary">
-                      <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-                      {formatDateTime(entry.occurredAt)}
-                    </span>
-                  </div>
+      <div className="p-6">
+        {entries.length > 0 ? (
+          <>
+            <div className="relative">
+              {entries.map((entry, index) => {
+                const isLast = index === entries.length - 1
+                const Icon = getCareLogIcon(entry.logType)
 
-                  <div className="rounded-control border border-petcenter-border/60 bg-petcenter-background/70 p-4">
-                    <p className="body-md text-petcenter-text">{entry.note}</p>
-                    {entry.attachments.length > 0 ? (
-                      <div className="mt-3 flex flex-wrap gap-3">
-                        {entry.attachments.map((attachment) => (
-                          <MediaAttachment
-                            attachment={attachment}
-                            key={attachment.url}
-                            onPreview={() =>
-                              setPreviewMedia(attachment.type === "file" ? { ...attachment, type: "image" } : attachment)
-                            }
-                          />
-                        ))}
-                      </div>
+                return (
+                  <div className="relative pb-8 pl-14 last:pb-0" key={entry.logId}>
+                    {!isLast ? (
+                      <div className="absolute bottom-0 left-5 top-10 w-0.5 bg-[#E5E7EB]" aria-hidden="true" />
                     ) : null}
+
+                    <span className={cn("absolute left-0 top-0 z-10 flex size-10 items-center justify-center rounded-full", getCareLogCircleClassName(entry.logType))}>
+                      <Icon className="size-5" aria-hidden="true" />
+                    </span>
+
+                    <div className="mb-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <h3 className="text-[15px] font-semibold leading-5 text-petcenter-text">{entry.title}</h3>
+                        <div className="mt-1 flex items-center gap-1.5 text-[13px] text-petcenter-text-secondary">
+                          <Clock3 className="size-3.5" aria-hidden="true" />
+                          {formatDateTime(entry.occurredAt)}
+                        </div>
+                      </div>
+                      <span className={cn("w-fit whitespace-nowrap rounded-md px-2.5 py-1 text-[12px] font-semibold", getHealthBadgeClassName(entry.alertLevel))}>
+                        {entry.alertLabel}
+                      </span>
+                    </div>
+
+                    <div className="rounded-2xl border border-[#F1EFE2]/70 bg-[#F9F8F3] p-4 text-[14.5px] leading-relaxed text-[#374151]">
+                      <p>{entry.note}</p>
+                      {entry.attachments.length > 0 ? (
+                        <div className="mt-3 flex flex-wrap gap-3">
+                          {entry.attachments.map((attachment) => (
+                            <MediaAttachment
+                              attachment={attachment}
+                              key={attachment.url}
+                              onPreview={() =>
+                                setPreviewMedia(attachment.type === "file" ? { ...attachment, type: "image" } : attachment)
+                              }
+                            />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
+          </>
+        ) : (
+          <div className="flex min-h-[180px] flex-col items-center justify-center text-center">
+            <AlertCircle className="mb-2 h-8 w-8 text-petcenter-text-muted opacity-50" aria-hidden="true" />
+            <p className="text-sm font-medium italic text-petcenter-text-secondary">Chưa có nhật ký lưu trú.</p>
+            <p className="mt-1 text-xs text-petcenter-text-muted">
+              Các mốc xử lý và cập nhật chăm sóc sẽ hiển thị tại đây.
+            </p>
           </div>
-          <p className="label-md pt-8 text-center text-petcenter-text-secondary">
-            Không còn nhật ký nào cũ hơn cho lần lưu trú này.
-          </p>
-        </>
-      ) : (
-        <div className="flex min-h-[150px] flex-col items-center justify-center text-center">
-          <AlertCircle className="mb-2 h-8 w-8 text-petcenter-text-muted opacity-50" aria-hidden="true" />
-          <p className="text-sm font-medium italic text-petcenter-text-secondary">Chưa có nhật ký chăm sóc.</p>
-          <p className="mt-1 text-xs text-petcenter-text-muted">
-            Các mốc xử lý và cập nhật chăm sóc sẽ hiển thị tại đây.
-          </p>
-        </div>
-      )}
+        )}
+      </div>
 
       <Dialog open={Boolean(previewMedia)} onOpenChange={(open) => !open && setPreviewMedia(null)}>
         <DialogContent
@@ -512,6 +523,22 @@ function getHealthBadgeClassName(status: BoardingCareLogAlertLevel | undefined) 
   if (status === "normal") return "bg-[#DFF3E3] text-[#2E7D32]"
 
   return "bg-[#E4E3D7] text-[#3E4946]"
+}
+
+function getCareLogIcon(type: BoardingCareLogType): LucideIcon {
+  if (type === "check_in") return LogIn
+  if (type === "daily_update") return Camera
+  if (type === "check_out") return Check
+
+  return FileText
+}
+
+function getCareLogCircleClassName(type: BoardingCareLogType): string {
+  if (type === "daily_update") return "bg-[#008577] text-white"
+  if (type === "check_out") return "bg-[#E6F3E6] text-[#2E7D32]"
+  if (type === "check_in") return "bg-[#F1EFE2] text-[#52615D]"
+
+  return "bg-[#F1EFE2] text-[#52615D]"
 }
 
 function formatDate(value: string | undefined): string {

@@ -8,6 +8,7 @@ import {
   notifyAppointmentRejected,
   notifyMedicalExamCompleted
 } from "../../notifications/notification-events.js";
+import { upsertPetActivityLog } from "../../pet-activity-logs/pet-activity-logs.repository.js";
 import type {
   AppointmentDetailRow,
   AvailableDoctorRow,
@@ -202,6 +203,23 @@ export async function confirmStaffAppointment(
       body.internalNote,
       client,
     );
+    await upsertPetActivityLog({
+      petId: row.pet_id,
+      ownerUserId: row.owner_user_id,
+      actorUserId: staffUserId,
+      activityCategory: row.type_code === "vaccination" ? "vaccination" : "medical",
+      activityType: "appointment_confirmed",
+      activityStatus: "confirmed",
+      title: "Lịch hẹn đã được xác nhận",
+      summary: `${row.pet_name} đã được xác nhận lịch ${row.type_name}.`,
+      sourceType: "medical_appointment",
+      sourceId: appointmentId,
+      metadata: {
+        scheduledAt: new Date(row.scheduled_at).toISOString(),
+        doctorUserId: selectedDoctor.user_id,
+        examTypeName: row.type_name
+      }
+    }, client);
 
     await refreshPendingAssignmentsAfterConfirm(
       client,
@@ -240,6 +258,22 @@ export async function rejectStaffAppointment(
     body.rejectionReason,
     body.internalNote,
   );
+  await upsertPetActivityLog({
+    petId: row.pet_id,
+    ownerUserId: row.owner_user_id,
+    actorUserId: staffUserId,
+    activityCategory: row.type_code === "vaccination" ? "vaccination" : "medical",
+    activityType: "appointment_rejected",
+    activityStatus: "rejected",
+    title: "Lịch hẹn đã bị từ chối",
+    summary: `${row.pet_name} không thể tiếp nhận lịch ${row.type_name}.`,
+    sourceType: "medical_appointment",
+    sourceId: appointmentId,
+    metadata: {
+      scheduledAt: new Date(row.scheduled_at).toISOString(),
+      rejectionReason: body.rejectionReason
+    }
+  });
 
   notifyAppointmentRejected(appointmentId).catch(console.error);
 

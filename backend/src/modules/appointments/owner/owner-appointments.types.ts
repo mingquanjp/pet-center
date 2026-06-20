@@ -34,8 +34,9 @@ export interface OwnerAppointmentListRow {
   type_name: string;
   scheduled_at: Date;
   appointment_status: string;
+  examination_status: string;
   symptom_description: string | null;
-  completed_exam_id: string | null;
+  exam_id: string | null;
 }
 
 export interface OwnerAppointmentDetailRow extends OwnerAppointmentListRow {
@@ -95,6 +96,7 @@ export interface OwnerAppointmentDto {
   };
   scheduledAt: string;
   status: OwnerAppointmentStatusDto;
+  examId?: string;
   symptomDescription?: string;
 }
 
@@ -114,6 +116,7 @@ export interface OwnerAppointmentDetailDto {
   serviceType: OwnerAppointmentServiceTypeDto;
   scheduledAt: string;
   reason: string;
+  examId?: string;
   note?: string;
   pet: {
     id: string;

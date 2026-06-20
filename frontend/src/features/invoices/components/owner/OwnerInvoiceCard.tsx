@@ -1,6 +1,7 @@
 import * as React from "react";
-import { AlertCircle, Calendar, CreditCard, PawPrint } from "lucide-react";
+import { AlertCircle, Calendar, CreditCard, Eye, PawPrint } from "lucide-react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { invoicePaymentOptionLabel } from "../../constants/invoice.constants";
@@ -31,102 +32,111 @@ export function OwnerInvoiceCard({
     invoice.paymentOption === "AT_COUNTER";
 
   return (
-    <article className="overflow-hidden rounded-card border border-petcenter-border bg-petcenter-card shadow-card">
-      <div className="flex flex-col gap-4 border-b border-petcenter-border bg-petcenter-card p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-3">
-          <div
+    <article className="flex h-full min-h-[210px] flex-col rounded-card border border-petcenter-border bg-petcenter-card p-4 shadow-card transition-all hover:border-petcenter-primary/30 hover:shadow-md">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
             className={cn(
-              "flex h-11 w-11 shrink-0 items-center justify-center rounded-pill",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.75rem]",
               serviceIconClassByType[invoice.serviceType]
             )}
           >
             <InvoiceServiceIcon type={invoice.serviceType} className="h-5 w-5" />
-          </div>
+          </span>
+
           <div className="min-w-0">
             <h3 className="title-md truncate text-petcenter-text">
               {invoice.title}
             </h3>
-            <p className="body-sm text-petcenter-text-secondary">
-              Mã HĐ: {invoice.invoiceCode}
+            <p className="label-sm mt-0.5 text-petcenter-text-secondary">
+              {invoice.invoiceCode}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 sm:items-end">
-          <InvoiceStatusBadge status={invoice.paymentStatus} />
-          <span
-            className={cn(
-              "heading-sm",
-              invoice.paymentStatus === "PAID"
-                ? "text-petcenter-primary"
-                : "text-petcenter-text"
-            )}
-          >
-            {formatInvoiceMoney(invoice.totalAmount)}
-          </span>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <InvoiceStatusBadge status={invoice.paymentStatus} className="w-fit" />
+          {shouldShowCounterWarning ? (
+            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-petcenter-warning-bg px-2 py-0.5 label-sm text-petcenter-warning-text">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Tại trung tâm
+            </span>
+          ) : null}
         </div>
       </div>
 
-      <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
-        <InvoiceDetailItem label="Thú cưng">
-          <span className="flex items-center gap-2 font-medium text-petcenter-text">
-            <PawPrint className="h-4 w-4 text-petcenter-text-secondary" />
-            {invoice.pet.name}
-          </span>
-        </InvoiceDetailItem>
-        <InvoiceDetailItem label="Loại dịch vụ">
-          {invoice.serviceName}
-        </InvoiceDetailItem>
-        <InvoiceDetailItem label="Ngày tạo">
-          <span className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-petcenter-text-secondary" />
-            {formatInvoiceDate(invoice.issuedAt)}
-          </span>
-        </InvoiceDetailItem>
-        <InvoiceDetailItem label="Hình thức thanh toán">
-          <span className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-petcenter-text-secondary" />
-            {invoicePaymentOptionLabel[invoice.paymentOption]}
-          </span>
-        </InvoiceDetailItem>
+      <div className="mt-4 grid gap-2 body-sm text-petcenter-text-secondary">
+        <PetMeta imageUrl={invoice.pet.imageUrl} name={invoice.pet.name} />
+        <CompactText>{invoice.serviceName}</CompactText>
+        <CompactMetaItem icon={Calendar}>
+          {formatInvoiceDate(invoice.issuedAt)}
+        </CompactMetaItem>
+        <CompactMetaItem icon={CreditCard}>
+          {invoicePaymentOptionLabel[invoice.paymentOption]}
+        </CompactMetaItem>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-petcenter-border bg-petcenter-card p-4 sm:flex-row sm:items-center sm:justify-between">
-        {shouldShowCounterWarning ? (
-          <p className="body-sm inline-flex w-fit items-center gap-2 rounded-control bg-petcenter-warning-bg px-3 py-2 text-petcenter-warning-text">
-            <AlertCircle className="h-4 w-4" />
-            Vui lòng thanh toán tại trung tâm
-          </p>
-        ) : (
-          <span aria-hidden="true" />
-        )}
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-petcenter-border pt-4">
+        <span
+          className={cn(
+            "heading-sm min-w-0 truncate",
+            invoice.paymentStatus === "PAID"
+              ? "text-petcenter-primary"
+              : "text-petcenter-text"
+          )}
+        >
+          {formatInvoiceMoney(invoice.totalAmount)}
+        </span>
 
         <Button
           type="button"
           variant="outline"
           onClick={() => onViewDetail(invoice.id)}
-          className="h-10 rounded-control border-petcenter-primary bg-petcenter-card px-4 text-petcenter-primary hover:bg-petcenter-background hover:text-petcenter-primary-hover sm:w-auto"
+          className="h-9 shrink-0 rounded-control border-petcenter-primary bg-petcenter-card px-3 text-petcenter-primary hover:bg-petcenter-background hover:text-petcenter-primary-hover"
         >
-          Xem chi tiết
+          <Eye className="h-4 w-4" />
+          Chi tiết
         </Button>
       </div>
     </article>
   );
 }
 
-function InvoiceDetailItem({
-  label,
+function PetMeta({ imageUrl, name }: { imageUrl?: string; name: string }) {
+  return (
+    <span className="inline-flex min-w-0 items-center gap-2">
+      <Avatar className="size-7" size="sm">
+        {imageUrl ? <AvatarImage src={imageUrl} alt={name} /> : null}
+        <AvatarFallback className="bg-petcenter-success-bg text-petcenter-success-text">
+          <PawPrint className="size-4" aria-hidden="true" />
+        </AvatarFallback>
+      </Avatar>
+      <span className="min-w-0 truncate font-medium text-petcenter-text">
+        {name}
+      </span>
+    </span>
+  );
+}
+
+function CompactText({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="min-w-0 truncate text-petcenter-text-secondary">
+      {children}
+    </span>
+  );
+}
+
+function CompactMetaItem({
   children,
+  icon: Icon,
 }: {
-  label: string;
   children: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="min-w-0">
-      <p className="label-sm mb-1 uppercase text-petcenter-text-muted">
-        {label}
-      </p>
-      <div className="body-md text-petcenter-text">{children}</div>
-    </div>
+    <span className="inline-flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <Icon className="h-4 w-4 shrink-0 text-petcenter-text-secondary" />
+      <span className="min-w-0 truncate">{children}</span>
+    </span>
   );
 }

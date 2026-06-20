@@ -23,6 +23,11 @@ import {
   notifyGroomingAccepted,
   notifyGroomingCompleted
 } from "../../notifications/notification-events.js";
+import {
+  findGroomingActivityContext,
+  upsertPetActivityLog,
+  type PetActivityStatus
+} from "../../pet-activity-logs/pet-activity-logs.repository.js";
 import * as groomingPricingPolicy from "../grooming-pricing.policy.js";
 import * as groomingAvailabilityPolicy from "../grooming-availability.policy.js";
 import * as groomingStatusPolicy from "../grooming-status.policy.js";
@@ -147,6 +152,42 @@ export async function createStaffCounterTicket(
           specialRequest: payload.specialRequest,
           paymentOption: "counter"
         });
+        await upsertPetActivityLog({
+          petId: pet.petId,
+          ownerUserId: pet.ownerUserId,
+          actorUserId: authUser.userId,
+          activityCategory: "grooming",
+          activityType: "grooming_booked",
+          activityStatus: "scheduled",
+          title: "Đã tạo lịch spa tại quầy",
+          summary: `${pet.petName} có lịch ${service.serviceName}.`,
+          sourceType: "grooming_ticket",
+          sourceId: ticket.groomingTicketId,
+          metadata: {
+            scheduledAt: payload.scheduledAt.toISOString(),
+            serviceId: payload.serviceId,
+            serviceName: service.serviceName,
+            paymentOption: "counter",
+            createdByRole: authUser.role
+          }
+        });
+        await upsertPetActivityLog({
+          petId: pet.petId,
+          ownerUserId: pet.ownerUserId,
+          actorUserId: authUser.userId,
+          activityCategory: "invoice",
+          activityType: "invoice_issued",
+          activityStatus: "pending",
+          title: "Đã tạo hóa đơn spa",
+          summary: `Hóa đơn cho lịch spa của ${pet.petName} đã được tạo.`,
+          sourceType: "invoice",
+          sourceId: ticket.invoiceId,
+          metadata: {
+            groomingTicketId: ticket.groomingTicketId,
+            amount: ticket.totalAmount,
+            paymentOption: "counter"
+          }
+        });
         notifyGroomingCreated(ticket.groomingTicketId).catch(console.error);
         return ticket;
       } catch (error) {
@@ -199,6 +240,14 @@ export async function acceptStaffTicket(authUser: AuthUser, ticketId: string) {
     throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
+  await logStaffGroomingActivity({
+    ticketId,
+    actorUserId: authUser.userId,
+    activityType: "grooming_accepted",
+    activityStatus: "confirmed",
+    title: "Lịch spa đã được tiếp nhận",
+    summary: (petName) => `${petName} đã được trung tâm tiếp nhận lịch spa.`
+  });
   notifyGroomingAccepted(ticketId).catch(console.error);
 
   return ticket;
@@ -223,6 +272,14 @@ export async function completeStaffTicket(authUser: AuthUser, ticketId: string) 
     throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
+  await logStaffGroomingActivity({
+    ticketId,
+    actorUserId: authUser.userId,
+    activityType: "grooming_completed",
+    activityStatus: "completed",
+    title: "Đã hoàn tất dịch vụ spa",
+    summary: (petName) => `${petName} đã hoàn tất dịch vụ spa.`
+  });
   notifyGroomingCompleted(ticketId).catch(console.error);
 
   return ticket;
@@ -260,6 +317,15 @@ export async function startStaffTicket(authUser: AuthUser, ticketId: string) {
     throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
+  await logStaffGroomingActivity({
+    ticketId,
+    actorUserId: authUser.userId,
+    activityType: "grooming_started",
+    activityStatus: "pending",
+    title: "Đã bắt đầu dịch vụ spa",
+    summary: (petName) => `${petName} đang được thực hiện dịch vụ spa.`
+  });
+
   return ticket;
 }
 
@@ -282,7 +348,41 @@ export async function cancelStaffTicket(authUser: AuthUser, ticketId: string) {
     throw new AppError("Không tìm thấy yêu cầu spa", "GROOMING_TICKET_NOT_FOUND", httpStatus.NOT_FOUND);
   }
 
+  await logStaffGroomingActivity({
+    ticketId,
+    actorUserId: authUser.userId,
+    activityType: "grooming_cancelled",
+    activityStatus: "cancelled",
+    title: "Đã hủy lịch spa",
+    summary: (petName) => `${petName} đã được hủy lịch spa.`
+  });
+
   return ticket;
 }
 
 const timeZone = "Asia/Ho_Chi_Minh";
+
+async function logStaffGroomingActivity(params: {
+  ticketId: string;
+  actorUserId: string;
+  activityType: string;
+  activityStatus: PetActivityStatus;
+  title: string;
+  summary: (petName: string) => string;
+}) {
+  const context = await findGroomingActivityContext(params.ticketId);
+  if (!context) return;
+
+  await upsertPetActivityLog({
+    petId: context.pet_id,
+    ownerUserId: context.owner_user_id,
+    actorUserId: params.actorUserId,
+    activityCategory: "grooming",
+    activityType: params.activityType,
+    activityStatus: params.activityStatus,
+    title: params.title,
+    summary: params.summary(context.pet_name),
+    sourceType: "grooming_ticket",
+    sourceId: params.ticketId
+  });
+}

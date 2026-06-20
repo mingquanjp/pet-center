@@ -20,7 +20,7 @@ export function OwnerInvoiceList({
   }
 
   return (
-    <section className="w-full space-y-4">
+    <section className="grid w-full gap-3 md:grid-cols-2 2xl:grid-cols-3">
       {invoices.map((invoice) => (
         <OwnerInvoiceCard
           key={invoice.id}

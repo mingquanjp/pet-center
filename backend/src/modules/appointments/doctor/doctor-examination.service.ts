@@ -8,6 +8,7 @@ import {
   notifyAppointmentRejected,
   notifyMedicalExamCompleted
 } from "../../notifications/notification-events.js";
+import { upsertPetActivityLog } from "../../pet-activity-logs/pet-activity-logs.repository.js";
 import type {
   AppointmentDetailRow,
   AvailableDoctorRow,
@@ -126,6 +127,22 @@ export async function startDoctorExamination(doctorUserId: string, appointmentId
 
     await repo.updateMedicalExamLifecycle(examId, doctorUserId, "examining", client);
     await repo.updateAppointmentExaminationStatus(row.appointment_id, "examining", client);
+    await upsertPetActivityLog({
+      petId: row.pet_id,
+      ownerUserId: row.owner_id,
+      actorUserId: doctorUserId,
+      activityCategory: "medical",
+      activityType: "medical_exam_started",
+      activityStatus: "pending",
+      title: "Đã bắt đầu khám bệnh",
+      summary: `${row.pet_name} đang được bác sĩ tiếp nhận khám.`,
+      sourceType: "medical_exam",
+      sourceId: examId,
+      metadata: {
+        appointmentId: row.appointment_id,
+        examTypeName: row.type_name
+      }
+    }, client);
   });
 
   return getDoctorExaminationDetail(doctorUserId, appointmentId);
@@ -197,6 +214,89 @@ export async function completeDoctorExamination(
     await repo.replaceVaccination(examId, row.pet_id, body.vaccination, client);
     await repo.replaceFollowUpInstruction(examId, body.followUp, client);
     await repo.updateAppointmentExaminationStatus(row.appointment_id, hasFollowUp ? "follow_up" : "completed", client);
+
+    await repo.processExaminationBilling(
+      row.appointment_id,
+      examId,
+      row.pet_id,
+      row.owner_id,
+      row.exam_type_id,
+      body.prescriptionItems,
+      body.dispenseMedicine ?? true,
+      client
+    );
+    await upsertPetActivityLog({
+      petId: row.pet_id,
+      ownerUserId: row.owner_id,
+      actorUserId: doctorUserId,
+      activityCategory: "medical",
+      activityType: "medical_exam_completed",
+      activityStatus: "completed",
+      title: "Đã hoàn tất phiếu khám",
+      summary: `${row.pet_name} đã có kết quả khám bệnh.`,
+      sourceType: "medical_exam",
+      sourceId: examId,
+      metadata: {
+        appointmentId: row.appointment_id,
+        diagnosis: body.diagnosis,
+        conclusion: body.conclusion,
+        examStatus
+      }
+    }, client);
+    if (body.vaccination) {
+      await upsertPetActivityLog({
+        petId: row.pet_id,
+        ownerUserId: row.owner_id,
+        actorUserId: doctorUserId,
+        activityCategory: "vaccination",
+        activityType: "vaccination_recorded",
+        activityStatus: "completed",
+        title: "Đã ghi nhận tiêm phòng",
+        summary: `${row.pet_name} đã được cập nhật thông tin tiêm phòng.`,
+        sourceType: "medical_exam",
+        sourceId: examId,
+        metadata: {
+          appointmentId: row.appointment_id,
+          vaccination: body.vaccination
+        }
+      }, client);
+    }
+    if (hasPrescription) {
+      await upsertPetActivityLog({
+        petId: row.pet_id,
+        ownerUserId: row.owner_id,
+        actorUserId: doctorUserId,
+        activityCategory: "medical",
+        activityType: "prescription_created",
+        activityStatus: "completed",
+        title: "Đã kê đơn thuốc",
+        summary: `${row.pet_name} có đơn thuốc mới sau buổi khám.`,
+        sourceType: "medical_exam",
+        sourceId: examId,
+        metadata: {
+          appointmentId: row.appointment_id,
+          itemCount: body.prescriptionItems?.length ?? 0
+        }
+      }, client);
+    }
+    if (body.followUp) {
+      await upsertPetActivityLog({
+        petId: row.pet_id,
+        ownerUserId: row.owner_id,
+        actorUserId: doctorUserId,
+        activityCategory: "medical",
+        activityType: "follow_up_instruction_created",
+        activityStatus: "scheduled",
+        title: "Đã hẹn tái khám",
+        summary: `${row.pet_name} có lịch tái khám theo chỉ định của bác sĩ.`,
+        sourceType: "medical_exam",
+        sourceId: examId,
+        metadata: {
+          appointmentId: row.appointment_id,
+          followUp: body.followUp
+        }
+      }, client);
+    }
   });
 
   const result = await getDoctorExaminationDetail(doctorUserId, appointmentId);

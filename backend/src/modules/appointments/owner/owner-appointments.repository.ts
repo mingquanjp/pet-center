@@ -66,8 +66,9 @@ export async function listOwnerAppointments(ownerUserId: string, filters: OwnerA
       et.type_name,
       ma.scheduled_at,
       ma.appointment_status,
+      ma.examination_status,
       ma.symptom_description,
-      me.exam_id AS completed_exam_id
+      me.exam_id
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
@@ -92,7 +93,6 @@ export async function countOwnerAppointments(ownerUserId: string, filters: Owner
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.exam_types et ON ma.exam_type_id = et.exam_type_id
-    LEFT JOIN pet_center.medical_exams me ON me.appointment_id = ma.appointment_id
     WHERE ${where}
   `;
 
@@ -118,13 +118,14 @@ export async function findOwnerAppointmentDetail(appointmentId: string, ownerUse
       et.type_name,
       ma.scheduled_at,
       ma.appointment_status,
+      ma.examination_status,
       ma.symptom_description,
       ma.internal_note,
       ma.rejection_reason,
       o.full_name AS owner_full_name,
       o.phone_number AS owner_phone_number,
       o.email AS owner_email,
-      me.exam_id AS completed_exam_id
+      me.exam_id
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.users o ON ma.owner_user_id = o.user_id
@@ -162,13 +163,14 @@ export async function findOwnerAppointmentDetailForUpdate(
       et.type_name,
       ma.scheduled_at,
       ma.appointment_status,
+      ma.examination_status,
       ma.symptom_description,
       ma.internal_note,
       ma.rejection_reason,
       o.full_name AS owner_full_name,
       o.phone_number AS owner_phone_number,
       o.email AS owner_email,
-      me.exam_id AS completed_exam_id
+      me.exam_id
     FROM pet_center.medical_appointments ma
     JOIN pet_center.pets p ON ma.pet_id = p.pet_id
     JOIN pet_center.users o ON ma.owner_user_id = o.user_id

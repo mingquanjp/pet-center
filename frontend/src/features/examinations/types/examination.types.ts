@@ -84,6 +84,7 @@ export interface DoctorMedicineOption {
   id: string
   name: string
   unit: string
+  stockQuantity: number
   status: string
 }
 
@@ -146,6 +147,7 @@ export interface CompleteDoctorExaminationPayload extends SaveDraftDoctorExamina
   diagnosis: string
   conclusion: string
   prescriptionItems?: DoctorPrescriptionItem[]
+  dispenseMedicine?: boolean
   vaccination?: DoctorVaccination
   followUp?: DoctorFollowUpInstruction
 }

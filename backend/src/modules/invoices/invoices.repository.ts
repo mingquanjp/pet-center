@@ -23,12 +23,12 @@ export async function getStaffInvoicesList(filters: any) {
       i.total_amount,
       p.pet_id,
       p.pet_name,
+      p.profile_image_url AS pet_image_url,
       u.user_id AS owner_id,
       u.full_name AS owner_name,
       (
-        SELECT description FROM pet_center.invoice_lines il 
+        SELECT string_agg(description, ' + ' ORDER BY invoice_line_id ASC) FROM pet_center.invoice_lines il 
         WHERE il.invoice_id = i.invoice_id 
-        ORDER BY il.invoice_line_id ASC LIMIT 1
       ) as first_line_desc,
       (
         SELECT source_type FROM pet_center.invoice_lines il 
@@ -260,6 +260,7 @@ export async function getOwnerInvoicesList(
         i.total_amount,
         p.pet_id,
         p.pet_name,
+        p.profile_image_url AS pet_image_url,
         (
           SELECT paid_at
           FROM pet_center.payments pay
@@ -269,11 +270,9 @@ export async function getOwnerInvoicesList(
           LIMIT 1
         ) AS paid_at,
         (
-          SELECT description
+          SELECT string_agg(description, ' + ' ORDER BY invoice_line_id ASC)
           FROM pet_center.invoice_lines il
           WHERE il.invoice_id = i.invoice_id
-          ORDER BY il.invoice_line_id ASC
-          LIMIT 1
         ) AS first_line_desc,
         (
           SELECT source_type
@@ -310,6 +309,7 @@ export async function getOwnerInvoiceDetail(invoiceId: string, ownerUserId: stri
       i.total_amount,
       p.pet_id,
       p.pet_name,
+      p.profile_image_url AS pet_image_url,
       u.user_id AS owner_id,
       u.full_name AS owner_name,
       pay.paid_at
@@ -346,6 +346,7 @@ export async function getInvoiceDetail(invoiceId: string) {
       i.total_amount,
       p.pet_id,
       p.pet_name,
+      p.profile_image_url AS pet_image_url,
       u.user_id AS owner_id,
       u.full_name AS owner_name,
       pay.paid_at

@@ -18,7 +18,7 @@ export function formatVnd(amount: number): string {
 }
 
 export function getMedicineUnitLabel(unit: MedicineUnit): string {
-  return medicineUnitLabel[unit] || "Khác"
+  return (medicineUnitLabel as Record<string, string>)[unit] || unit
 }
 
 export function getMedicineStatusLabel(status: MedicineStatus): string {

@@ -2,6 +2,7 @@ import * as repo from "./invoices.repository.js";
 import { AppError } from "../../shared/errors/app-error.js";
 import { httpStatus } from "../../shared/errors/http-status.js";
 import { notifyPaymentSuccess } from "../notifications/notification-events.js";
+import { upsertPetActivityLog } from "../pet-activity-logs/pet-activity-logs.repository.js";
 import { mapInvoiceStatus, mapOwnerInvoiceStatus, getOwnerInvoiceNote, mapPaymentOption } from "./invoice-status.mapper.js";
 import { mapServiceType } from "./invoice-service-type.mapper.js";
 
@@ -29,6 +30,7 @@ export async function listStaffInvoices(filters: any) {
     pet: {
       id: row.pet_id,
       name: row.pet_name,
+      imageUrl: row.pet_image_url ?? undefined,
     },
     owner: {
       id: row.owner_id,
@@ -57,7 +59,7 @@ export async function listStaffInvoices(filters: any) {
 
 export async function listOwnerInvoices(ownerUserId: string, filters: any) {
   const page = filters.page ? Number(filters.page) : 1;
-  const limit = filters.limit ? Number(filters.limit) : 4;
+  const limit = filters.limit ? Number(filters.limit) : 6;
 
   const { rows, total } = await repo.getOwnerInvoicesList(ownerUserId, {
     ...filters,
@@ -79,6 +81,7 @@ export async function listOwnerInvoices(ownerUserId: string, filters: any) {
       pet: {
         id: row.pet_id,
         name: row.pet_name,
+        imageUrl: row.pet_image_url ?? undefined,
       },
       serviceType: mapServiceType(row.first_line_source),
       serviceName: mapServiceName(row.first_line_source),
@@ -121,6 +124,7 @@ export async function getOwnerInvoiceDetail(invoiceId: string, ownerUserId: stri
     pet: {
       id: row.pet_id,
       name: row.pet_name,
+      imageUrl: row.pet_image_url ?? undefined,
     },
     issuedAt: new Date(row.issued_at).toISOString().split("T")[0],
     paymentOption: mapPaymentOption(row.payment_option),
@@ -158,6 +162,7 @@ export async function getStaffInvoiceDetail(invoiceId: string) {
     pet: {
       id: row.pet_id,
       name: row.pet_name,
+      imageUrl: row.pet_image_url ?? undefined,
     },
     owner: {
       id: row.owner_id,
@@ -180,7 +185,7 @@ export async function getStaffInvoiceDetail(invoiceId: string) {
   };
 }
 
-export async function confirmStaffInvoicePayment(invoiceId: string, payload: { paymentMethod: string }) {
+export async function confirmStaffInvoicePayment(invoiceId: string, payload: { paymentMethod: string }, staffUserId: string) {
   const row = await repo.getInvoiceDetail(invoiceId);
   if (!row) {
     throw new AppError("Không tìm thấy hóa đơn", "NOT_FOUND", httpStatus.NOT_FOUND);
@@ -199,6 +204,40 @@ export async function confirmStaffInvoicePayment(invoiceId: string, payload: { p
   }
 
   const paymentId = await repo.confirmPayment(invoiceId, payload.paymentMethod, Number(row.total_amount));
+  await upsertPetActivityLog({
+    petId: row.pet_id,
+    ownerUserId: row.owner_id,
+    actorUserId: staffUserId,
+    activityCategory: "payment",
+    activityType: "payment_confirmed",
+    activityStatus: "completed",
+    title: "Đã thanh toán hóa đơn",
+    summary: `Hóa đơn ${row.invoice_code} của ${row.pet_name} đã được thanh toán.`,
+    sourceType: "payment",
+    sourceId: paymentId,
+    metadata: {
+      invoiceId,
+      paymentMethod: payload.paymentMethod,
+      amount: Number(row.total_amount)
+    }
+  });
+  await upsertPetActivityLog({
+    petId: row.pet_id,
+    ownerUserId: row.owner_id,
+    actorUserId: staffUserId,
+    activityCategory: "invoice",
+    activityType: "invoice_paid",
+    activityStatus: "completed",
+    title: "Hóa đơn đã được thanh toán",
+    summary: `Hóa đơn ${row.invoice_code} đã chuyển sang trạng thái đã thanh toán.`,
+    sourceType: "invoice",
+    sourceId: invoiceId,
+    metadata: {
+      paymentId,
+      paymentMethod: payload.paymentMethod,
+      amount: Number(row.total_amount)
+    }
+  });
 
   notifyPaymentSuccess(paymentId).catch(console.error);
 

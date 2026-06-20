@@ -29,7 +29,15 @@ const formatPrescriptionQuantity = (quantity: string | null, unit?: string | nul
   return unit ? `${quantity} ${getMedicineUnitLabel(unit as MedicineUnit)}` : quantity
 }
 
-export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: string; petId: string }) {
+export function OwnerPetMedicalExamDetailPage({
+  examId,
+  petId,
+  returnUrl,
+}: {
+  examId: string
+  petId: string
+  returnUrl?: string
+}) {
   const [exam, setExam] = React.useState<PetMedicalExamDetail | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
@@ -71,10 +79,12 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
   }
 
   if (errorMessage || !exam) {
-    return <ErrorState message={errorMessage ?? "Không tìm thấy phiếu khám"} petId={petId} />
+    return <ErrorState message={errorMessage ?? "Không tìm thấy phiếu khám"} petId={petId} returnUrl={returnUrl} />
   }
 
   const petSubtitle = [exam.pet.speciesLabel, exam.pet.breed].filter(Boolean).join(" / ")
+  const appointmentId = getAppointmentIdFromReturnUrl(returnUrl)
+  const backHref = returnUrl ?? `/owner/pets/${encodeURIComponent(petId)}`
 
   function printExam() {
     if (!exam) return
@@ -99,19 +109,35 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
   return (
     <div className="flex w-full flex-col gap-6">
       <nav className="label-md flex flex-wrap items-center gap-2 text-petcenter-text-secondary" aria-label="Breadcrumb">
-        <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
-          Thú cưng
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
-          Danh sách thú cưng
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <Link className="transition-colors hover:text-petcenter-primary" href={`/owner/pets/${encodeURIComponent(petId)}`}>
-          {exam.pet.petName}
-        </Link>
-        <ChevronRight className="h-4 w-4" />
-        <span className="font-semibold text-petcenter-text">Chi tiết phiếu khám</span>
+        {returnUrl ? (
+          <>
+            <Link className="transition-colors hover:text-petcenter-primary" href="/owner/appointments">
+              Lịch khám của tôi
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <Link className="transition-colors hover:text-petcenter-primary" href={returnUrl}>
+              {appointmentId ?? "Lịch khám"}
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <span className="font-semibold text-petcenter-text">Kết quả khám</span>
+          </>
+        ) : (
+          <>
+            <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
+              Thú cưng
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
+              Danh sách thú cưng
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <Link className="transition-colors hover:text-petcenter-primary" href={`/owner/pets/${encodeURIComponent(petId)}`}>
+              {exam.pet.petName}
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <span className="font-semibold text-petcenter-text">Chi tiết phiếu khám</span>
+          </>
+        )}
       </nav>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -277,10 +303,10 @@ export function OwnerPetMedicalExamDetailPage({ examId, petId }: { examId: strin
       <div className="flex flex-col gap-3 border-t border-petcenter-border-strong pt-6 sm:flex-row sm:items-center sm:justify-between">
         <Link
           className="label-md inline-flex h-11 items-center justify-center gap-2 rounded-control border border-petcenter-border-strong px-5 font-semibold text-petcenter-text-secondary transition hover:bg-petcenter-sidebar"
-          href={`/owner/pets/${encodeURIComponent(petId)}`}
+          href={backHref}
         >
           <ArrowLeft className="h-4 w-4" />
-          Quay lại lịch sử khám
+          {returnUrl ? `Quay lại lịch khám${appointmentId ? ` ${appointmentId}` : ""}` : "Quay lại lịch sử khám"}
         </Link>
         <button
           className="label-md inline-flex h-11 items-center justify-center gap-2 rounded-control bg-petcenter-primary px-5 font-semibold text-white shadow-card transition hover:bg-petcenter-primary-hover disabled:cursor-not-allowed disabled:bg-petcenter-text-muted"
@@ -405,19 +431,28 @@ function ExamDetailSkeleton() {
   )
 }
 
-function ErrorState({ message, petId }: { message: string; petId: string }) {
+function ErrorState({ message, petId, returnUrl }: { message: string; petId: string; returnUrl?: string }) {
   return (
     <section className="mx-auto flex w-full max-w-3xl items-start gap-3 rounded-card border border-petcenter-danger-text/20 bg-petcenter-danger-bg p-4 text-petcenter-danger-text">
       <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
       <div>
         <h1 className="label-md font-semibold">Không thể tải chi tiết phiếu khám</h1>
         <p className="body-md mt-1">{message}</p>
-        <Link className="label-md mt-4 inline-flex font-semibold text-petcenter-danger-text underline" href={`/owner/pets/${encodeURIComponent(petId)}`}>
-          Quay lại hồ sơ thú cưng
+        <Link className="label-md mt-4 inline-flex font-semibold text-petcenter-danger-text underline" href={returnUrl ?? `/owner/pets/${encodeURIComponent(petId)}`}>
+          {returnUrl ? "Quay lại lịch khám" : "Quay lại hồ sơ thú cưng"}
         </Link>
       </div>
     </section>
   )
+}
+
+function getAppointmentIdFromReturnUrl(returnUrl?: string) {
+  if (!returnUrl) return undefined
+
+  const detailMatch = returnUrl.match(/^\/owner\/appointments\/([^/?#]+)/)
+  if (detailMatch) return decodeURIComponent(detailMatch[1])
+
+  return new URL(returnUrl, "http://pet-center.local").searchParams.get("createdAppointmentId") ?? undefined
 }
 
 function getExamStatusLabel(status: PetMedicalExamDetail["examStatus"]) {

@@ -232,6 +232,7 @@ export interface DoctorMedicineOptionRow {
   medicine_id: string;
   medicine_name: string;
   unit: string;
+  stock_quantity: number;
   medicine_status: string;
 }
 
@@ -313,6 +314,7 @@ export interface CompleteDoctorExaminationBody {
   prescriptionItems?: DoctorPrescriptionItemBody[];
   vaccination?: DoctorVaccinationBody;
   followUp?: DoctorFollowUpInstructionBody;
+  dispenseMedicine?: boolean;
 }
 
 export interface SaveDraftDoctorExaminationBody {
