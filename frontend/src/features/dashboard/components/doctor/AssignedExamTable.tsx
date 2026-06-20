@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ClipboardList, SearchX } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -51,9 +52,15 @@ export function AssignedExamTable({ exams }: AssignedExamTableProps) {
       </div>
 
       {exams.length === 0 ? (
-        <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-          <p className="title-md text-petcenter-text">Không có phiếu khám phù hợp</p>
-          <p className="body-md mt-2 max-w-md text-petcenter-text-secondary">
+        <div className="flex flex-col items-center justify-center px-4 py-16 text-center animate-in fade-in duration-500">
+          <div className="relative mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-petcenter-info-bg">
+            <SearchX className="h-10 w-10 text-petcenter-primary" />
+            <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border border-petcenter-border bg-petcenter-card shadow-sm">
+              <ClipboardList className="h-4 w-4 text-petcenter-text-muted" />
+            </div>
+          </div>
+          <h3 className="heading-sm mb-2 text-petcenter-text">Không có phiếu khám phù hợp</h3>
+          <p className="body-md mb-6 text-petcenter-text-secondary">
             Chưa có phiếu khám đang chờ hoặc đang khám trong hôm nay.
           </p>
         </div>

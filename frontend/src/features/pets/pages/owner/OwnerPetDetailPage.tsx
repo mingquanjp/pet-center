@@ -29,6 +29,14 @@ import {
   Weight,
 } from "lucide-react"
 
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
 import { normalizeSearchText } from "@/lib/search"
 import { cn } from "@/lib/utils"
@@ -151,17 +159,21 @@ export function OwnerPetDetailPage({ petId }: { petId: string }) {
   return (
     <div className="flex w-full flex-col gap-gutter">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <nav className="label-md flex flex-wrap items-center gap-2 text-petcenter-text-secondary">
-          <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
-            Thú cưng
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
-            Danh sách thú cưng
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <span className="font-semibold text-petcenter-text">{pet.petName}</span>
-        </nav>
+        <Breadcrumb>
+          <BreadcrumbList className="label-md text-petcenter-text-secondary">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
+                  Danh sách thú cưng
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-semibold text-petcenter-text">{pet.petName}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
         <Link
           className="label-md inline-flex h-10 w-full items-center justify-center gap-2 rounded-control border border-petcenter-primary px-4 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5 sm:w-auto"

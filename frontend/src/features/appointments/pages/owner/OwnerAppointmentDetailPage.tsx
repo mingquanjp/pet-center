@@ -5,6 +5,14 @@ import Link from "next/link";
 import { ArrowLeft, ChevronRight, FileSearch } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AppointmentStatusBadge } from "../../components/shared/AppointmentStatusBadge";
@@ -77,17 +85,21 @@ export function OwnerAppointmentDetailPage({
   return (
     <div className="flex w-full flex-col gap-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <nav className="label-md flex flex-wrap items-center gap-2 text-petcenter-text-secondary">
-          <Link className="transition-colors hover:text-petcenter-primary" href="/owner/appointments">
-            Khám bệnh
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <Link className="transition-colors hover:text-petcenter-primary" href="/owner/appointments">
-            Danh sách lịch khám
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <span className="font-semibold text-petcenter-text">{appointment.appointmentCode}</span>
-        </nav>
+        <Breadcrumb>
+          <BreadcrumbList className="label-md text-petcenter-text-secondary">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link className="transition-colors hover:text-petcenter-primary" href="/owner/appointments">
+                  Danh sách lịch khám
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-semibold text-petcenter-text">{appointment.appointmentCode}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
 
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:justify-end">
           {appointment.status === "COMPLETED" && examResultHref ? (
@@ -112,16 +124,13 @@ export function OwnerAppointmentDetailPage({
               Hủy lịch khám
             </Button>
           ) : null}
-        <Button
-          asChild
-          variant="outline"
-          className="h-10 w-full rounded-[0.75rem] border-petcenter-border bg-petcenter-card body-md font-medium text-petcenter-text-secondary hover:bg-petcenter-background hover:text-petcenter-text md:w-auto"
+        <Link
+          className="label-md inline-flex h-10 w-full items-center justify-center gap-2 rounded-control border border-petcenter-primary px-4 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5 sm:w-auto"
+          href="/owner/appointments"
         >
-          <Link href="/owner/appointments">
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            Quay lại danh sách
-          </Link>
-        </Button>
+          <ArrowLeft className="h-4 w-4" />
+          Quay lại danh sách
+        </Link>
         </div>
       </div>
 

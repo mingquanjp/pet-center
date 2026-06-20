@@ -23,6 +23,14 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { cn } from "@/lib/utils"
 import { uploadsApi } from "@/features/uploads/api/uploads.api"
 import { petsApi } from "../../api/pets.api"
@@ -184,15 +192,25 @@ export function OwnerAddPetPage() {
 
   return (
     <div className="w-full">
-      <nav className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="body-md text-petcenter-text-secondary">
-          <Link className="font-semibold text-petcenter-primary hover:underline" href="/owner/pets">
-            Danh sách thú cưng
-          </Link>{" "}
-          &gt; <span className="font-semibold text-petcenter-primary">Thêm hồ sơ</span>
-        </div>
+      <nav className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <Breadcrumb>
+          <BreadcrumbList className="label-md text-petcenter-text-secondary">
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link className="transition-colors hover:text-petcenter-primary" href="/owner/pets">
+                  Danh sách thú cưng
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage className="font-semibold text-petcenter-text">Thêm hồ sơ</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+
         <Link
-          className="label-md inline-flex h-10 items-center justify-center gap-2 rounded-control border border-petcenter-primary bg-white px-4 font-semibold text-petcenter-primary shadow-card transition hover:bg-petcenter-sidebar sm:w-auto"
+          className="label-md inline-flex h-10 w-full items-center justify-center gap-2 rounded-control border border-petcenter-primary px-4 font-semibold text-petcenter-primary transition hover:bg-petcenter-primary/5 sm:w-auto"
           href="/owner/pets"
         >
           <ArrowLeft className="h-4 w-4" />
