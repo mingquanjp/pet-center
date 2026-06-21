@@ -3,6 +3,7 @@ import { httpStatus } from "../../../src/shared/errors/http-status.js";
 import * as repo from "../../../src/modules/appointments/staff/staff-appointment.repository.js";
 import * as transactions from "../../../src/db/transactions.js";
 import * as notifications from "../../../src/modules/notifications/notification-events.js";
+import * as petActivityLogs from "../../../src/modules/pet-activity-logs/pet-activity-logs.repository.js";
 import {
   confirmStaffAppointment,
   rejectStaffAppointment,
@@ -17,18 +18,26 @@ vi.mock("../../../src/modules/notifications/notification-events.js", () => ({
   notifyAppointmentRejected: vi.fn().mockResolvedValue(undefined),
   notifyMedicalExamCompleted: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock("../../../src/modules/pet-activity-logs/pet-activity-logs.repository.js", () => ({
+  upsertPetActivityLog: vi.fn().mockResolvedValue("elog_mock"),
+}));
 
 const mockRepo = vi.mocked(repo);
 
 describe("Staff Appointment Service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRepo.findStaffAppointmentDetailById.mockReset();
     
     // Default mocks for getting detail inside service at the end of the operation
     mockRepo.findStaffAppointmentDetailById.mockResolvedValue({
       appointment_id: "appt_mock",
       appointment_status: "confirmed",
       type_code: "general",
+      type_name: "Khám tổng quát",
+      pet_id: "pet_001",
+      pet_name: "Lucky",
+      owner_user_id: "owner_001",
       scheduled_at: new Date("2026-06-10T09:00:00Z"),
     } as any);
   });
@@ -41,6 +50,11 @@ describe("Staff Appointment Service", () => {
       mockRepo.findStaffAppointmentDetailByIdForUpdate.mockResolvedValue({
         appointment_id: validAppointmentId,
         appointment_status: "pending",
+        pet_id: "pet_001",
+        pet_name: "Lucky",
+        owner_user_id: "owner_001",
+        type_code: "general",
+        type_name: "Khám tổng quát",
         scheduled_at: new Date("2026-06-10T09:00:00Z"),
       } as any);
 
@@ -70,6 +84,11 @@ describe("Staff Appointment Service", () => {
       mockRepo.findStaffAppointmentDetailByIdForUpdate.mockResolvedValue({
         appointment_id: validAppointmentId,
         appointment_status: "pending",
+        pet_id: "pet_001",
+        pet_name: "Lucky",
+        owner_user_id: "owner_001",
+        type_code: "general",
+        type_name: "Khám tổng quát",
         scheduled_at: new Date("2026-06-10T09:00:00Z"),
       } as any);
 
@@ -135,6 +154,11 @@ describe("Staff Appointment Service", () => {
       mockRepo.findStaffAppointmentDetailByIdForUpdate.mockResolvedValue({
         appointment_id: validAppointmentId,
         appointment_status: "pending",
+        pet_id: "pet_001",
+        pet_name: "Lucky",
+        owner_user_id: "owner_001",
+        type_code: "general",
+        type_name: "Khám tổng quát",
         scheduled_at: new Date("2026-06-10T09:00:00Z"),
       } as any);
 
@@ -155,6 +179,11 @@ describe("Staff Appointment Service", () => {
       mockRepo.findStaffAppointmentDetailById.mockResolvedValueOnce({
         appointment_id: validAppointmentId,
         appointment_status: "pending",
+        pet_id: "pet_001",
+        pet_name: "Lucky",
+        owner_user_id: "owner_001",
+        type_code: "general",
+        type_name: "Khám tổng quát",
         scheduled_at: new Date("2026-06-10T09:00:00Z"),
       } as any);
 
@@ -178,6 +207,13 @@ describe("Staff Appointment Service", () => {
         body.internalNote
       );
       expect(result.status).toBe("REJECTED");
+      expect(vi.mocked(petActivityLogs.upsertPetActivityLog)).toHaveBeenCalledWith(
+        expect.objectContaining({
+          petId: "pet_001",
+          ownerUserId: "owner_001",
+          activityType: "appointment_rejected",
+        }),
+      );
     });
 
     it("UT-APPOINTMENT-STAFF-008 - Từ chối khi appointment không tồn tại trong luồng reject", async () => {
