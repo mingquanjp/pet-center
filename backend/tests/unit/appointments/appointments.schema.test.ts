@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  listStaffAppointmentsQuerySchema,
+  staffAppointmentIdParamsSchema,
+  confirmStaffAppointmentSchema,
   rejectStaffAppointmentSchema,
+  listDoctorExaminationsQuerySchema,
+  doctorExaminationIdParamsSchema,
   completeDoctorExaminationSchema,
 } from "../../../src/modules/appointments/appointments.schema.js";
 
@@ -12,6 +17,121 @@ describe("rejectStaffAppointmentSchema", () => {
     if (!result.success) {
       expect(result.error.issues[0].message).toContain("at least 5 characters");
     }
+  });
+
+  it("UTX-APPOINTMENTS-027 - rejectStaffAppointmentSchema chấp nhận payload hợp lệ tại các giá trị biên", () => {
+    const payload = {
+      rejectionReason: "Lý do từ chối hợp lệ dài hơn 5 kí tự",
+      internalNote: "Ghi chú hợp lệ"
+    };
+    const result = rejectStaffAppointmentSchema.safeParse(payload);
+    expect(result.success).toBe(true);
+  });
+
+  it("UTX-APPOINTMENTS-028 - rejectStaffAppointmentSchema từ chối payload thiếu trường bắt buộc hoặc sai kiểu/enum", () => {
+    const payload = {
+      rejectionReason: "Ngắn", // dưới 5 ký tự
+      internalNote: "a".repeat(1001) // quá 1000 ký tự
+    };
+    const result = rejectStaffAppointmentSchema.safeParse(payload);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("listStaffAppointmentsQuerySchema", () => {
+  it("UTX-APPOINTMENTS-021 - listStaffAppointmentsQuerySchema chấp nhận payload hợp lệ tại các giá trị biên", () => {
+    const payload = {
+      search: "John",
+      status: "CONFIRMED",
+      serviceType: "GENERAL_CHECKUP",
+      tab: "CONFIRMED",
+      date: "2026-06-20",
+      page: 1,
+      limit: 10
+    };
+    const result = listStaffAppointmentsQuerySchema.safeParse(payload);
+    expect(result.success).toBe(true);
+  });
+
+  it("UTX-APPOINTMENTS-022 - listStaffAppointmentsQuerySchema từ chối payload thiếu trường bắt buộc hoặc sai kiểu/enum", () => {
+    const payload = {
+      status: "INVALID_STATUS",
+      page: 0 // page < 1
+    };
+    const result = listStaffAppointmentsQuerySchema.safeParse(payload);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("staffAppointmentIdParamsSchema", () => {
+  it("UTX-APPOINTMENTS-023 - staffAppointmentIdParamsSchema chấp nhận payload hợp lệ tại các giá trị biên", () => {
+    const payload = { appointmentId: "appt_123" };
+    const result = staffAppointmentIdParamsSchema.safeParse(payload);
+    expect(result.success).toBe(true);
+  });
+
+  it("UTX-APPOINTMENTS-024 - staffAppointmentIdParamsSchema từ chối payload thiếu trường bắt buộc hoặc sai kiểu/enum", () => {
+    const payload = { appointmentId: "" };
+    const result = staffAppointmentIdParamsSchema.safeParse(payload);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("confirmStaffAppointmentSchema", () => {
+  it("UTX-APPOINTMENTS-025 - confirmStaffAppointmentSchema chấp nhận payload hợp lệ tại các giá trị biên", () => {
+    const payload = {
+      doctorUserId: "doc_123",
+      internalNote: "Hợp lệ"
+    };
+    const result = confirmStaffAppointmentSchema.safeParse(payload);
+    expect(result.success).toBe(true);
+  });
+
+  it("UTX-APPOINTMENTS-026 - confirmStaffAppointmentSchema từ chối payload thiếu trường bắt buộc hoặc sai kiểu/enum", () => {
+    const payload = {
+      internalNote: "a".repeat(1001) // quá 1000 ký tự
+    };
+    const result = confirmStaffAppointmentSchema.safeParse(payload);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("listDoctorExaminationsQuerySchema", () => {
+  it("UTX-APPOINTMENTS-029 - listDoctorExaminationsQuerySchema chấp nhận payload hợp lệ tại các giá trị biên", () => {
+    const payload = {
+      search: "Buddy",
+      status: "WAITING",
+      examType: "VACCINATION",
+      tab: "WAITING",
+      date: "2026-06-20",
+      page: 2,
+      limit: 15
+    };
+    const result = listDoctorExaminationsQuerySchema.safeParse(payload);
+    expect(result.success).toBe(true);
+  });
+
+  it("UTX-APPOINTMENTS-030 - listDoctorExaminationsQuerySchema từ chối payload thiếu trường bắt buộc hoặc sai kiểu/enum", () => {
+    const payload = {
+      status: "EXAMINING_INVALID",
+      limit: 51 // max 50
+    };
+    const result = listDoctorExaminationsQuerySchema.safeParse(payload);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("doctorExaminationIdParamsSchema", () => {
+  it("UTX-APPOINTMENTS-031 - doctorExaminationIdParamsSchema chấp nhận payload hợp lệ tại các giá trị biên", () => {
+    const payload = { appointmentId: "exam_123" };
+    const result = doctorExaminationIdParamsSchema.safeParse(payload);
+    expect(result.success).toBe(true);
+  });
+
+  it("UTX-APPOINTMENTS-032 - doctorExaminationIdParamsSchema từ chối payload thiếu trường bắt buộc hoặc sai kiểu/enum", () => {
+    const payload = { appointmentId: "" };
+    const result = doctorExaminationIdParamsSchema.safeParse(payload);
+    expect(result.success).toBe(false);
   });
 });
 

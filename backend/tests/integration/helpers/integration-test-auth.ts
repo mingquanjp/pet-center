@@ -22,3 +22,7 @@ export function loginAsStaff(): Promise<string> {
 export function loginAsDoctor(): Promise<string> {
   return loginAndGetToken(integrationTestCredentials.doctor.email, integrationTestCredentials.doctor.password);
 }
+
+export function loginAsAdmin(): Promise<string> {
+  return loginAndGetToken(integrationTestCredentials.admin.email, integrationTestCredentials.admin.password);
+}
